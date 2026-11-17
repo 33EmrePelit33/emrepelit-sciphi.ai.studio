@@ -1,0 +1,22 @@
+# Emre Pelit — Sci-Phil Official Security & Authorship Attestation (RFC 9116)
+Contact: mailto:emrepelit39@gmail.com
+Contact: https://www.youtube.com/@science_only
+Contact: https://www.linkedin.com/in/emrepelit109
+Contact: https://x.com/emrepelit109
+Canonical: https://emrepelit-sciphi.ai.studio/.well-known/security.txt
+Preferred-Languages: tr, en
+Expires: 2027-12-31T23:59:59.000Z
+# Exclusive Copyright & Ownership: Emre Pelit (YouTube: @science_only)
+# Official Main Hub: https://emrepelit-sciphi.ai.studio
+# Official YouTube Channel: https://www.youtube.com/@science_only (@science_only)
+# Protected 10 Official Ecosystem Nodes (TLS 1.3 + SHA-256 + WAF + HSTS Preload + 301/Canonical Lock):
+# 1. https://science-philosophy.grok.me
+# 2. https://emrepelit7337.blogspot.com
+# 3. https://sci-phi.ai.studio
+# 4. https://sci-phil.ai.studio
+# 5. https://science-philosophy.ai.studio
+# 6. https://science-philosophy-emre-pelit.ai.studio
+# 7. https://emre-pelit-sci-phil.ai.studio
+# 8. https://emrepelit-sciphi.ai.studio (HTTP 200 OK Canonical Main Hub)
+# 9. https://emrepelit.github.io/science-philosophy (GitHub Pages Canonical + Edge 301)
+# 10. https://emrepelit-sci-phi.ai.studio (NSosyal Hyphenated Variation 1:1 HTTP 301)

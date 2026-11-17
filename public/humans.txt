@@ -1,0 +1,15 @@
+/* TEAM */
+  Author & Founder: Emre Pelit
+  Contact: emrepelit39 [at] gmail.com
+  GitHub Profile: https://github.com/emrepelit109
+  301 GitHub Node: https://emrepelit.github.io/science-philosophy
+  YouTube: https://www.youtube.com/@science_only
+  LinkedIn: https://www.linkedin.com/in/emrepelit109
+  X: https://x.com/emrepelit109
+  Instagram: https://www.instagram.com/bilimsohbeti
+  Location: Mersin, Turkey
+
+/* SITE */
+  Canonical Hub: https://emrepelit-sciphi.ai.studio/
+  Standards: HTML5, Schema.org (BlogPosting, ScholarlyArticle, WebSite, Person), OpenSearch 1.1, oEmbed 1.0, WebFinger RFC 7033, RSS 2.0, Atom 1.0, JSON Feed 1.1, W3C WebManifest, Sitemaps.org, LLMs.txt
+  Languages: tr, en, es, de, fr (+ 12-language UI & Scholar metadata)

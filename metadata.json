@@ -1,0 +1,6 @@
+{
+  "name": "Emre Pelit — Sci-Phil Ana Hub & 301 Akademik Ağı",
+  "description": "Emre Pelit Bilim ve Felsefe (Sci-Phil) Ana Hub Platformu: 301 Ağı Merkezi, Makaleye Özel İnteraktif Simülasyonlar, Makale Seslendirici, Yapay Zeka İçerik & Analiz Laboratuvarı ve Canlı Blogger Senkronizasyonu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

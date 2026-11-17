@@ -1,0 +1,31 @@
+name: Sci-Phil Blogger Sync, SSG Prerender & 301 Index Build
+
+on:
+  schedule:
+    # Daily sync at 03:00 UTC to keep all 316+ articles static-cached
+    - cron: '0 3 * * *'
+  repository_dispatch:
+    types: [blogger-post-published]
+  workflow_dispatch:
+
+jobs:
+  build-and-prerender:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Paginated Blogger corpus sync (all 316+ posts) & snapshot generation
+        run: node scripts/prerender-archive.mjs --sync
+
+      - name: Build production bundle & full SSG static HTML routes
+        run: npm run build
