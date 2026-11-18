@@ -1,0 +1,13 @@
+# HTTP 301 Redirects for Legacy Nodes & Satellite Domains -> Canonical Main Hub
+https://sci-phi.ai.studio/* https://emrepelit-sciphi.ai.studio/:splat 301!
+https://sci-phil.ai.studio/* https://emrepelit-sciphi.ai.studio/:splat 301!
+https://science-philosophy.ai.studio/* https://emrepelit-sciphi.ai.studio/:splat 301!
+https://science-philosophy-emre-pelit.ai.studio/* https://emrepelit-sciphi.ai.studio/:splat 301!
+https://emre-pelit-sci-phil.ai.studio/* https://emrepelit-sciphi.ai.studio/:splat 301!
+https://emrepelit-sci-phi.ai.studio/* https://emrepelit-sciphi.ai.studio/:splat 301!
+https://science-philosophy.grok.me/* https://emrepelit-sciphi.ai.studio/:splat 301!
+
+# SPA Fallback Rules (prevents PERMISSION_DENIED / 404 on /archive and multilingual subpaths)
+/archive /index.html 200
+/:lang/archive /index.html 200
+/* /index.html 200

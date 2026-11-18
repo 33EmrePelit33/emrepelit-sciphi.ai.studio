@@ -11,5 +11,5 @@
 
 /* SITE */
   Canonical Hub: https://emrepelit-sciphi.ai.studio/
-  Standards: HTML5, Schema.org (BlogPosting, ScholarlyArticle, WebSite, Person), OpenSearch 1.1, oEmbed 1.0, WebFinger RFC 7033, RSS 2.0, Atom 1.0, JSON Feed 1.1, W3C WebManifest, Sitemaps.org, LLMs.txt
-  Languages: tr, en, es, de, fr (+ 12-language UI & Scholar metadata)
+  Standards: HTML5, Schema.org (BlogPosting, ScholarlyArticle, VideoObject, Quiz, WebSite, WebApplication, Person), OpenSearch 1.1, oEmbed 1.0, WebFinger RFC 7033, RSS 2.0, Atom 1.0, JSON Feed 1.1, W3C WebManifest, Sitemaps.org, LLMs.txt
+  Languages: tr, en, es, de, fr (+ 12-language UI, 60s HTML5 videos, MCQ quizzes & Scholar metadata)

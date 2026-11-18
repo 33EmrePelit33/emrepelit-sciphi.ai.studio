@@ -50,13 +50,13 @@ export const MathFormula: React.FC<MathFormulaProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-2 max-w-full overflow-x-auto align-middle ${
+      className={`inline-flex items-center gap-2 max-w-full overflow-x-auto pr-8 align-middle ${
         displayMode ? 'w-full justify-between' : ''
       } ${className}`}
     >
       {renderedHtml ? (
         <span
-          className="katex-rendered leading-normal"
+          className="katex-rendered leading-normal shrink-0"
           dangerouslySetInnerHTML={{ __html: renderedHtml }}
         />
       ) : (

@@ -93,7 +93,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Emre Pelit — Sci-Phil Ana Hub Uygulaması (${totalArticlesCount} Makale · 10 Site 301 Ağı)</title>
+  <title>Emre Pelit — Sci-Phil Ana Hub Uygulaması (${totalArticlesCount} Makale · 2 Canlı Site + 8 Konsolide 301)</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; background: #0F172A; color: #F8FAFC; margin: 0; padding: 32px; line-height: 1.6; }
     .card { max-width: 720px; margin: 0 auto; background: #1E293B; border: 2px solid #F59E0B; border-radius: 6px; padding: 28px; }
@@ -108,9 +108,12 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
     <h1>Emre Pelit — Sci-Phil Ana Hub &amp; 301 Akademik Ağı</h1>
     <p><strong>Kapsam:</strong> ${totalArticlesCount} Özgün Bilim &amp; Felsefe Makalesi (Önceki Bilimsel Araştırmalar &amp; Yerleşik Kabuller + 12 Dil Seslendirme + İnteraktif Simülasyonlar)</p>
     <p><a class="btn" href="https://emrepelit-sciphi.ai.studio/">Ana Hub Uygulamasını Başlat (emrepelit-sciphi.ai.studio) →</a></p>
-    <h3>10 Resmi 301 Ağı Web Sitesi (Tekil Otorite Merkezi: emrepelit-sciphi.ai.studio)</h3>
+    <h3>2 Canlı Web Sitesi (Ana Hub + Blogger) &amp; 8 Konsolide HTTP 301 Yönlendirmesi</h3>
     <ul>
-      ${OFFICIAL_10_WEBSITES.map((d) => `<li><a style="color:#38BDF8" href="https://${d}/">${d}</a></li>`).join('\n      ')}
+      ${OFFICIAL_10_WEBSITES.map((d) => {
+        const isLive = d === 'emrepelit-sciphi.ai.studio' || d === 'emrepelit7337.blogspot.com';
+        return `<li><a style="color:${isLive ? '#34D399' : '#94A3B8'}" href="https://${d}/">${d}</a> (${isLive ? 'CANLI (200 OK)' : 'HTTP 301 → emrepelit-sciphi.ai.studio'})</li>`;
+      }).join('\n      ')}
     </ul>
   </div>
 </body>
@@ -138,7 +141,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       <button
         type="button"
         onClick={handleDownloadClick}
-        title="Sci-Phil Akademik Platformunu Uygulama Olarak İndir / Kur (PWA · 10 Site 301 Ağı)"
+        title="Sci-Phil Akademik Platformunu Uygulama Olarak İndir / Kur (PWA · Tek Kanonik Ana Hub + Blogger)"
         aria-label="Uygulamayı İndir (Download)"
         className={`inline-flex items-center gap-1.5 font-mono font-extrabold rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer border ${
           compact
@@ -179,7 +182,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                 />
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">
-                    PWA BAĞIMSIZ UYGULAMA · 10 RESMİ 301 SİTESİNDE AKTİF
+                    PWA BAĞIMSIZ UYGULAMA · TEK KANONİK MERKEZ HUB + BLOGGER (8 ESKİ 301 → ANA HUB)
                   </div>
                   <h3 className="text-base font-editorial font-bold text-white">
                     Emre Pelit — Sci-Phil Uygulamasını İndir &amp; Kur
@@ -244,7 +247,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                     <strong>&quot;Uygulamayı yükle / Ana ekrana ekle&quot;</strong> seçin.
                   </li>
                   <li>
-                    Web App Manifest (<code>/manifest.webmanifest</code>) ve Service Worker çevrimdışı önbelleği şu anda bu oturumda ve tüm 10 resmi 301 sitesinde aktiftir.
+                    Web App Manifest (<code>/manifest.webmanifest</code>) ve Service Worker çevrimdışı önbelleği şu anda tek kanonik ana merkez <code>emrepelit-sciphi.ai.studio</code> üzerinde aktiftir; 8 eski uydu alan adı sunucu taraflı kalıcı HTTP 301 ile buraya yönlendirilir.
                   </li>
                 </ol>
               )}
@@ -253,7 +256,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xs space-y-1.5 text-[11px] text-slate-300">
               <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
                 <Globe className="w-3.5 h-3.5" />
-                <span>301 Ağındaki Tüm 10 Resmi Web Sitesinde PWA Hazır:</span>
+                <span>Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) &amp; Canlı Blogger Senkronizasyonunda PWA Hazır:</span>
               </div>
               <div className="text-[10px] text-slate-400">
                 {totalArticlesCount} özgün makale, önceki bilimsel araştırmalar (isimli bilim insanları), yerleşik kabuller, 12 dil sesli anlatım ve matematiksel simülasyonlar tek tıkla başlatılabilir uygulama olarak çalışır; otorite %100 <code>emrepelit-sciphi.ai.studio</code> üzerinde korunur.
@@ -296,18 +299,67 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   );
 };
 
-export const OfflineIndicator: React.FC = () => {
+interface OfflineIndicatorProps {
+  kvkkBannerVisible?: boolean;
+  hasCachedArticles?: boolean;
+}
+
+export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
+  kvkkBannerVisible = false,
+  hasCachedArticles = false,
+}) => {
   const isOnline = useOnlineStatus();
+  const [collapsedToSubtleBadge, setCollapsedToSubtleBadge] = useState(false);
+
+  useEffect(() => {
+    if (isOnline) {
+      setCollapsedToSubtleBadge(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setCollapsedToSubtleBadge(true);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [isOnline]);
+
   if (isOnline) return null;
+
+  const bottomPositionClass = kvkkBannerVisible ? 'bottom-[88px]' : 'bottom-6';
+
+  if (hasCachedArticles && collapsedToSubtleBadge) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className={`fixed ${bottomPositionClass} left-4 z-40 inline-flex items-center gap-1.5 rounded-sm bg-slate-900/90 text-amber-300 border border-amber-500/40 px-2.5 py-1 text-[11px] font-mono shadow-md transition-all`}
+      >
+        <WifiOff className="w-3 h-3 shrink-0" />
+        <span>Önbellek Hazır (JSONP/Proxy)</span>
+      </div>
+    );
+  }
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-sm bg-amber-500 px-3.5 py-2 text-xs font-mono font-bold text-slate-950 shadow-xl border border-amber-700"
+      className={`fixed ${bottomPositionClass} left-4 z-40 flex items-center gap-2 rounded-sm bg-amber-500 px-3.5 py-2 text-xs font-mono font-bold text-slate-950 shadow-xl border border-amber-700 max-w-[calc(100vw-2rem)] transition-all`}
     >
       <WifiOff className="w-4 h-4 shrink-0" />
-      <span>Çevrimdışı Mod — Önbelleğe alınmış veriler kullanılıyor.</span>
+      <span>
+        {hasCachedArticles
+          ? 'Önbellekteki Ana Hub verileri açık — JSONP/Proxy senkronize ediliyor.'
+          : 'Ağ Bağlantısı Bekleniyor — Önbellekteki Ana Hub verileri açık.'}
+      </span>
+      <button
+        type="button"
+        onClick={() => setCollapsedToSubtleBadge(true)}
+        aria-label="Ağ durumu uyarısını küçült"
+        className="ml-1 px-1.5 py-0.5 bg-amber-600/40 hover:bg-amber-600/60 rounded-xs text-[10px] cursor-pointer"
+      >
+        ✕
+      </button>
     </div>
   );
 };
+

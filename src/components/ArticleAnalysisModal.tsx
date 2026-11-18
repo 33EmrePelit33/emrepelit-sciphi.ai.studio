@@ -32,12 +32,17 @@ import {
   getLocalizedText,
   getLocalizedArray,
 } from '../i18n/translations';
-import { OFFICIAL_10_WEBSITES } from '../data/initialData';
+import { ACTIVE_LIVE_WEBSITES, OFFICIAL_10_WEBSITES } from '../data/initialData';
+import { getLocalizedArticlePath } from '../utils/articleLocale';
+
+const LIVE_SET = new Set<string>(ACTIVE_LIVE_WEBSITES);
 import {
   computeArticleScientificAnalysis,
   ArticleFullAnalysisReport,
 } from '../utils/articleAnalysisEngine';
 import { ArticleQuestionModule } from './ArticleQuestionModule';
+import { ArticleExplainerVideo } from './ArticleExplainerVideo';
+import { ArticleQuizModule } from './ArticleQuizModule';
 import { MathFormula } from './MathFormula';
 import { CitationExportBox } from './CitationExportBox';
 
@@ -1895,14 +1900,14 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                       <Globe className="w-4 h-4 text-emerald-400" />
                       <span>
                         {isTr
-                          ? `TÜM 301 AĞINDAKİ ${OFFICIAL_10_WEBSITES.length} RESMİ WEB SİTESİNDE YAYIN & KANONİK DURUM`
-                          : `PUBLICATION & CANONICAL STATUS ACROSS ${OFFICIAL_10_WEBSITES.length} NETWORK DOMAINS`}
+                          ? '2 CANLI WEB SİTESİ (ANA HUB + BLOGGER) & 8 EMEKLİ 301 YÖNLENDİRME KAYDI'
+                          : '2 LIVE WEBSITES (MAIN HUB + BLOGGER) & 8 DECOMMISSIONED 301 REDIRECTS'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-300 max-w-4xl">
                       {isTr
-                        ? `Bu makale ve analizi (${effectiveReport.averageReadingTime.formattedShort}) ${OFFICIAL_10_WEBSITES.length} ağ düğümünde senkronizedir; birincil kanonik merkez yalnızca emrepelit-sciphi.ai.studio adresidir.`
-                        : `This article and analysis (${effectiveReport.averageReadingTime.formattedShort}) are synchronized across all ${OFFICIAL_10_WEBSITES.length} domains, with emrepelit-sciphi.ai.studio as the sole primary canonical hub.`}
+                        ? `Bu makale ve analizi (${effectiveReport.averageReadingTime.formattedShort}) canlı Ana Hub (emrepelit-sciphi.ai.studio) ve canlı Blogger kaynağı (emrepelit7337.blogspot.com) üzerinde HTTP 200 ile yayındadır; 8 eski alan adı HTTP 301 ile tek merkeze yönlendirilmiştir.`
+                        : `This article and analysis (${effectiveReport.averageReadingTime.formattedShort}) are served live HTTP 200 on emrepelit-sciphi.ai.studio and emrepelit7337.blogspot.com; 8 legacy domains redirect via HTTP 301 to the sole canonical hub.`}
                     </p>
                   </div>
 
@@ -1916,11 +1921,11 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                     <span>
                       {isPropagating301
                         ? isTr
-                          ? `Tüm ${OFFICIAL_10_WEBSITES.length} Siteye Senkronize Ediliyor...`
-                          : `Syncing ${OFFICIAL_10_WEBSITES.length} Domains...`
+                          ? 'Ana Hub & 301 Yönlendirmeleri Doğrulanıyor...'
+                          : 'Verifying Main Hub & 301 Redirects...'
                         : isTr
-                          ? `Tüm ${OFFICIAL_10_WEBSITES.length} Düğümü Senkronize Et`
-                          : `Sync All ${OFFICIAL_10_WEBSITES.length} Domains`}
+                          ? 'Ana Hub & 301 Yönlendirmelerini Doğrula'
+                          : 'Verify Main Hub & 301 Redirects'}
                     </span>
                   </button>
                 </div>
@@ -1928,11 +1933,10 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                 {propagated301Receipt && (
                   <div className="bg-emerald-950 border border-emerald-400 px-3.5 py-2.5 rounded-xs text-xs font-mono text-emerald-200 flex flex-wrap items-center justify-between gap-2">
                     <span>
-                      ✓ {propagated301Receipt.syndicationToken}: {propagated301Receipt.totalSitesCount}/{propagated301Receipt.totalSitesCount}{' '}
-                      {isTr ? 'düğüm senkronize edildi' : 'nodes synced'} ({propagated301Receipt.totalArticlesPublishedPerSite} {isTr ? 'makale' : 'articles'})
+                      ✓ {propagated301Receipt.syndicationToken}: 2 Canlı Site + 8 Emekli 301 Doğrulandı ({propagated301Receipt.totalArticlesPublishedPerSite} {isTr ? 'makale' : 'articles'})
                     </span>
                     <span className="text-amber-300 font-bold">
-                      {isTr ? 'Kanonik Merkez: emrepelit-sciphi.ai.studio' : 'Canonical Hub: emrepelit-sciphi.ai.studio'}
+                      {isTr ? 'Tek Kanonik Merkez: emrepelit-sciphi.ai.studio' : 'Sole Canonical Hub: emrepelit-sciphi.ai.studio'}
                     </span>
                   </div>
                 )}
@@ -1940,7 +1944,12 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 font-mono text-[11px]">
                   {OFFICIAL_10_WEBSITES.map((domain, idx) => {
                     const isMainHub = domain === 'emrepelit-sciphi.ai.studio';
-                    const nodeUrl = `https://${domain}/?article=${encodeURIComponent(article.id)}&lang=${analysisLang}`;
+                    const isBloggerLive = domain === 'emrepelit7337.blogspot.com';
+                    const isLiveSite = LIVE_SET.has(domain);
+                    const canonicalPath = getLocalizedArticlePath(analysisLang, article.slug || article.id);
+                    const nodeUrl = isBloggerLive
+                      ? article.bloggerUrl || 'https://emrepelit7337.blogspot.com'
+                      : `https://${domain}${canonicalPath}`;
                     return (
                       <a
                         key={domain}
@@ -1950,27 +1959,51 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                         className={`p-3 rounded-xs border transition-colors flex flex-col justify-between gap-1.5 ${
                           isMainHub
                             ? 'bg-emerald-950/80 border-emerald-400 text-emerald-100 hover:bg-emerald-900/70'
-                            : 'bg-slate-900/90 border-slate-700 text-slate-200 hover:border-amber-400'
+                            : isBloggerLive
+                              ? 'bg-amber-950/40 border-amber-400/70 text-amber-100 hover:border-amber-300'
+                              : 'bg-slate-950/80 border-slate-800 text-slate-400 opacity-75 hover:border-slate-600'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-1">
                           <span className="font-bold text-amber-300">#{idx + 1}</span>
-                          <span className="px-1.5 py-0.5 text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xs">
+                          <span
+                            className={`px-1.5 py-0.5 text-[9px] rounded-xs border ${
+                              isLiveSite
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : 'bg-slate-900 text-slate-400 border-slate-700'
+                            }`}
+                          >
                             {isMainHub
                               ? isTr
-                                ? '200 KANONİK HUB'
-                                : '200 CANONICAL HUB'
-                              : domain.endsWith('.ai.studio')
-                                ? '301 → HUB'
-                                : 'CANONICAL → HUB'}
+                                ? 'CANLI ANA HUB · 200'
+                                : 'LIVE MAIN HUB · 200'
+                              : isBloggerLive
+                                ? isTr
+                                  ? 'CANLI BLOGGER · 200'
+                                  : 'LIVE BLOGGER · 200'
+                                : isTr
+                                  ? 'YAYINDAN KALDIRILDI · 301 → HUB'
+                                  : 'DECOMMISSIONED · 301 → HUB'}
                           </span>
                         </div>
-                        <div className="font-bold text-white truncate">{domain}</div>
+                        <div className={`font-bold truncate ${isLiveSite ? 'text-white' : 'text-slate-300'}`}>
+                          {domain}
+                        </div>
                         <div className="text-[10px] text-cyan-300 font-semibold">
                           ⏱ {isTr ? 'Okunma' : 'Read'}: {effectiveReport.averageReadingTime.formattedShort}
                         </div>
-                        <div className="text-[10px] text-emerald-300 flex items-center justify-between gap-1">
-                          <span>✓ {isTr ? 'Senkronize' : 'Synced'}</span>
+                        <div
+                          className={`text-[10px] flex items-center justify-between gap-1 ${
+                            isLiveSite ? 'text-emerald-300' : 'text-slate-400'
+                          }`}
+                        >
+                          <span>
+                            {isLiveSite
+                              ? `✓ ${isTr ? 'Canlı Senkronize' : 'Live Synced'}`
+                              : isTr
+                                ? '301 → Ana Hub'
+                                : '301 → Main Hub'}
+                          </span>
                           <ExternalLink className="w-3 h-3 shrink-0" />
                         </div>
                       </a>
@@ -2297,7 +2330,7 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                       Temel Simülasyon Bağıntısı: {effectiveReport.coreThesisEquation.baseSimulationEquation}
                     </span>
                   </div>
-                  <div className="p-4 bg-slate-950 border border-slate-800 rounded-xs font-mono text-base sm:text-lg lg:text-xl text-amber-200 tracking-wide overflow-x-auto leading-relaxed">
+                  <div className="p-4 pr-8 bg-slate-950 border border-slate-800 rounded-xs font-mono text-base sm:text-lg lg:text-xl text-amber-200 tracking-wide overflow-x-auto leading-relaxed">
                     <MathFormula
                       tex={effectiveReport.coreThesisEquation.symbolicEquation}
                       displayMode={true}
@@ -2827,6 +2860,18 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
               </div>
             </div>
           )}
+
+          <ArticleExplainerVideo
+            article={article}
+            language={analysisLang}
+            onVideoMeasured={(id) => onAnalysisMeasured?.(id)}
+          />
+
+          <ArticleQuizModule
+            article={article}
+            language={analysisLang}
+            onQuizCompletedMeasured={(id) => onAnalysisMeasured?.(id)}
+          />
 
           <CitationExportBox article={article} language={analysisLang} compact={true} />
 

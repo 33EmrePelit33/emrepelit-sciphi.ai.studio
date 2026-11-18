@@ -6,15 +6,26 @@ import 'katex/dist/katex.min.css';
 import './index.css';
 
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  try {
-    registerSW({
-      immediate: true,
-      onRegisterError() {
-        // Non-blocking fallback when embedded in restricted iframe contexts
-      },
-    });
-  } catch {
-    // Ignore SW registration error in sandboxed frames
+  if (import.meta.env.DEV) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => {
+        registrations.forEach((registration) => {
+          registration.unregister().catch(() => {});
+        });
+      })
+      .catch(() => {});
+  } else {
+    try {
+      registerSW({
+        immediate: true,
+        onRegisterError() {
+          // Non-blocking fallback when embedded in restricted iframe contexts
+        },
+      });
+    } catch {
+      // Ignore SW registration error in sandboxed frames
+    }
   }
 }
 

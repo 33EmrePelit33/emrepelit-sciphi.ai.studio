@@ -1186,13 +1186,13 @@ export function computeArticleScientificAnalysis(
   const p2Label = p2 ? getLocalizedText(p2.label, language) : kw3;
 
   const symbolicEquationBySim: Record<SimulationType, string> = {
-    quantum: `𝒯_EP(#${postNum})[Ψ, Φ] = ∮_∂Ω [ α_${postNum} · ⟨Ψ(${p0Key}) | Ĥ_ont | Ψ(${p0Key})⟩ − β_${postNum} · k_B Tr(ρ̂(${p1Key}) ln ρ̂(${p1Key})) + γ_${postNum} · ∂ℐ_epist(${p2Key})/∂t ] dΣ = Λ_denge`,
-    higgs: `𝒯_EP(#${postNum})[φ, V] = ∫_ℳ [ ½ (∇_μ φ(${p0Key}))(∇^μ φ(${p0Key})) − μ²(${p1Key}) |φ|² + λ_${postNum}(${p2Key}) |φ|⁴ + α_${postNum} · δℐ_yapı/δφ ] √(-g) d⁴x = Λ_denge`,
-    holographic: `𝒯_EP(#${postNum})[𝒜_∂, 𝒢_bulk] = (k_B c³ / 4Gℏ) ∮_∂ℳ Area(γ_RT(${p0Key})) dΣ + α_${postNum} · ∫_ℳ ∇_μ J^μ_enformasyon(${p1Key}, ${p2Key}) dV = S_holografik(Λ_denge)`,
-    spacetime: `𝒯_EP(#${postNum})[g_μν, τ] = ∫_γ √( −g_μν(${p0Key}) dx^μ dx^ν ) + α_${postNum} · ∮_∂Ω ( R_μν − ½ R g_μν + Λ_${postNum} g_μν ) u^μ(${p1Key}) u^ν(${p2Key}) dΣ = ΔS_zaman(Λ_denge)`,
-    consciousness: `𝒯_EP(#${postNum})[Φ, ρ̂_zihin] = min_π [ D_KL( P(X_t | X_{t-1}; ${p0Key}) ‖ ∏_k P(M^k_t | M^k_{t-1}; ${p1Key}) ) ] + α_${postNum} · ∮_∂Ω C_kuantum(${p2Key}) dΣ = Φ_bilinç(Λ_denge)`,
-    chaos: `𝒯_EP(#${postNum})[X(t), λ] = lim_{t→∞} (1/t) ln( ‖δX(t; ${p0Key}, ${p1Key})‖ / ‖δX(0)‖ ) + α_${postNum} · ∮_𝒜 [ ∇ · F_çekici(X, ${p2Key}) − ∂H_epist/∂t ] dΓ = Λ_denge`,
-    software: `ℒ_SW(#${postNum})[P, C] = argmin_m [ ∑_i w_i(${p0Key}) · |m_i − C_target,i|² + λ_latency(${p1Key}) · τ_inf(${p2Key}) ] + γ_${postNum} · I(JSON_valid) = Ω_opt`,
+    quantum: `Ψ_EP(#${postNum})[ψ, Φ] = ∮_∂Ω [ α_${postNum} · ⟨ψ(${p0Key}) | H_ont | ψ(${p0Key})⟩ − β_${postNum} · k_B Tr(ρ̂(${p1Key}) ln ρ̂(${p1Key})) + γ_${postNum} · ∂I_epist(${p2Key})/∂t ] dΣ = Λ_denge`,
+    higgs: `Ψ_EP(#${postNum})[φ, V] = ∫_M [ ½ (∇_μ φ(${p0Key}))(∇^μ φ(${p0Key})) − μ²(${p1Key}) |φ|² + λ_${postNum}(${p2Key}) |φ|⁴ + α_${postNum} · δI_yapı/δφ ] √(-g) d⁴x = Λ_denge`,
+    holographic: `Ψ_EP(#${postNum})[A_∂, G_bulk] = (k_B c³ / 4Gℏ) ∮_∂M Area(γ_RT(${p0Key})) dΣ + α_${postNum} · ∫_M ∇_μ J^μ_enformasyon(${p1Key}, ${p2Key}) dV = S_holografik(Λ_denge)`,
+    spacetime: `Ψ_EP(#${postNum})[g_μν, τ] = ∫_γ √( −g_μν(${p0Key}) dx^μ dx^ν ) + α_${postNum} · ∮_∂Ω ( R_μν − ½ R g_μν + Λ_${postNum} g_μν ) u^μ(${p1Key}) u^ν(${p2Key}) dΣ = ΔS_zaman(Λ_denge)`,
+    consciousness: `Ψ_EP(#${postNum})[Φ, ρ̂_zihin] = min_π [ D_KL( P(X_t | X_{t-1}; ${p0Key}) ‖ ∏_k P(M^k_t | M^k_{t-1}; ${p1Key}) ) ] + α_${postNum} · ∮_∂Ω C_kuantum(${p2Key}) dΣ = Φ_bilinç(Λ_denge)`,
+    chaos: `Ψ_EP(#${postNum})[X(t), λ] = lim_{t→∞} (1/t) ln( ‖δX(t; ${p0Key}, ${p1Key})‖ / ‖δX(0)‖ ) + α_${postNum} · ∮_A [ ∇ · F_çekici(X, ${p2Key}) − ∂H_epist/∂t ] dΓ = Λ_denge`,
+    software: `Φ_SW(#${postNum})[P, C] = argmin_m [ ∑_i w_i(${p0Key}) · |m_i − C_target,i|² + λ_latency(${p1Key}) · τ_inf(${p2Key}) ] + γ_${postNum} · I(JSON_valid) = Ω_opt`,
   };
 
   const symbolicEquation =
@@ -1257,12 +1257,12 @@ export function computeArticleScientificAnalysis(
     : isTr
     ? [
         {
-          symbol: '∮_∂Ω (...) dΣ  /  ∫_ℳ (...) dV',
+          symbol: '∮_∂Ω (...) dΣ  /  ∫_M (...) dV',
           operationName: 'Kapalı Sınır Yüzeyi ve Manifold İntegrali (Bütünsel Toplama İşlemi)',
           whatItDoesSimply:
             'Sistemin tek tek noktalarındaki etkileri ayrı bırakmak yerine, tüm sınır ve hacim boyunca uçtan uca toplayarak bütüncül (holistik) etkiyi hesaplar.',
           whatItDoesTechnically:
-            `Makalenin durum uzayı manifoldu (∂Ω / ℳ) üzerindeki yerel yoğunluk katkılarını diferansiyel yüzey/hacim elemanı dΣ üzerinden entegre ederek "${kw1}" ve "${kw2}" arasındaki küresel korunum değerini üretir.`,
+            `Makalenin durum uzayı manifoldu (∂Ω / M) üzerindeki yerel yoğunluk katkılarını diferansiyel yüzey/hacim elemanı dΣ üzerinden entegre ederek "${kw1}" ve "${kw2}" arasındaki küresel korunum değerini üretir.`,
         },
         {
           symbol: '∇_μ  ve  ∂ / ∂t',
@@ -1273,12 +1273,12 @@ export function computeArticleScientificAnalysis(
             `Durum fonksiyonunun zaman (∂/∂t) ve eğri/düz uzay koordinatları (∇_μ) boyunca anlık değişim oranını (akı yoğunluğunu) hesaplayarak dinamik evrim yönünü belirler.`,
         },
         {
-          symbol: '⟨Ψ | Ĥ_ont | Ψ⟩  veya  ‖δX(t)‖',
+          symbol: '⟨ψ | H_ont | ψ⟩  veya  ‖δX(t)‖',
           operationName: 'İç Çarpım Beklenti Değeri ve Norm Operatörü (Durum Ölçüm İşlemi)',
           whatItDoesSimply:
             'Soyut olasılık dalgalarını veya sistem durumunu, gerçek dünyada gözlemleyebileceğimiz net bir sayısal büyüklüğe dönüştürür.',
           whatItDoesTechnically:
-            `Hilbert/faz uzayındaki durum vektörü Ψ üzerinde ontolojik Hamiltonyen operatörü Ĥ_ont’un Hermityen iç çarpım beklenti değerini ve Öklid/Riemann normunu hesaplar.`,
+            `Hilbert/faz uzayındaki durum vektörü ψ üzerinde ontolojik Hamiltonyen operatörü H_ont’un Hermityen iç çarpım beklenti değerini ve Öklid/Riemann normunu hesaplar.`,
         },
         {
           symbol: 'Tr(ρ̂ ln ρ̂)  veya  D_KL( P ‖ Q )',
@@ -1299,12 +1299,12 @@ export function computeArticleScientificAnalysis(
       ]
     : [
         {
-          symbol: '∮_∂Ω (...) dΣ  /  ∫_ℳ (...) dV',
+          symbol: '∮_∂Ω (...) dΣ  /  ∫_M (...) dV',
           operationName: 'Closed Boundary Surface & Manifold Integration',
           whatItDoesSimply:
             'Sums the contributions across every point of the system and its boundary to compute the total, holistic effect rather than isolated fragments.',
           whatItDoesTechnically:
-            `Integrates local field and information densities over the state-space manifold (∂Ω / ℳ) with respect to the differential measure dΣ to yield the global invariant linking "${kw1}" and "${kw2}".`,
+            `Integrates local field and information densities over the state-space manifold (∂Ω / M) with respect to the differential measure dΣ to yield the global invariant linking "${kw1}" and "${kw2}".`,
         },
         {
           symbol: '∇_μ  and  ∂ / ∂t',
@@ -1315,12 +1315,12 @@ export function computeArticleScientificAnalysis(
             `Computes the instantaneous rate of evolution along temporal (∂/∂t) and manifold coordinates (∇_μ), defining the causal flux of the state vector.`,
         },
         {
-          symbol: '⟨Ψ | Ĥ_ont | Ψ⟩  or  ‖δX(t)‖',
+          symbol: '⟨ψ | H_ont | ψ⟩  or  ‖δX(t)‖',
           operationName: 'Inner-Product Expectation Value & State-Space Norm Operator',
           whatItDoesSimply:
             'Converts abstract system states into a concrete, measurable numerical quantity.',
           whatItDoesTechnically:
-            `Evaluates the Hermitian expectation value of the ontological Hamiltonian operator Ĥ_ont acting on state vector Ψ and computes the phase-space norm.`,
+            `Evaluates the Hermitian expectation value of the ontological Hamiltonian operator H_ont acting on state vector ψ and computes the phase-space norm.`,
         },
         {
           symbol: 'Tr(ρ̂ ln ρ̂)  or  D_KL( P ‖ Q )',
@@ -1344,7 +1344,7 @@ export function computeArticleScientificAnalysis(
     ? isTr
       ? [
           {
-            symbol: `ℒ_SW(#${postNum})`,
+            symbol: `Φ_SW(#${postNum})`,
             variableName: 'Yazılım & Menü Optimizasyon Amaç Fonksiyonu',
             unitOrSpace: 'Normalize Kısıt Skoru / Çıkarım Uzayı',
             plainMeaning: `"${title}" uygulamasının doğru beslenme planını en hızlı ve hatasız üretme başarısını ölçer.`,
@@ -1370,7 +1370,7 @@ export function computeArticleScientificAnalysis(
         ]
       : [
           {
-            symbol: `ℒ_SW(#${postNum})`,
+            symbol: `Φ_SW(#${postNum})`,
             variableName: 'Software & Meal-Plan Optimization Objective',
             unitOrSpace: 'Normalized Constraint Loss / Inference Manifold',
             plainMeaning: `Measures how accurately and reliably "${title}" generates a valid personalized nutrition plan.`,
@@ -1397,23 +1397,23 @@ export function computeArticleScientificAnalysis(
     : isTr
     ? [
         {
-          symbol: `𝒯_EP(#${postNum})`,
+          symbol: `Ψ_EP(#${postNum})`,
           variableName: 'Emre Pelit Temel Sav Fonksiyoneli (Bütüncül Gerçeklik Operatörü)',
           unitOrSpace: 'Boyutsuz İnvaryant / Faz Uzayı Fonksiyoneli',
           plainMeaning: `Bu makalenin ("${title}") kanıtladığı ana yapısal denge değerini temsil eder.`,
-          professionalRole: `Durum vektörü Ψ ve bilgi alanı Φ üzerinde tanımlı, makalenin temel ontolojik-epistemolojik savını nicelleştiren ana eylem (action) fonksiyoneli.`,
-          calibratedValue: `𝒯_EP = ${lambdaEqVal} (Doğruluk: %${accuracyPct})`,
+          professionalRole: `Durum vektörü ψ ve bilgi alanı Φ üzerinde tanımlı, makalenin temel ontolojik-epistemolojik savını nicelleştiren ana eylem (action) fonksiyoneli.`,
+          calibratedValue: `Ψ_EP = ${lambdaEqVal} (Doğruluk: %${accuracyPct})`,
         },
         {
-          symbol: 'Ψ  ve  ρ̂',
+          symbol: 'ψ  ve  ρ̂',
           variableName: `"${kw1}" Durum Vektörü ve Yoğunluk Matrisi`,
           unitOrSpace: boundaryConditionSummary,
           plainMeaning: 'İncelenen fiziksel veya felsefi sistemin o andaki tüm potansiyel durumlarını taşıyan ana değişkendir.',
-          professionalRole: `Sistemin tam kuantum/faz uzayı durumunu temsil eden normalize vektör (⟨Ψ|Ψ⟩ = 1) ve pozitif yarı-kesin yoğunluk operatörü (ρ̂ = |Ψ⟩⟨Ψ|).`,
+          professionalRole: `Sistemin tam kuantum/faz uzayı durumunu temsil eden normalize vektör (⟨ψ|ψ⟩ = 1) ve pozitif yarı-kesin yoğunluk operatörü (ρ̂ = |ψ⟩⟨ψ|).`,
           calibratedValue: `${primaryObservableLabel}: ${primaryObservableValue}`,
         },
         {
-          symbol: 'Φ  ve  ℐ_epist',
+          symbol: 'Φ  ve  I_epist',
           variableName: `"${kw2}" Bütünleşik Bilgi Alanı ve Epistemik Akı`,
           unitOrSpace: 'bit / nat · Enformasyonel Geometri Uzayı',
           plainMeaning: 'Sistemin parçaları arasında aktarılan anlamlı bilgiyi ve gözlemciyle kurulan bağı temsil eder.',
@@ -1425,7 +1425,7 @@ export function computeArticleScientificAnalysis(
           variableName: `${p0Label} (Birincil Kontrol Değişkeni)`,
           unitOrSpace: `${p0?.unit || 'Birim'} · Aralık: [${p0?.min ?? 0}, ${p0?.max ?? 1}]`,
           plainMeaning: `Denklemde sistemin gücünü veya başlangıç etkisini doğrudan ayarlayan birinci ana değişkendir.`,
-          professionalRole: `Temel sav denkleminin birinci mertebeden kontrol parametresi; ∂𝒯_EP/∂${p0Key} duyarlılığını doğrudan belirler.`,
+          professionalRole: `Temel sav denkleminin birinci mertebeden kontrol parametresi; ∂Ψ_EP/∂${p0Key} duyarlılığını doğrudan belirler.`,
           calibratedValue: `${p0Key} = ${v0} ${p0?.unit || ''}`,
         },
         {
@@ -1447,23 +1447,23 @@ export function computeArticleScientificAnalysis(
       ]
     : [
         {
-          symbol: `𝒯_EP(#${postNum})`,
+          symbol: `Ψ_EP(#${postNum})`,
           variableName: 'Emre Pelit Core Thesis Functional (Holistic Reality Operator)',
           unitOrSpace: 'Dimensionless Invariant / Phase-Space Functional',
           plainMeaning: `Represents the central structural equilibrium proven by this article ("${title}").`,
-          professionalRole: `The master action functional defined over state vector Ψ and information field Φ that quantifies the article's core ontological-epistemological thesis.`,
-          calibratedValue: `𝒯_EP = ${lambdaEqVal} (Accuracy: ${accuracyPct}%)`,
+          professionalRole: `The master action functional defined over state vector ψ and information field Φ that quantifies the article's core ontological-epistemological thesis.`,
+          calibratedValue: `Ψ_EP = ${lambdaEqVal} (Accuracy: ${accuracyPct}%)`,
         },
         {
-          symbol: 'Ψ  and  ρ̂',
+          symbol: 'ψ  and  ρ̂',
           variableName: `"${kw1}" State Vector & Density Matrix`,
           unitOrSpace: boundaryConditionSummary,
           plainMeaning: 'Carries all active possibilities and configurations of the physical or philosophical system under study.',
-          professionalRole: `Normalized state vector (⟨Ψ|Ψ⟩ = 1) and positive semi-definite density operator (ρ̂ = |Ψ⟩⟨Ψ|) spanning the system manifold.`,
+          professionalRole: `Normalized state vector (⟨ψ|ψ⟩ = 1) and positive semi-definite density operator (ρ̂ = |ψ⟩⟨ψ|) spanning the system manifold.`,
           calibratedValue: `${primaryObservableLabel}: ${primaryObservableValue}`,
         },
         {
-          symbol: 'Φ  and  ℐ_epist',
+          symbol: 'Φ  and  I_epist',
           variableName: `"${kw2}" Integrated Information Field & Epistemic Flux`,
           unitOrSpace: 'bits / nats · Informational Geometry Manifold',
           plainMeaning: 'Represents the meaningful information shared across parts of the system and its coupling to observation.',
@@ -1475,7 +1475,7 @@ export function computeArticleScientificAnalysis(
           variableName: `${p0Label} (Primary Control Variable)`,
           unitOrSpace: `${p0?.unit || 'Unit'} · Domain: [${p0?.min ?? 0}, ${p0?.max ?? 1}]`,
           plainMeaning: 'The primary variable that directly adjusts the driving strength or initial condition of the equation.',
-          professionalRole: `First-order control parameter of the core thesis equation governing sensitivity ∂𝒯_EP/∂${p0Key}.`,
+          professionalRole: `First-order control parameter of the core thesis equation governing sensitivity ∂Ψ_EP/∂${p0Key}.`,
           calibratedValue: `${p0Key} = ${v0} ${p0?.unit || ''}`,
         },
         {
@@ -1519,11 +1519,11 @@ export function computeArticleScientificAnalysis(
         : `Calculation Summary: (1) The first term evaluates the "${kw1}" state (${p0Key}=${v0}) weighted by α_${postNum}=${alphaVal}; (2) The second term balances entropic uncertainty (${p1Key}=${v1}) via β_${postNum}=${betaVal}; (3) The third term incorporates temporal information flux and integrates across the boundary to yield Λ_denge = ${lambdaEqVal} (${accuracyPct}% accuracy).`,
     numericalVerificationResult: isSoftware
       ? isTr
-        ? `ℒ_SW(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Sistem Geçerliliği: %${accuracyPct}`
-        : `ℒ_SW(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Pipeline Validity: ${accuracyPct}%`
+        ? `Φ_SW(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Sistem Geçerliliği: %${accuracyPct}`
+        : `Φ_SW(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Pipeline Validity: ${accuracyPct}%`
       : isTr
-        ? `𝒯_EP(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Kalibrasyon Doğruluğu: %${accuracyPct}`
-        : `𝒯_EP(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Calibration Accuracy: ${accuracyPct}%`,
+        ? `Ψ_EP(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Kalibrasyon Doğruluğu: %${accuracyPct}`
+        : `Ψ_EP(#${postNum}) = ${lambdaEqVal} · ${primaryObservableLabel} = ${primaryObservableValue} · Calibration Accuracy: ${accuracyPct}%`,
     operationsBreakdown,
     variablesBreakdown,
   };
@@ -2182,8 +2182,8 @@ export function computeArticleScientificAnalysis(
       scientistsEn: 'Niels Bohr, Werner Heisenberg, Max Born & John von Neumann',
       statementTr: 'Bu makalenin yazımına kadar geçen yaklaşık yüz yılda yaygın yerleşik kabul; kuantum dünyasının yalnızca klasik bir laboratuvar cihazıyla etkileşime girildiğinde Born olasılık kuralıyla tanımlanan ölçüm sonuçları ürettiği, dalga fonksiyonunun ise fiziksel bir ontolojik yapıdan ziyade deneysel olasılıkları hesaplayan matematiksel bir araç ("sus ve hesapla" ekolü) olduğu yönündeydi.',
       statementEn: 'Prior to this article, the prevailing consensus treated the wavefunction primarily as a probabilistic epistemic instrument ("shut up and calculate") whose Born-rule outcomes materialize only upon intervention by a classical measuring apparatus.',
-      advanceTr: 'Emre Pelit’in bu makalesi ise gözlemci ile sistem arasındaki sınır koşulunu tek yönlü bir klasik çöküş varsayımı olmaktan çıkarıp, ontik yapısalcı ve simülatif bir enformasyon akışı denklemiyle (𝒯_EP) yeniden formüle etmektedir.',
-      advanceEn: 'This article transcends purely instrumentalist collapse by embedding observer-system coupling within a testable ontic-structural functional (𝒯_EP).',
+      advanceTr: 'Emre Pelit’in bu makalesi ise gözlemci ile sistem arasındaki sınır koşulunu tek yönlü bir klasik çöküş varsayımı olmaktan çıkarıp, ontik yapısalcı ve simülatif bir enformasyon akışı denklemiyle (Ψ_EP) yeniden formüle etmektedir.',
+      advanceEn: 'This article transcends purely instrumentalist collapse by embedding observer-system coupling within a testable ontic-structural functional (Ψ_EP).',
     },
     {
       simTypes: ['quantum', 'higgs'],

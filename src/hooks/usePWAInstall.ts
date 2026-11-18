@@ -68,19 +68,43 @@ export function usePWAInstall() {
 
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
+    typeof navigator !== 'undefined' ? navigator.onLine !== false : true
   );
 
   useEffect(() => {
+    const verifyOnline = async () => {
+      try {
+        const res = await fetch('/api/health', { method: 'GET', cache: 'no-store' });
+        if (res.ok) {
+          setIsOnline(true);
+          return;
+        }
+      } catch {
+        // Fall back to navigator.onLine check
+      }
+      if (typeof navigator !== 'undefined') {
+        setIsOnline(navigator.onLine !== false);
+      }
+    };
+
     const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOffline = () => {
+      void verifyOnline();
+    };
+    const handleJsonpSuccess = () => setIsOnline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('sciphil:live-sync-ok', handleJsonpSuccess);
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      void verifyOnline();
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('sciphil:live-sync-ok', handleJsonpSuccess);
     };
   }, []);
 

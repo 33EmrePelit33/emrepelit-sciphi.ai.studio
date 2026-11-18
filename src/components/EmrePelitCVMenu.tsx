@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../types';
 
-const NEW_CV_PDF_URL = '/assets/aistudio/Emre_Pelit_-__zge_mi___CV__0cc7cce7.pdf';
+const NEW_CV_PDF_URL = '/assets/emre-pelit-cv.pdf';
 const NEW_CV_DOWNLOAD_NAME = 'Emre_Pelit_Ozgecmis_CV.pdf';
 
 interface EmrePelitCVMenuProps {
@@ -185,8 +185,13 @@ export const EmrePelitCVMenu: React.FC<EmrePelitCVMenuProps> = ({
           className="px-6 py-4 bg-[#F5F2EB] hover:bg-[#ECE7DC] transition-colors flex flex-wrap items-center justify-between gap-4 cursor-pointer select-none border-b border-stone-300"
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-[#1E3A8A] text-white flex items-center justify-center font-editorial font-bold text-lg shrink-0">
-              EP
+            <div className="w-11 h-11 rounded-full bg-[#1E3A8A] text-white flex items-center justify-center font-editorial font-bold text-lg shrink-0 overflow-hidden border border-stone-300">
+              <img
+                src="/assets/emre-pelit-cv-portrait.png"
+                alt="Emre Pelit CV Fotoğrafı"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#1E3A8A]">
@@ -283,22 +288,63 @@ export const EmrePelitCVMenu: React.FC<EmrePelitCVMenuProps> = ({
                   </div>
 
                   <div
-                    className={`border border-stone-200 bg-stone-100 overflow-hidden transition-all ${
+                    className={`border border-stone-200 bg-stone-100 overflow-hidden transition-all flex flex-col ${
                       zoomDocument ? 'h-[820px]' : 'h-[520px]'
                     }`}
                   >
                     <object
                       data={`${NEW_CV_PDF_URL}#view=FitH`}
                       type="application/pdf"
-                      className="w-full h-full"
+                      className="w-full flex-1 min-h-0"
                       aria-label="Emre Pelit Resmi Özgeçmiş (CV) PDF Belgesi"
                     >
                       <iframe
                         src={`${NEW_CV_PDF_URL}#view=FitH`}
                         title="Emre Pelit Resmi Özgeçmiş (CV) PDF Belgesi"
                         className="w-full h-full border-0"
-                      />
+                      >
+                        <div className="p-6 text-center space-y-3 text-xs font-mono text-stone-700">
+                          <p>Tarayıcınız gömülü PDF önizlemesini desteklemiyorsa belgeyi doğrudan açabilirsiniz.</p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            <a
+                              href={NEW_CV_PDF_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 bg-white border border-stone-300 text-[#1E3A8A] font-semibold rounded-sm"
+                            >
+                              Yeni Sekmede Aç ↗
+                            </a>
+                            <a
+                              href={NEW_CV_PDF_URL}
+                              download={NEW_CV_DOWNLOAD_NAME}
+                              className="px-3 py-1.5 bg-[#1E3A8A] text-white font-semibold rounded-sm"
+                            >
+                              PDF İndir / Görüntüle
+                            </a>
+                          </div>
+                        </div>
+                      </iframe>
                     </object>
+                    <div className="px-3 py-1.5 bg-[#FBF9F5] border-t border-stone-200 flex items-center justify-between text-[11px] font-mono text-stone-600">
+                      <span>Önizleme görünmezse:</span>
+                      <div className="flex items-center gap-3">
+                        <a
+                          href={NEW_CV_PDF_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#1E3A8A] font-semibold hover:underline"
+                        >
+                          Yeni Sekmede Aç ↗
+                        </a>
+                        <a
+                          href={NEW_CV_PDF_URL}
+                          download={NEW_CV_DOWNLOAD_NAME}
+                          className="text-[#1E3A8A] font-semibold hover:underline"
+                        >
+                          PDF İndir
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -642,6 +688,16 @@ export const EmrePelitCVMenu: React.FC<EmrePelitCVMenuProps> = ({
                         className="text-stone-900 font-semibold hover:underline inline-flex items-center gap-1"
                       >
                         <span>GitHub: emrepelit109</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <span>·</span>
+                      <a
+                        href="https://www.researchgate.net/profile/Emre-Pelit"
+                        target="_blank"
+                        rel="me noopener noreferrer"
+                        className="text-teal-800 font-semibold hover:underline inline-flex items-center gap-1"
+                      >
+                        <span>ResearchGate: Emre Pelit</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "sci-phi.ai.studio"
+        }
+      ],
+      "destination": "https://emrepelit-sciphi.ai.studio/:path",
+      "permanent": true
+    },
+    {
+      "source": "/:path(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "sci-phil.ai.studio"
+        }
+      ],
+      "destination": "https://emrepelit-sciphi.ai.studio/:path",
+      "permanent": true
+    },
+    {
+      "source": "/:path(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "emrepelit-sci-phi.ai.studio"
+        }
+      ],
+      "destination": "https://emrepelit-sciphi.ai.studio/:path",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/archive",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api/|assets/|.*\\.[a-zA-Z0-9]+$).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/emre-pelit-cv.pdf",
+      "headers": [
+        { "key": "Content-Type", "value": "application/pdf" },
+        { "key": "Content-Disposition", "value": "inline; filename=\"Emre_Pelit_Ozgecmis_CV.pdf\"" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    }
+  ]
+}

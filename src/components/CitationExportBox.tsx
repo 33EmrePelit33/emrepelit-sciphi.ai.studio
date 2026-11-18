@@ -144,6 +144,16 @@ export const CitationExportBox: React.FC<CitationExportBoxProps> = ({
             <Download className="w-3 h-3" />
             <span>.bib</span>
           </button>
+
+          <a
+            href={`/scholar/pdf/${encodeURIComponent(article.slug)}.pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono text-[#1E3A8A] bg-white hover:bg-blue-50 border border-blue-200 rounded-xs transition-colors whitespace-nowrap"
+          >
+            <Download className="w-3 h-3" />
+            <span>.pdf</span>
+          </a>
         </div>
       </div>
 

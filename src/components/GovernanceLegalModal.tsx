@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { X, ShieldCheck, Lock, FileText, Cpu, Scale } from 'lucide-react';
+import { X, ShieldCheck, Lock, FileText, Cpu, Scale, BookMarked } from 'lucide-react';
 import { LanguageCode } from '../types';
 
-export type GovernanceTab = 'privacy' | 'kvkk' | 'disclaimer' | 'methodology';
+export type GovernanceTab = 'privacy' | 'terms' | 'imprint' | 'kvkk' | 'disclaimer' | 'methodology';
 
 interface GovernanceLegalModalProps {
   isOpen: boolean;
@@ -22,108 +22,132 @@ const TAB_LABELS: Record<
   }
 > = {
   tr: {
-    modalTitle: 'Yönetişim, Gizlilik, KVKK (6698), Sorumluluk Reddi & Metodoloji',
-    independentBadge: 'Bağımsız Yazar Arşivi · Hakemli Dergi / Kurumsal Enstitü Değildir',
+    modalTitle: 'Yönetişim, Gizlilik, Kullanım Koşulları, Künye, KVKK & Metodoloji',
+    independentBadge: 'Bağımsız Yazar Arşivi · Hakemli Dergi Değildir',
     privacy: 'Gizlilik Politikası',
+    terms: 'Kullanım Koşulları',
+    imprint: 'Künye',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Sorumluluk Reddi',
     methodology: 'YZ & Telemetri Metodolojisi',
     close: 'Kapat (ESC)',
   },
   en: {
-    modalTitle: 'Governance, Privacy Policy, KVKK (Law 6698), Disclaimer & Methodology',
-    independentBadge: 'Independent Author Archive · Not a Peer-Reviewed Journal or Institute',
+    modalTitle: 'Governance, Privacy Policy, Terms of Use, Imprint, KVKK & Methodology',
+    independentBadge: 'Independent Author Archive · Not a Peer-Reviewed Journal',
     privacy: 'Privacy Policy',
+    terms: 'Terms of Use',
+    imprint: 'Imprint',
     kvkk: 'KVKK (Law 6698)',
     disclaimer: 'Scientific Disclaimer',
     methodology: 'AI & Telemetry Methodology',
     close: 'Close (ESC)',
   },
   es: {
-    modalTitle: 'Gobernanza, Privacidad, KVKK, Aviso Científico y Metodología',
+    modalTitle: 'Gobernanza, Privacidad, Condiciones de Uso, Aviso Legal, KVKK y Metodología',
     independentBadge: 'Archivo Independiente de Autor · No es Revista Arbitrada',
     privacy: 'Privacidad',
+    terms: 'Condiciones de Uso',
+    imprint: 'Aviso Legal / Pie Editorial',
     kvkk: 'KVKK (Ley 6698)',
-    disclaimer: 'Aviso Legal',
+    disclaimer: 'Descargo Científico',
     methodology: 'Metodología IA y Telemetría',
     close: 'Cerrar (ESC)',
   },
   de: {
-    modalTitle: 'Governance, Datenschutz, KVKK, Wissenschaftlicher Hinweis & Methodik',
+    modalTitle: 'Governance, Datenschutz, Nutzungsbedingungen, Impressum, KVKK & Methodik',
     independentBadge: 'Unabhängiges Autorenarchiv · Keine Peer-Review-Zeitschrift',
     privacy: 'Datenschutz',
+    terms: 'Nutzungsbedingungen',
+    imprint: 'Impressum',
     kvkk: 'KVKK (Gesetz 6698)',
     disclaimer: 'Haftungsausschluss',
     methodology: 'KI- & Telemetrie-Methodik',
     close: 'Schließen (ESC)',
   },
   fr: {
-    modalTitle: 'Gouvernance, Confidentialité, KVKK, Avertissement et Méthodologie',
+    modalTitle: 'Gouvernance, Confidentialité, Conditions d’Utilisation, Mentions Légales, KVKK & Méthodologie',
     independentBadge: "Archive Indépendante d'Auteur · Sans Comité de Lecture",
     privacy: 'Confidentialité',
+    terms: 'Conditions d’Utilisation',
+    imprint: 'Mentions Légales',
     kvkk: 'KVKK (Loi 6698)',
     disclaimer: 'Avertissement',
     methodology: 'Méthodologie IA & Télémétrie',
     close: 'Fermer (ESC)',
   },
   ru: {
-    modalTitle: 'Управление, Конфиденциальность, KVKK, Отказ от ответственности и Методология',
+    modalTitle: 'Управление, Конфиденциальность, Условия использования, Выходные данные и KVKK',
     independentBadge: 'Независимый авторский архив · Не рецензируемый журнал',
     privacy: 'Конфиденциальность',
+    terms: 'Условия использования',
+    imprint: 'Выходные данные',
     kvkk: 'KVKK (Закон 6698)',
     disclaimer: 'Отказ от ответственности',
     methodology: 'Методология ИИ и телеметрии',
     close: 'Закрыть (ESC)',
   },
   ar: {
-    modalTitle: 'الحوكمة والخصوصية وKVKK وإخلاء المسؤولية والمنهجية',
-    independentBadge: 'أرشيف مؤلف مستقل · ليس مجلة محكمة أو معهداً مؤسسياً',
+    modalTitle: 'الحوكمة والخصوصية وشروط الاستخدام وبيانات النشر وKVKK والمنهجية',
+    independentBadge: 'أرشيف مؤلف مستقل · ليس مجلة محكمة',
     privacy: 'سياسة الخصوصية',
+    terms: 'شروط الاستخدام',
+    imprint: 'بيانات الناشر',
     kvkk: 'KVKK (قانون 6698)',
     disclaimer: 'إخلاء المسؤولية العلمية',
     methodology: 'منهجية الذكاء الاصطناعي والقياس',
     close: 'إغلاق (ESC)',
   },
   zh: {
-    modalTitle: '治理、隐私政策、KVKK、科学免责声明与方法论',
-    independentBadge: '独立作者档案 · 非同行评审期刊或机构研究所',
+    modalTitle: '治理、隐私政策、使用条款、版权声明、KVKK 与方法论',
+    independentBadge: '独立作者档案 · 非同行评审期刊',
     privacy: '隐私政策',
+    terms: '使用条款',
+    imprint: '版权与出版信息',
     kvkk: 'KVKK (第6698号法)',
     disclaimer: '免责声明',
     methodology: 'AI 与遥测方法论',
     close: '关闭 (ESC)',
   },
   ja: {
-    modalTitle: 'ガバナンス・プライバシー・KVKK・科学的免責事項・方法論',
-    independentBadge: '独立著者アーカイブ · 査読付き学術誌・研究機関ではありません',
+    modalTitle: 'ガバナンス・プライバシー・利用規約・奥付・KVKK・方法論',
+    independentBadge: '独立著者アーカイブ · 査読付き学術誌ではありません',
     privacy: 'プライバシー',
+    terms: '利用規約',
+    imprint: '奥付・運営者情報',
     kvkk: 'KVKK (法6698)',
     disclaimer: '免責事項',
     methodology: 'AI・計測方法論',
     close: '閉じる (ESC)',
   },
   pt: {
-    modalTitle: 'Governança, Privacidade, KVKK, Aviso Científico e Metodologia',
+    modalTitle: 'Governança, Privacidade, Termos de Uso, Expediente, KVKK e Metodologia',
     independentBadge: 'Arquivo Independente de Autor · Não é Periódico Arbitrado',
     privacy: 'Privacidade',
+    terms: 'Termos de Uso',
+    imprint: 'Expediente',
     kvkk: 'KVKK (Lei 6698)',
     disclaimer: 'Aviso Legal',
     methodology: 'Metodologia IA e Telemetria',
     close: 'Fechar (ESC)',
   },
   it: {
-    modalTitle: 'Governance, Privacy, KVKK, Avvertenza Scientifica e Metodologia',
+    modalTitle: 'Governance, Privacy, Termini di Utilizzo, Colophon, KVKK e Metodologia',
     independentBadge: 'Archivio Indipendente di Autore · Non è Rivista Peer-Reviewed',
     privacy: 'Privacy',
+    terms: 'Termini d’Uso',
+    imprint: 'Colophon',
     kvkk: 'KVKK (Legge 6698)',
     disclaimer: 'Esclusione di Responsabilità',
     methodology: 'Metodologia IA e Telemetria',
     close: 'Chiudi (ESC)',
   },
   ko: {
-    modalTitle: '거버넌스, 개인정보 처리방침, KVKK, 과학적 면책 조항 및 방법론',
-    independentBadge: '독립 저자 아카이브 · 동료 심사 학술지 또는 기관 아님',
+    modalTitle: '거버넌스, 개인정보 처리방침, 이용약관, 판권 정보, KVKK 및 방법론',
+    independentBadge: '독립 저자 아카이브 · 동료 심사 학술지 아님',
     privacy: '개인정보 처리방침',
+    terms: '이용약관',
+    imprint: '판권 정보',
     kvkk: 'KVKK (법률 제6698호)',
     disclaimer: '과학적 면책 조항',
     methodology: 'AI 및 원격 측정 방법론',
@@ -192,6 +216,8 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
           {(
             [
               { id: 'privacy', icon: Lock, label: labels.privacy },
+              { id: 'terms', icon: Scale, label: labels.terms },
+              { id: 'imprint', icon: BookMarked, label: labels.imprint },
               { id: 'kvkk', icon: ShieldCheck, label: labels.kvkk },
               { id: 'disclaimer', icon: FileText, label: labels.disclaimer },
               { id: 'methodology', icon: Cpu, label: labels.methodology },
@@ -255,6 +281,62 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
                     : 'Voluntary questions routed when no corpus match exists are handled strictly for scholarly response by Emre Pelit (emrepelit39@gmail.com) and never shared with third parties.'}
                 </li>
               </ul>
+            </div>
+          )}
+
+          {activeTab === 'terms' && (
+            <div className="space-y-3">
+              <h3 className="text-xl font-editorial font-bold text-stone-900">
+                {isTurkish ? 'Kullanım Koşulları ve Telif Hakları' : 'Terms of Use & Authorship Terms'}
+              </h3>
+              <p>
+                {isTurkish
+                  ? 'emrepelit-sciphi.ai.studio adresinde sunulan tüm özgün bilim ve felsefe makaleleri, çok dilli edisyonlar, görsel simülasyon plakaları ve etkileşimli analiz araçları bağımsız yazar Emre Pelit tarafından oluşturulmuştur.'
+                  : 'All original science and philosophy essays, multilingual editions, mathematical simulation plates, and interactive analysis tools hosted on emrepelit-sciphi.ai.studio are created by independent author Emre Pelit.'}
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
+                <li>
+                  <strong>{isTurkish ? 'Akademik Atıf & Okuma Hakkı:' : 'Scholarly Citation & Reading Rights:'}</strong>{' '}
+                  {isTurkish
+                    ? 'Tüm içerikler açık erişimlidir; yazar adı (Emre Pelit) ve kanonik kaynak URL (emrepelit-sciphi.ai.studio) açıkça belirtilerek akademik çalışmalarda, kaynakçalarda ve bilimsel tartışmalarda serbestçe atıf yapılabilir.'
+                    : 'All content is open access and may be freely read, cited, and referenced in scholarly work provided Emre Pelit and the canonical URL (emrepelit-sciphi.ai.studio) are attributed.'}
+                </li>
+                <li>
+                  <strong>{isTurkish ? 'Ticari Çoğaltma & Değişiklik Yasağı:' : 'Prohibition on Unattributed Alteration:'}</strong>{' '}
+                  {isTurkish
+                    ? 'Eser sahibinin yazılı izni olmadan makale metinlerinin veya simülasyonların yazarlık bilgisi silinerek ticari amaçla yeniden yayımlanması yasaktır.'
+                    : 'Republishing essays or simulations commercially or stripping original authorship attribution without prior written consent is prohibited.'}
+                </li>
+                <li>
+                  <strong>{isTurkish ? 'Yapay Zeka & Sistem Güvenliği:' : 'Automated Access & System Integrity:'}</strong>{' '}
+                  {isTurkish
+                    ? 'Arama motoru ve yapay zeka indeks botlarına /robots.txt, /llms-full.txt ve /sitemap_index.xml üzerinden izin verilmektedir; ancak sunucu istatistiklerini manipüle etmeye yönelik otomatik istekler Zero-Trust WAF ile engellenir.'
+                    : 'Search engines and AI indexers are explicitly permitted via /robots.txt, /llms-full.txt, and /sitemap_index.xml, while automated abuse attempting to alter server telemetry is blocked by the Zero-Trust WAF.'}
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {activeTab === 'imprint' && (
+            <div className="space-y-3">
+              <h3 className="text-xl font-editorial font-bold text-stone-900">
+                {isTurkish ? 'Künye & Resmi Yazar İletişim Bilgileri' : 'Imprint & Official Publisher Contact'}
+              </h3>
+              <div className="bg-stone-100 border border-stone-300 p-4 font-mono text-xs space-y-1.5">
+                <div><strong>{isTurkish ? 'Yayın Adı:' : 'Archive Name:'}</strong> Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi</div>
+                <div><strong>{isTurkish ? 'Münhasır Yazar & Editör:' : 'Sole Author & Maintainer:'}</strong> Emre Pelit (Mersin Üniversitesi &amp; Anadolu Üniversitesi AÖF)</div>
+                <div><strong>{isTurkish ? 'Konum:' : 'Location:'}</strong> Mersin, Türkiye</div>
+                <div><strong>{isTurkish ? 'E-Posta:' : 'Email:'}</strong> emrepelit39@gmail.com</div>
+                <div><strong>{isTurkish ? 'Kanonik Ana Hub (HTTP 200):' : 'Canonical Main Hub (HTTP 200):'}</strong> https://emrepelit-sciphi.ai.studio</div>
+                <div><strong>{isTurkish ? 'Kaynak Blog Arşivi:' : 'Source CMS Archive:'}</strong> https://emrepelit7337.blogspot.com ({totalArticlesCount} Makale)</div>
+                <div><strong>GitHub:</strong> https://github.com/emrepelit109 &amp; https://emrepelit.github.io/science-philosophy</div>
+                <div><strong>YouTube &amp; LinkedIn:</strong> https://www.youtube.com/@science_only · https://www.linkedin.com/in/emrepelit109</div>
+              </div>
+              <p className="text-xs text-stone-600">
+                {isTurkish
+                  ? 'Bu platform bağımsız kişisel bilim ve felsefe güncesidir; herhangi bir dergi, enstitü veya kamu kurumu sıfatı taşımaz.'
+                  : 'This platform operates strictly as an independent personal science and philosophy archive and does not claim affiliation with an external journal or accredited institute.'}
+              </p>
             </div>
           )}
 

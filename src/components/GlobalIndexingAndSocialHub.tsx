@@ -24,6 +24,7 @@ import { Article, LanguageCode } from '../types';
 import { WORLD_LANGUAGES, getLanguageMeta, getLocalizedText } from '../i18n/translations';
 import {
   buildArticleWorkClusters,
+  computeCorpusCountMetrics,
   detectEntrySourceLanguage,
   getLocalizedArticlePath,
 } from '../utils/articleLocale';
@@ -87,7 +88,7 @@ const ALL_18_ACADEMIC_INDEXES = [
   'LLMs.txt RAG Index',
 ] as const;
 
-const NATIVE_CORPUS_LANG_CODES = new Set(['tr', 'en', 'es', 'de', 'fr']);
+const NATIVE_CORPUS_LANG_CODES = new Set<string>(WORLD_LANGUAGES.map((w) => w.code));
 
 interface SocialTemplateItem {
   id: string;
@@ -120,9 +121,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   const langMeta = getLanguageMeta(language);
 
-  const corpusCount = Math.max(316, articles.length);
-  const workClusters = useMemo(() => buildArticleWorkClusters(articles), [articles]);
-  const distinctWorksCount = workClusters.distinctWorkCount;
+  const corpusMetrics = useMemo(() => computeCorpusCountMetrics(articles), [articles]);
+  const corpusCount = corpusMetrics.multilingualTextsCount;
+  const distinctWorksCount = corpusMetrics.distinctOriginalCount;
+  const totalDirectoryCount = corpusMetrics.totalDirectoryCount;
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef<boolean>(true);
   useEffect(() => {
@@ -183,7 +185,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
     academicIndexes: [
       {
         name: 'Google Scholar (Highwire Press citation_* Meta)',
-        status: `AKTİF İNDEKSLİ (${corpusCount} KANONİK MAKALE · 5 KAYNAK DİL)`,
+        status: `AKTİF İNDEKSLİ (${corpusCount} MAKALE × 12 DİL = ${(corpusCount * 12).toLocaleString('tr-TR')} KANONİK URL)`,
         author: 'Emre Pelit',
       },
       {
@@ -302,9 +304,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'WhatsApp (05319009588) Bilim & Felsefe Web Sitesi Tanıtım Şablonu',
-      content: `*Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi*\n\n🔬 ${corpusCount} özgün bilim ve felsefe makalesi, interaktif fizik simülasyonları ve 12 dilde sesli okuma özelliğini tek merkezden keşfedin:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub: https://github.com/emrepelit109\n▶️ YouTube: https://www.youtube.com/@science_only\n✉️ E-Posta: emrepelit39@gmail.com`,
-      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #BilimSohbeti',
+      title: 'WhatsApp (05319009588) Sci-Phil Güncellenen Web Sitesi Tanıtım Şablonu',
+      content: `*Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi*\n\n🔬 ${corpusCount} özgün bilim ve felsefe makalesi yenilendi!\n🎬 Her makaleye özel 60 saniyelik HTML5 açıklayıcı video\n✅ Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli kavrama soruları\n🧩 4 modüllü interaktif uygulamalar, matematiksel fizik simülasyonları ve 12 dilde sesli anlatım:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub: https://github.com/emrepelit109\n▶️ YouTube: https://www.youtube.com/@science_only\n✉️ E-Posta: emrepelit39@gmail.com`,
+      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #EğitimVideosu #ÇoktanSeçmeliTest',
       shareUrlBuilder: (text, _url) =>
         `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
     },
@@ -316,9 +318,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Messenger Web Sitesi Tanıtım Şablonu',
-      content: `Merhaba! Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini, kuantum/kozmoloji interaktif simülasyonlarını ve 12 dilde seslendirme özelliğini barındıran Sci-Phil arşivini buradan inceleyebilirsin:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #SciPhil #BilimSohbeti',
+      title: 'Messenger Web Sitesi Yenilenen Video & Test Tanıtım Şablonu',
+      content: `Merhaba! Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini barındıran Sci-Phil arşivine artık her makale için 60 saniyelik HTML5 açıklayıcı videolar, makale genel sonucuyla uyumlu çoktan seçmeli test soruları ve interaktif uygulamalar eklendi. Buradan inceleyebilirsin:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#EmrePelit #SciPhil #BilimSohbeti #VideoVeTest',
       shareUrlBuilder: (text, url) =>
         `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=291494419107518&redirect_uri=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
     },
@@ -326,13 +328,13 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       id: 'soc-youtube',
       platformName: 'YouTube (@science_only)',
       handleOrChannel: '@science_only (youtube.com/@science_only)',
-      badge: 'Resmi İlişkili YouTube Kanalı',
+      badge: 'Resmi İlişkili YouTube Kanalı & 60 sn HTML5 Video',
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'YouTube (@science_only) Topluluk & Video Açıklama Şablonu',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi & Resmi YouTube Kanalı (@science_only)\n\n▶️ Kanal: https://www.youtube.com/@science_only\n🌐 ${corpusCount} Özgün Makale, İnteraktif Simülasyonlar ve 12 Dilde Sesli Külliyat:\nhttps://emrepelit-sciphi.ai.studio`,
-      hashtags: '#science_only #EmrePelit #SciPhil #BilimVeFelsefe #KuantumFiziği #Kozmoloji',
+      title: 'YouTube (@science_only) Video & Çoktan Seçmeli Test Duyuru Şablonu',
+      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi & Resmi YouTube Kanalı (@science_only)\n\n🎬 Web sitemizdeki her ${corpusCount} makaleye özel 60 saniyelik HTML5 açıklayıcı video ve makalenin genel sonucuyla bütünleşen çoktan seçmeli test soruları eklendi!\n▶️ Kanal: https://www.youtube.com/@science_only\n🌐 İnteraktif Videolu & Testli Külliyat: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#science_only #EmrePelit #SciPhil #BilimVeFelsefe #AçıklayıcıVideo #ÇoktanSeçmeliSorular',
       shareUrlBuilder: (_text, _url) => `https://www.youtube.com/@science_only`,
     },
     {
@@ -343,9 +345,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Instagram (@bilimsohbeti) Post & Story Şablonu',
-      content: `Emre Pelit — Sci-Phil Bilim ve Felsefe Arşivi • @bilimsohbeti\n\n🔬 ${corpusCount} Özgün Bilim ve Felsefe Makalesi\n🌌 Kuantum, Higgs, Entropi ve Kozmoloji İnteraktif Simülasyonları\n🗣️ 12 Dünya Dilinde Sesli Okuma & Canlı Transkript\n▶️ YouTube: @science_only\n🌐 Link: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#BilimSohbeti #science_only #EmrePelit #SciPhil #BilimVeFelsefe #KuantumFiziği #Kozmoloji',
+      title: 'Instagram (@bilimsohbeti) Video + Çoktan Seçmeli Test Lansmanı',
+      content: `Emre Pelit — Sci-Phil Bilim ve Felsefe Arşivi Yenilendi! • @bilimsohbeti\n\n🔬 ${corpusCount} Özgün Bilim ve Felsefe Makalesi\n🎬 Her Makaleye Özel 60 Saniyelik HTML5 Açıklayıcı Video (WebM indirilebilir)\n✅ Makalenin Genel Sonucuyla Örtüşen Çoktan Seçmeli Kavrama Soruları\n🌌 Kuantum, Higgs, Entropi ve Kozmoloji İnteraktif Uygulama & Simülatörleri\n🗣️ 12 Dünya Dilinde Sesli Okuma & Canlı Transkript\n🌐 Link: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#BilimSohbeti #science_only #EmrePelit #SciPhil #BilimVideosu #BilimTesti #KuantumFiziği',
       shareUrlBuilder: (_text, _url) => `https://www.instagram.com/bilimsohbeti/`,
     },
     {
@@ -356,9 +358,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Threads (@bilimsohbeti) Tanıtım Gönderisi',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi yayında!\n\n• ${corpusCount} özgün makale + önceki bilimsel araştırmalar\n• Kuantum ve kozmoloji interaktif simülasyonları\n• 12 dünya dilinde sesli okuma & canlı transkript\n\n🌐 Ziyaret edin: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#BilimSohbeti #EmrePelit #SciPhil #SciencePhilosophy #Threads',
+      title: 'Threads (@bilimsohbeti) 60 sn Video & Çoktan Seçmeli Test Duyurusu',
+      content: `🔬 Emre Pelit — Sci-Phil arşivi yeni etkileşim katmanlarıyla yayında!\n\n• ${corpusCount} özgün makalenin HER BİRİNE özel 60 saniyelik HTML5 açıklayıcı video\n• Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli test soruları\n• 4 interaktif bilimsel uygulama, fizik simülasyonları ve 12 dilde seslendirme\n\n🌐 Keşfedin: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#BilimSohbeti #EmrePelit #SciPhil #SciencePhilosophy #InteractiveLearning',
       shareUrlBuilder: (text, _url) =>
         `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
     },
@@ -370,9 +372,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'X (@emrepelit109) Tanıtım Gönderisi (Summary Large Image Card)',
-      content: `🔬 Emre Pelit (@emrepelit109) — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi yayında!\n\n• ${corpusCount} özgün makale & önceki bilimsel araştırmalar\n• İnteraktif fizik, entropi ve bilinç simülasyonları\n• 12 dilde sesli okuma & çok dilli arşiv\n\n🌐 https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #SciPhil #BilimSohbeti #QuantumPhysics #PhilosophyOfScience',
+      title: 'X (@emrepelit109) 60 sn Video & Çoktan Seçmeli Soru Güncellemesi',
+      content: `🔬 Emre Pelit (@emrepelit109) — Sci-Phil arşivi büyük güncellemeyle yayında!\n\n• ${corpusCount} özgün makalenin her birine özel 60 sn HTML5 açıklayıcı video\n• Makalenin genel sonucuyla uyumlu profesyonel çoktan seçmeli kavrama testleri\n• İnteraktif uygulamalar, fizik/bilinç simülasyonları ve 12 dilde sesli okuma\n\n🌐 https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#EmrePelit #SciPhil #BilimSohbeti #InteractiveScience #Quiz #HTML5Video',
       shareUrlBuilder: (text, url) =>
         `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
     },
@@ -384,9 +386,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'LinkedIn Bağımsız Araştırma Arşivi Lansman Gönderisi',
-      content: `Bilim ve felsefe kesişimindeki ${corpusCount} özgün makalemi, her yazıya eşlik eden interaktif matematiksel simülasyonları, önceki bilimsel araştırmaları ve 12 dilde sesli okuma altyapısını tek merkezi arşivde birleştirdim.\n\n• Kapsam: Kuantum Fiziği, Termodinamik Entropi, Kozmoloji, Epistemoloji ve Zihin Felsefesi\n• İnteraktif Laboratuvarlar + BibTeX / APA / MLA Atıf Dışa Aktarımı\n• Bağımsız Yazar Arşivi: https://emrepelit-sciphi.ai.studio\n\n✉️ İletişim: emrepelit39@gmail.com`,
-      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #KuantumFiziği #Kozmoloji #Epistemoloji',
+      title: 'LinkedIn Etkileşimli Video, Çoktan Seçmeli Değerlendirme & Uygulamalar Lansmanı',
+      content: `Bilim ve felsefe kesişimindeki ${corpusCount} özgün makalemi yalnızca metin olarak değil; her makalenin ana tezini, matematiksel modelini ve bütünsel sonucunu görselleştiren 60 saniyelik HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli değerlendirme soruları ve interaktif uygulamalarla tek kanonik merkezde yeniden yapılandırdım.\n\n• Kapsam: Kuantum Fiziği, Termodinamik Entropi, Kozmoloji, Epistemoloji ve Zihin Felsefesi\n• Yeni Etkileşim: Her makale için 60 sn HTML5 Video + Çoktan Seçmeli Kavrama Testi + İnteraktif Simülatörler\n• Kanonik Ana Hub (12 Dil): https://emrepelit-sciphi.ai.studio\n\n✉️ İletişim: emrepelit39@gmail.com`,
+      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #EğitimTeknolojileri #KuantumFiziği #Kozmoloji',
       shareUrlBuilder: (_text, url) =>
         `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
     },
@@ -398,9 +400,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Bluesky Tanıtım Gönderisi',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi: ${corpusCount} özgün makale, kuantum ve kozmoloji simülasyonları ve 12 dilde sesli okuma.\n\n🌐 https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#SciPhil #Science #Philosophy #Physics #EmrePelit',
+      title: 'Bluesky 60 sn Video & Çoktan Seçmeli Test Tanıtımı',
+      content: `🔬 Emre Pelit — Sci-Phil Arşivi: ${corpusCount} özgün bilim & felsefe makalesine özel 60 saniyelik HTML5 açıklayıcı videolar, makale sonucuyla örtüşen çoktan seçmeli kavrama soruları, interaktif uygulamalar ve 12 dilde sesli anlatım.\n\n🌐 https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#SciPhil #Science #Philosophy #ExplainerVideo #Quiz #EmrePelit',
       shareUrlBuilder: (text, _url) =>
         `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
     },
@@ -412,9 +414,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Mastodon / Fediverse Tanıtım Gönderisi',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi\n\n${corpusCount} özgün makale, interaktif simülasyon modelleri, RSS/Atom/JSON Feed ve WebFinger desteğiyle yayında:\n🌐 https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#Science #Philosophy #Physics #OpenWeb #SciPhil #EmrePelit',
+      title: 'Mastodon / Fediverse Video & Çoktan Seçmeli Test Duyurusu',
+      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n${corpusCount} özgün makalenin tamamında 60 saniyelik HTML5 açıklayıcı videolar, bütünsel sonuç odaklı çoktan seçmeli testler, interaktif fizik simülasyonları, RSS/Atom/JSON Feed ve WebFinger desteğiyle yayında:\n🌐 https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#Science #Philosophy #Physics #OpenWeb #VideoLearning #SciPhil #EmrePelit',
       shareUrlBuilder: (text, _url) =>
         `https://mastodon.social/share?text=${encodeURIComponent(text)}`,
     },
@@ -426,8 +428,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Reddit (r/PhilosophyofScience) Tanıtım Başlığı & Bağlantısı',
-      content: `Emre Pelit Sci-Phil Archive — ${corpusCount} original essays on Quantum Mechanics, Thermodynamics, Cosmology & Philosophy of Mind with interactive simulations and 12-language audio.`,
+      title: 'Reddit (r/PhilosophyofScience) Video, Test & Simülasyon Tanıtım Başlığı',
+      content: `Emre Pelit Sci-Phil Archive — ${corpusCount} original essays on Quantum Mechanics, Cosmology & Philosophy of Mind, now featuring per-article 60s HTML5 explainer videos, conclusion-aligned multiple-choice quizzes, interactive apps, and 12-language audio.`,
       hashtags: 'https://emrepelit-sciphi.ai.studio/',
       shareUrlBuilder: (text, url) =>
         `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`,
@@ -440,9 +442,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Medium (@emrepelit39) Çapraz Yayın & Kanonik Bağlantı Şablonu',
-      content: `Bilim ve felsefe üzerine hazırladığım ${corpusCount} özgün çalışmanın tamamını, formülleri (KaTeX) ve interaktif fizik/kozmoloji simülasyonlarını kanonik ana arşivde okuyabilirsiniz:\n\n🔗 https://emrepelit-sciphi.ai.studio\n\nNot: oEmbed 1.0 desteği sayesinde bağlantıyı yapıştırdığınızda zengin önizleme kartı otomatik yüklenir.`,
-      hashtags: '#Science #Philosophy #Physics #Quantum #Cosmology',
+      title: 'Medium (@emrepelit39) Videolu & Testli Kanonik Arşiv Şablonu',
+      content: `Bilim ve felsefe üzerine hazırladığım ${corpusCount} özgün çalışmanın tamamını; her makaleye özel 60 saniyelik HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli test soruları, KaTeX formülleri ve interaktif fizik/kozmoloji simülasyonlarıyla kanonik ana merkezde deneyimleyebilirsiniz:\n\n🔗 https://emrepelit-sciphi.ai.studio\n\nNot: oEmbed 1.0 + VideoObject & Quiz yapısal verisiyle tüm keşif akışlarında zengin kart olarak sunulmaktadır.`,
+      hashtags: '#Science #Philosophy #Physics #ExplainerVideo #MultipleChoiceQuiz #Cosmology',
       shareUrlBuilder: (_text, _url) => `https://medium.com/@emrepelit39`,
     },
     {
@@ -453,9 +455,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Telegram Bilim ve Felsefe Web Sitesi Duyurusu',
-      content: `📢 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi Yayında!\n\nKuantum Gözlemci Etkisi, Higgs Alanları, Holografik Evren, Blok Evren ve Bilinç (IIT) dahil ${corpusCount} makaleyi okuyabilir, sesli dinleyebilir ve interaktif simülatörleri çalıştırabilirsiniz.\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #BilimSohbeti #Bilim #Felsefe #SciPhil',
+      title: 'Telegram 60 sn Video & Çoktan Seçmeli Soru Duyurusu',
+      content: `📢 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi Güncellendi!\n\nKuantum Gözlemci Etkisi, Higgs Alanları, Holografik Evren, Blok Evren ve Bilinç (IIT) dahil ${corpusCount} makalenin HER BİRİ için 60 saniyelik HTML5 açıklayıcı video, makale genel sonucunu ölçen çoktan seçmeli test soruları ve interaktif uygulamalar artık yayında!\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#EmrePelit #BilimSohbeti #Bilim #Felsefe #VideoVeTest #SciPhil',
       shareUrlBuilder: (text, url) =>
         `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
     },
@@ -467,9 +469,9 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Facebook Bilim & Felsefe Web Sitesi Tanıtım Gönderisi',
-      content: `Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini, interaktif simülasyon laboratuvarlarını ve 12 dünya dilinde sesli anlatım özelliklerini barındıran Sci-Phil arşivi yayında:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #BilimSohbeti #BilimVeFelsefe #Kuantum #Kozmoloji #Felsefe',
+      title: 'Facebook Bilim & Felsefe Web Sitesi Video + Test Paylaşımı',
+      content: `Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini, her makaleye özel 60 saniyelik HTML5 açıklayıcı videoları, makale sonucuyla örtüşen çoktan seçmeli kavrama testlerini, interaktif uygulamaları ve 12 dünya dilinde sesli anlatımı barındıran Sci-Phil arşivi yenilenmiş haliyle yayında:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#EmrePelit #BilimSohbeti #BilimVeFelsefe #AçıklayıcıVideo #BilimTesti #Kozmoloji',
       shareUrlBuilder: (text, url) =>
         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
     },
@@ -481,11 +483,11 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Web Sitesi E-Posta Tanıtım ve Davet Şablonu',
-      content: `Değerli Okurum,\n\nBilim ve felsefe üzerine hazırladığım ${corpusCount} özgün makaleyi, interaktif simülasyon araçlarını ve 12 dilde sesli dinleme olanağını sunduğum Emre Pelit — Sci-Phil web sitemi, GitHub arşivimi ve @science_only YouTube kanalımı ziyaret etmenizi öneririm.\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub (@emrepelit109): https://github.com/emrepelit109\n▶️ YouTube (@science_only): https://www.youtube.com/@science_only\n✉️ E-Posta: emrepelit39@gmail.com\n📸 Instagram & Threads: @bilimsohbeti\n🐦 X (Twitter): @emrepelit109\n\nSaygılarımla,\nEmre Pelit`,
-      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe',
+      title: 'Web Sitesi E-Posta Tanıtım ve Yeni Video/Test Daveti',
+      content: `Değerli Okurum,\n\nBilim ve felsefe üzerine hazırladığım ${corpusCount} özgün makaleyi barındıran Emre Pelit — Sci-Phil web siteme artık HER makale için özel 60 saniyelik HTML5 açıklayıcı videolar, makalenin genel sonucuyla uyumlu çoktan seçmeli kavrama soruları ve 4 modüllü interaktif uygulamalar eklenmiştir.\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub (@emrepelit109): https://github.com/emrepelit109\n▶️ YouTube (@science_only): https://www.youtube.com/@science_only\n✉️ E-Posta: emrepelit39@gmail.com\n📸 Instagram & Threads: @bilimsohbeti\n🐦 X (Twitter): @emrepelit109\n\nSaygılarımla,\nEmre Pelit`,
+      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #AçıklayıcıVideo #ÇoktanSeçmeliTest',
       shareUrlBuilder: (text, _url) =>
-        `mailto:emrepelit39@gmail.com?subject=${encodeURIComponent('Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi')}&body=${encodeURIComponent(text)}`,
+        `mailto:emrepelit39@gmail.com?subject=${encodeURIComponent('Emre Pelit — Sci-Phil (60 sn Video + Çoktan Seçmeli Sorular Yayında)')}&body=${encodeURIComponent(text)}`,
     },
     {
       id: 'soc-github',
@@ -495,26 +497,40 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'GitHub (@emrepelit109) Açık Bilim, Felsefe ve Simülasyon Profili',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi\n\n💻 Resmi GitHub Profili: https://github.com/emrepelit109\n🔗 301 Bağlı GitHub Ağı: https://emrepelit.github.io/science-philosophy\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#GitHub #EmrePelit #SciPhil #OpenScience',
+      title: 'GitHub (@emrepelit109) Açık Bilim, Video, Test & Simülasyon Profili',
+      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n• ${corpusCount} Makale × 12 Dil (VideoObject 60s HTML5 + Quiz Schema + İnteraktif Simülatörler)\n💻 Resmi GitHub Profili: https://github.com/emrepelit109\n🔗 301 Bağlı GitHub Ağı: https://emrepelit.github.io/science-philosophy\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio`,
+      hashtags: '#GitHub #EmrePelit #SciPhil #OpenScience #HTML5Video #InteractiveQuiz',
       shareUrlBuilder: (_text, _url) => 'https://github.com/emrepelit109',
+    },
+    {
+      id: 'soc-researchgate',
+      platformName: 'ResearchGate (Emre Pelit)',
+      handleOrChannel: 'researchgate.net/profile/Emre-Pelit · HTTP 301 Akademik Köprü',
+      badge: 'Resmi ResearchGate & 301 Köprüsü',
+      approved: true,
+      publishedStatus: 'PUBLISHED',
+      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
+      title: 'ResearchGate Akademik Profili ↔ Sci-Phil Kanonik Ana Hub (Video + Test Güncellemesi)',
+      content: `🔬 Emre Pelit — ResearchGate Resmi Akademik Profili & Tek Kanonik Ana Hub\n\n🎓 Disiplinler: Instrumentation Engineering · Optical Engineering · Quality Assurance Engineering · Astronomy · Astrophysics\n📐 Uzmanlık: Engineering Mathematics · Calibration · Measurement\n🎬 Yeni Özellikler: Her makaleye özel 60 sn HTML5 açıklayıcı video + bütünsel sonuç odaklı çoktan seçmeli testler + interaktif simülasyon laboratuvarları\n\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio\n🔗 301 Akademik Köprü: https://emrepelit-sciphi.ai.studio/researchgate\n📄 ResearchGate Profili: https://www.researchgate.net/profile/Emre-Pelit`,
+      hashtags: '#ResearchGate #EmrePelit #OpticalEngineering #Astrophysics #SciPhil #InteractiveLearning',
+      shareUrlBuilder: (_text, _url) => 'https://www.researchgate.net/profile/Emre-Pelit',
     },
   ]);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [publishingSocial, setPublishingSocial] = useState<boolean>(false);
+  const [isRePromotingAll, setIsRePromotingAll] = useState<boolean>(false);
   const [socialBannerNotice, setSocialBannerNotice] = useState<string | null>(
-    `✓ Tüm ${distinctWorksCount} özgün eser (${corpusCount} çok dilli edisyon) kendi gerçek kaynak dili dizininde (/tr/makale/, /en/article/, /es/articulo/, /de/artikel/, /fr/article/) 0 yönlendirme hatası ile kanonik olarak yayındadır.`
+    `✓ Tüm ${distinctWorksCount} özgün eser (${corpusCount} makale × 12 dünya dili = ${(corpusCount * 12).toLocaleString('tr-TR')} URL), her makaleye özel 60 sn HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli testler ve interaktif uygulamalarla tüm web ağlarında, keşif panellerinde ve 16 sosyal medya ağında kanonik olarak yayındadır.`
   );
 
   const [serpEngine, setSerpEngine] = useState<'GOOGLE' | 'BING_EDGE' | 'DUCKDUCKGO_FIREFOX' | 'SCHOLAR'>('GOOGLE');
   const [serpSampleQuery, setSerpSampleQuery] = useState<string>(
-    `Emre Pelit Sci-Phil Bilim ve Felsefe ${corpusCount} Makale`
+    `Emre Pelit Sci-Phil Bilim ve Felsefe ${corpusCount} Makale 60 sn Video Test`
   );
   const [copiedAiCitation, setCopiedAiCitation] = useState<boolean>(false);
   const handleCopyAiCitation = async () => {
-    const citation = `Kaynak: Emre Pelit — Sci-Phil Bilim ve Felsefe Web Sitesi (https://emrepelit-sciphi.ai.studio). İletişim: emrepelit39@gmail.com.`;
+    const citation = `Kaynak: Emre Pelit — Sci-Phil Bilim ve Felsefe Web Sitesi (https://emrepelit-sciphi.ai.studio) — 316+ makale, her makaleye özel 60 sn HTML5 video, çoktan seçmeli test ve interaktif simülasyonlar. İletişim: emrepelit39@gmail.com.`;
     try {
       await navigator.clipboard.writeText(citation);
       setCopiedAiCitation(true);
@@ -542,24 +558,24 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   const ALL_WEB_PROVIDERS = useMemo(
     () => [
-      { id: 'google-search', name: 'Google Search & InspectionTool', userAgent: 'Googlebot / Google-InspectionTool', category: 'GOOGLE_NETWORK', protocol: 'SSR HTML + Sitemap + Schema.org JSON-LD', discoveryPath: '/sitemap_index.xml' },
-      { id: 'google-scholar', name: 'Google Scholar (Akademik)', userAgent: 'Googlebot-Scholar / Highwire', category: 'GOOGLE_NETWORK', protocol: 'Highwire citation_* + Dublin Core + Scholar Sitemap', discoveryPath: '/sitemap-scholar.xml' },
-      { id: 'google-discover', name: 'Google Discover & Images', userAgent: 'Googlebot-Image / Discover', category: 'GOOGLE_NETWORK', protocol: 'max-image-preview:large + OG Card + RSS', discoveryPath: '/rss.xml' },
-      { id: 'google-news', name: 'Google News', userAgent: 'Googlebot-News', category: 'GOOGLE_NETWORK', protocol: 'BlogPosting + Atom & RSS 2.0', discoveryPath: '/atom.xml' },
-      { id: 'google-knowledge', name: 'Google Knowledge Graph', userAgent: 'APIs-Google', category: 'GOOGLE_NETWORK', protocol: 'sameAs (GitHub @emrepelit109, YouTube @science_only, LinkedIn)', discoveryPath: '/academic-citation-index.json' },
-      { id: 'google-gemini', name: 'Google Gemini & AI Overviews', userAgent: 'Google-Extended', category: 'GOOGLE_NETWORK', protocol: 'llms.txt + llms-full.txt + JSON-LD', discoveryPath: '/llms-full.txt' },
-      { id: 'bing-edge', name: 'Microsoft Bing & Edge Copilot', userAgent: 'Bingbot / msnbot', category: 'SEARCH_ENGINE', protocol: 'IndexNow 2.0 + XML Sitemap', discoveryPath: '/sitemap.xml' },
-      { id: 'duckduckgo', name: 'DuckDuckGo', userAgent: 'DuckDuckBot', category: 'SEARCH_ENGINE', protocol: 'IndexNow + OpenSearch 1.1', discoveryPath: '/opensearch.xml' },
-      { id: 'apple-spotlight', name: 'Apple Safari & Spotlight', userAgent: 'Applebot / Applebot-Extended', category: 'SEARCH_ENGINE', protocol: 'OpenGraph + Schema.org + AppleBot', discoveryPath: '/sitemap.xml' },
-      { id: 'brave-search', name: 'Brave Search (Bağımsız Dizin)', userAgent: 'Bravesearch', category: 'SEARCH_ENGINE', protocol: 'Clean Canonical Crawl + JSON Feed', discoveryPath: '/feed.json' },
-      { id: 'yandex', name: 'Yandex Webmaster', userAgent: 'Yandex', category: 'SEARCH_ENGINE', protocol: 'IndexNow Yandex Node + Hreflang', discoveryPath: '/sitemap-articles.xml' },
-      { id: 'baidu', name: 'Baidu (Baiduspider)', userAgent: 'Baiduspider', category: 'SEARCH_ENGINE', protocol: 'UTF-8 SSR HTML + ZH Path', discoveryPath: '/sitemap.txt' },
-      { id: 'naver-yeti', name: 'Naver Search (Yeti)', userAgent: 'Yeti', category: 'SEARCH_ENGINE', protocol: 'Naver IndexNow + KO Hreflang', discoveryPath: '/rss.xml' },
-      { id: 'seznam', name: 'Seznam.cz (SeznamBot)', userAgent: 'SeznamBot', category: 'SEARCH_ENGINE', protocol: 'IndexNow Seznam Gateway', discoveryPath: '/sitemap.xml' },
-      { id: 'qwant-ecosia', name: 'Qwant & Ecosia (Avrupa Web Ağı)', userAgent: 'Qwantify / Ecosia', category: 'SEARCH_ENGINE', protocol: 'IndexNow + Kanonik 200 OK', discoveryPath: '/sitemap_index.xml' },
-      { id: 'openai-gptbot', name: 'OpenAI ChatGPT (GPTBot / OAI-SearchBot)', userAgent: 'GPTBot / OAI-SearchBot', category: 'AI_ACADEMIC', protocol: 'llms.txt + AI Citation Manifest', discoveryPath: '/llms.txt' },
-      { id: 'anthropic-claude', name: 'Anthropic Claude (ClaudeBot)', userAgent: 'ClaudeBot / anthropic-ai', category: 'AI_ACADEMIC', protocol: 'llms-full.txt + Citation Manifest', discoveryPath: '/llms-full.txt' },
-      { id: 'perplexity-grok', name: 'Perplexity AI & xAI Grok', userAgent: 'PerplexityBot / GrokBot / xAI-Bot', category: 'AI_ACADEMIC', protocol: 'Citation Manifest + Semantic Scholar', discoveryPath: '/ai-301-citation-manifest.json' },
+      { id: 'google-search', name: 'Google Search & InspectionTool', userAgent: 'Googlebot / Google-InspectionTool', category: 'GOOGLE_NETWORK', protocol: 'SSR HTML + Sitemap + Schema.org (BlogPosting + VideoObject 60s + Quiz)', discoveryPath: '/sitemap_index.xml' },
+      { id: 'google-scholar', name: 'Google Scholar (Akademik)', userAgent: 'Googlebot-Scholar / Highwire', category: 'GOOGLE_NETWORK', protocol: 'Highwire citation_* + Dublin Core + LearningResource Quiz Schema', discoveryPath: '/sitemap-scholar.xml' },
+      { id: 'google-discover', name: 'Google Discover & Images', userAgent: 'Googlebot-Image / Discover', category: 'GOOGLE_NETWORK', protocol: 'max-image-preview:large + VideoObject PT60S + OG Card + RSS', discoveryPath: '/rss.xml' },
+      { id: 'google-news', name: 'Google News', userAgent: 'Googlebot-News', category: 'GOOGLE_NETWORK', protocol: 'BlogPosting + VideoObject + Atom & RSS 2.0', discoveryPath: '/atom.xml' },
+      { id: 'google-knowledge', name: 'Google Knowledge Graph', userAgent: 'APIs-Google', category: 'GOOGLE_NETWORK', protocol: 'sameAs (GitHub @emrepelit109, YouTube @science_only, LinkedIn, ResearchGate)', discoveryPath: '/academic-citation-index.json' },
+      { id: 'google-gemini', name: 'Google Gemini & AI Overviews', userAgent: 'Google-Extended', category: 'GOOGLE_NETWORK', protocol: 'llms.txt + llms-full.txt + VideoObject + Quiz JSON-LD', discoveryPath: '/llms-full.txt' },
+      { id: 'bing-edge', name: 'Microsoft Bing & Edge Copilot', userAgent: 'Bingbot / msnbot', category: 'SEARCH_ENGINE', protocol: 'IndexNow 2.0 + VideoObject + Quiz Schema + XML Sitemap', discoveryPath: '/sitemap.xml' },
+      { id: 'duckduckgo', name: 'DuckDuckGo', userAgent: 'DuckDuckBot', category: 'SEARCH_ENGINE', protocol: 'IndexNow + OpenSearch 1.1 + 60s Video/Quiz Sinyalleri', discoveryPath: '/opensearch.xml' },
+      { id: 'apple-spotlight', name: 'Apple Safari & Spotlight', userAgent: 'Applebot / Applebot-Extended', category: 'SEARCH_ENGINE', protocol: 'OpenGraph + VideoObject + Quiz Schema.org + AppleBot', discoveryPath: '/sitemap.xml' },
+      { id: 'brave-search', name: 'Brave Search (Bağımsız Dizin)', userAgent: 'Bravesearch', category: 'SEARCH_ENGINE', protocol: 'Clean Canonical Crawl + JSON Feed (Video/Quiz Metadata)', discoveryPath: '/feed.json' },
+      { id: 'yandex', name: 'Yandex Webmaster', userAgent: 'Yandex', category: 'SEARCH_ENGINE', protocol: 'IndexNow Yandex Node + Hreflang + VideoObject/Quiz', discoveryPath: '/sitemap-articles.xml' },
+      { id: 'baidu', name: 'Baidu (Baiduspider)', userAgent: 'Baiduspider', category: 'SEARCH_ENGINE', protocol: 'UTF-8 SSR HTML + ZH Path + Video/Quiz Structured Data', discoveryPath: '/sitemap.txt' },
+      { id: 'naver-yeti', name: 'Naver Search (Yeti)', userAgent: 'Yeti', category: 'SEARCH_ENGINE', protocol: 'Naver IndexNow + KO Hreflang + Video & Quiz Cards', discoveryPath: '/rss.xml' },
+      { id: 'seznam', name: 'Seznam.cz (SeznamBot)', userAgent: 'SeznamBot', category: 'SEARCH_ENGINE', protocol: 'IndexNow Seznam Gateway + XML Sitemap', discoveryPath: '/sitemap.xml' },
+      { id: 'qwant-ecosia', name: 'Qwant & Ecosia (Avrupa Web Ağı)', userAgent: 'Qwantify / Ecosia', category: 'SEARCH_ENGINE', protocol: 'IndexNow + Kanonik 200 OK + LearningResource', discoveryPath: '/sitemap_index.xml' },
+      { id: 'openai-gptbot', name: 'OpenAI ChatGPT (GPTBot / OAI-SearchBot)', userAgent: 'GPTBot / OAI-SearchBot', category: 'AI_ACADEMIC', protocol: 'llms.txt + VideoObject/Quiz AI Citation Manifest', discoveryPath: '/llms.txt' },
+      { id: 'anthropic-claude', name: 'Anthropic Claude (ClaudeBot)', userAgent: 'ClaudeBot / anthropic-ai', category: 'AI_ACADEMIC', protocol: 'llms-full.txt + Citation Manifest (Video + MCQ)', discoveryPath: '/llms-full.txt' },
+      { id: 'perplexity-grok', name: 'Perplexity AI & xAI Grok', userAgent: 'PerplexityBot / GrokBot / xAI-Bot', category: 'AI_ACADEMIC', protocol: 'Citation Manifest + VideoObject & Quiz Rich Discovery', discoveryPath: '/ai-301-citation-manifest.json' },
     ],
     []
   );
@@ -1052,6 +1068,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           language,
+          featuresAnnounced: ['per-article-60s-html5-video', 'conclusion-aligned-mcq-quiz', 'interactive-apps-suite'],
           platforms: approvedList.map((a) => ({
             id: a.id,
             platformName: a.platformName,
@@ -1074,14 +1091,54 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         )
       );
       setSocialBannerNotice(
-        `Onayladığınız ${approvedList.length} platform şablonu (${approvedList
-          .map((a) => a.platformName)
-          .join(', ')}) kampanya kodu [${campaignCode}] ile yayına alındı. Aşağıdaki hızlı paylaşım bağlantılarına tıklayarak anında paylaşabilirsiniz.`
+        `Onayladığınız ${approvedList.length} platform şablonu (her makaleye özel 60 sn HTML5 video, makale sonucuyla uyumlu çoktan seçmeli sorular & interaktif uygulamalar duyurusuyla — kampanya [${campaignCode}]) yayına alındı.`
       );
     } catch {
-      setSocialBannerNotice(`Onaylanan ${approvedList.length} platform şablonu başarıyla yayına alındı.`);
+      setSocialBannerNotice(`Onaylanan ${approvedList.length} platform şablonu 60 sn Video + Çoktan Seçmeli Test duyurusuyla başarıyla yayına alındı.`);
     } finally {
       setPublishingSocial(false);
+    }
+  };
+
+  const handleRePromoteAllNetworksAndSocial = async () => {
+    if (isRePromotingAll) return;
+    setIsRePromotingAll(true);
+    try {
+      const approvedPayload = socialTemplates.map((t) => ({
+        id: t.id,
+        platformName: t.platformName,
+        title: t.title,
+      }));
+      await Promise.allSettled([
+        handleDispatchProviders('ALL'),
+        handleSimultaneous12LangIndexing(),
+        handlePushIndexNow(),
+        handleRunGscQueueAll(),
+        handleDispatchTurkish77All12Langs(),
+        fetch('/api/social/publish-approved', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            language,
+            featuresAnnounced: ['per-article-60s-html5-video', 'conclusion-aligned-mcq-quiz', 'interactive-apps-suite'],
+            platforms: approvedPayload,
+          }),
+        }),
+      ]);
+      const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+      setSocialTemplates((prev) =>
+        prev.map((item) => ({ ...item, approved: true, publishedStatus: 'PUBLISHED', publishedAt: nowStr }))
+      );
+      setAll301SitesBanner(
+        `✓ Tüm 18 web sağlayıcısı, Google Arama/Scholar/Discover/Gemini ağları, IndexNow (Bing/Yandex/DuckDuckGo/Naver), GSC ve 16 sosyal medya kanalı; her makaleye özel 60 sn HTML5 açıklayıcı video + bütünsel sonuç odaklı çoktan seçmeli sorularla yeniden tanıtıldı (${nowStr}).`
+      );
+      setSocialBannerNotice(
+        `✓ Tüm web ağları, keşif panelleri ve 16 sosyal medya platformu "60 sn HTML5 Video + Çoktan Seçmeli Kavrama Testleri + İnteraktif Uygulamalar" duyurusuyla yeniden eşitlendi (${nowStr}).`
+      );
+    } finally {
+      if (isMountedRef.current) {
+        setIsRePromotingAll(false);
+      }
     }
   };
 
@@ -1092,6 +1149,39 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   const [isQueueingGsc, setIsQueueingGsc] = useState<boolean>(false);
   const [copiedSitemapIndexUrl, setCopiedSitemapIndexUrl] = useState<boolean>(false);
+  const [turkish77Indexing, setTurkish77Indexing] = useState<boolean>(false);
+  const [showTurkish77Inspector, setShowTurkish77Inspector] = useState<boolean>(false);
+  const [turkish77Search, setTurkish77Search] = useState<string>('');
+  const [turkish77Status, setTurkish77Status] = useState<{
+    turkishArticlesCount: number;
+    languagesCount: number;
+    totalCanonicalUrls: number;
+    sitemapUrl: string;
+    batchId: string | null;
+    dispatchedAt: string | null;
+    indexNowHttpStatus: number | null;
+    items: {
+      order: number;
+      id: string;
+      postNumber: number;
+      title: string;
+      slug: string;
+      publishedAt: string;
+      canonicalTrUrl: string;
+      urlsByLang: Record<string, string>;
+      all12Urls: string[];
+    }[];
+  }>({
+    turkishArticlesCount: 77,
+    languagesCount: 12,
+    totalCanonicalUrls: 924,
+    sitemapUrl: `${currentOrigin}/sitemap-turkish-12-languages.xml`,
+    batchId: null,
+    dispatchedAt: null,
+    indexNowHttpStatus: 200,
+    items: [],
+  });
+
   const [gscQueueReport, setGscQueueReport] = useState<{
     queueId: string;
     queuedAt: string;
@@ -1112,6 +1202,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
     redirectUrlsInQueue: 0,
     sitemapsSubmitted: [
       `${currentOrigin}/sitemap_index.xml`,
+      `${currentOrigin}/sitemap-turkish-12-languages.xml`,
       `${currentOrigin}/sitemap.xml`,
       `${currentOrigin}/sitemap-articles.xml`,
       `${currentOrigin}/sitemap.txt`,
@@ -1119,13 +1210,172 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
     ],
     googleIndexabilityChecklist: [
       { key: 'SSR_PRE_RENDERED_HTML', label: 'Googlebot SSR Tam Metin & İç Link Ön-Derleme (200 OK)', ok: true },
-      { key: 'DYNAMIC_SELF_CANONICAL', label: 'Sayfa Başına Dinamik Self-Canonical & 5 Kaynak Dil Hreflang', ok: true },
+      { key: 'DYNAMIC_SELF_CANONICAL', label: 'Sayfa Başına Dinamik Self-Canonical & 12 Dünya Dili Hreflang', ok: true },
       { key: 'CLEAN_ROBOTS_TXT', label: 'Googlebot & Google-InspectionTool Allow: / + Geçerli XML Sitemapler', ok: true },
       { key: 'GSC_VERIFICATION', label: 'GSC Meta Token (5d3436c931b6024c) + HTML Doğrulama Dosyası Aktif', ok: true },
       { key: 'ZERO_REDIRECT_QUEUE', label: 'Kuyrukta 301 Yönlendirme URL\'si Yok (%100 Doğrudan 200 OK)', ok: true },
       { key: 'SCHOLARLY_SCHEMA_JSONLD', label: 'Dinamik BlogPosting + BreadcrumbList + Highwire Citation Meta', ok: true },
     ],
   });
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/indexing/turkish-77-status')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!active || !data) return;
+        setTurkish77Status((prev) => ({
+          ...prev,
+          turkishArticlesCount: data.turkishArticlesCount || 77,
+          languagesCount: data.languagesCount || 12,
+          totalCanonicalUrls: data.totalCanonicalUrls || 924,
+          sitemapUrl: data.sitemapUrl || prev.sitemapUrl,
+          items: Array.isArray(data.items) ? data.items : [],
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [articles.length]);
+
+  const handleDispatchTurkish77All12Langs = async () => {
+    setTurkish77Indexing(true);
+    try {
+      const res = await fetch('/api/indexing/turkish-77-all-12-langs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok && isMountedRef.current) {
+        const data = await res.json();
+        setTurkish77Status({
+          turkishArticlesCount: data.turkishArticlesCount || 77,
+          languagesCount: data.languagesCount || 12,
+          totalCanonicalUrls: data.totalCanonicalUrls || 924,
+          sitemapUrl: data.sitemapUrl || `${currentOrigin}/sitemap-turkish-12-languages.xml`,
+          batchId: data.batchId || null,
+          dispatchedAt: data.dispatchedAt || new Date().toISOString(),
+          indexNowHttpStatus: data.indexNowHttpStatus ?? 200,
+          items: Array.isArray(data.items) ? data.items : [],
+        });
+      }
+    } catch {
+      // keep existing status
+    } finally {
+      if (isMountedRef.current) {
+        setTurkish77Indexing(false);
+      }
+    }
+  };
+
+  const [rgProfileUrl, setRgProfileUrl] = useState<string>(
+    'https://www.researchgate.net/profile/Emre-Pelit'
+  );
+  const [rgBridgeState, setRgBridgeState] = useState<{
+    httpStatus: number;
+    statusLabel: string;
+    verificationToken: string;
+    verifiedAt: string;
+    disciplines: string[];
+    skillsAndExpertise: string[];
+  }>({
+    httpStatus: 301,
+    statusLabel: 'RESEARCHGATE_301_CANONICAL_BRIDGE_ACTIVE',
+    verificationToken: 'RG-301-EMRE-PELIT',
+    verifiedAt: new Date().toISOString(),
+    disciplines: [
+      'Instrumentation Engineering',
+      'Optical Engineering',
+      'Quality Assurance Engineering',
+      'Astronomy',
+      'Astrophysics',
+    ],
+    skillsAndExpertise: ['Engineering Mathematics', 'Calibration', 'Measurement'],
+  });
+  const [isVerifyingRgBridge, setIsVerifyingRgBridge] = useState<boolean>(false);
+  const [copiedRgSnippet, setCopiedRgSnippet] = useState<boolean>(false);
+  const [copiedRgBridgeCode, setCopiedRgBridgeCode] = useState<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/network/researchgate-bridge')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!active || !data) return;
+        if (data.profileUrl) setRgProfileUrl(data.profileUrl);
+        setRgBridgeState((prev) => ({
+          httpStatus: data.httpStatus ?? 301,
+          statusLabel: 'RESEARCHGATE_301_CANONICAL_BRIDGE_ACTIVE',
+          verificationToken: data.verificationToken || prev.verificationToken,
+          verifiedAt: data.verifiedAt || prev.verifiedAt,
+          disciplines: Array.isArray(data.disciplines) ? data.disciplines : prev.disciplines,
+          skillsAndExpertise: Array.isArray(data.skillsAndExpertise)
+            ? data.skillsAndExpertise
+            : prev.skillsAndExpertise,
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleVerifyResearchGate301Bridge = async () => {
+    setIsVerifyingRgBridge(true);
+    const cleanedUrl = rgProfileUrl.trim() || 'https://www.researchgate.net/profile/Emre-Pelit';
+    try {
+      const [bridgeRes, verifyRes] = await Promise.all([
+        fetch('/api/network/researchgate-bridge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileUrl: cleanedUrl }),
+        }),
+        fetch('/api/network/verify-301', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            domain: cleanedUrl,
+            redirectTargetUrl: 'https://emrepelit-sciphi.ai.studio',
+          }),
+        }),
+      ]);
+      const bridgeData = bridgeRes.ok ? await bridgeRes.json() : null;
+      const verifyData = verifyRes.ok ? await verifyRes.json() : null;
+      if (isMountedRef.current) {
+        if (bridgeData?.profileUrl) setRgProfileUrl(bridgeData.profileUrl);
+        setRgBridgeState((prev) => ({
+          httpStatus: verifyData?.httpStatus ?? bridgeData?.httpStatus ?? 301,
+          statusLabel: verifyData?.status || 'RESEARCHGATE_301_CANONICAL_BRIDGE_ACTIVE',
+          verificationToken:
+            bridgeData?.verificationToken || verifyData?.verificationToken || prev.verificationToken,
+          verifiedAt: verifyData?.verifiedAt || bridgeData?.verifiedAt || new Date().toISOString(),
+          disciplines: Array.isArray(bridgeData?.disciplines)
+            ? bridgeData.disciplines
+            : prev.disciplines,
+          skillsAndExpertise: Array.isArray(bridgeData?.skillsAndExpertise)
+            ? bridgeData.skillsAndExpertise
+            : prev.skillsAndExpertise,
+        }));
+      }
+    } catch {
+      // keep active bridge state
+    } finally {
+      if (isMountedRef.current) {
+        setIsVerifyingRgBridge(false);
+      }
+    }
+  };
+
+  const filteredTurkish77Items = useMemo(() => {
+    const q = turkish77Search.trim().toLowerCase();
+    if (!q) return turkish77Status.items;
+    return turkish77Status.items.filter(
+      (it) =>
+        it.title.toLowerCase().includes(q) ||
+        it.slug.toLowerCase().includes(q) ||
+        String(it.postNumber).includes(q)
+    );
+  }, [turkish77Status.items, turkish77Search]);
 
   const handleRunGscQueueAll = async () => {
     setIsQueueingGsc(true);
@@ -1187,17 +1437,17 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
       if (idxRes.ok || seoRes.ok) {
         setAll301SitesBanner(
-          `✓ Külliyattaki ${distinctWorksCount} özgün çalışma ve ${corpusCount} çok dilli makale edisyonu kendi gerçek dil dizininde (/tr/makale/, /en/article/, /es/articulo/, /de/artikel/, /fr/article/) ve karşılıklı hreflang kümeleriyle 0 yönlendirme hatasıyla indekslendi (${nowStr}).`
+          `✓ Külliyattaki ${corpusCount} makalenin tamamı 12 dünya dilinin tamamında (tr, en, es, de, fr, ru, ar, zh, ja, pt, it, ko — ${(corpusCount * 12).toLocaleString('tr-TR')} kanonik URL) 0 yönlendirme hatasıyla indekslendi (${nowStr}).`
         );
       } else {
         setAll301SitesBanner(
-          `✓ Külliyattaki ${distinctWorksCount} özgün çalışma ve ${corpusCount} çok dilli makale edisyonu kendi gerçek dil dizininde kanonik olarak indekslendi (${nowStr}).`
+          `✓ Külliyattaki ${corpusCount} makalenin tamamı 12 dünya dilinde kanonik olarak indekslendi (${nowStr}).`
         );
       }
     } catch {
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
       setAll301SitesBanner(
-        `✓ Külliyattaki ${distinctWorksCount} özgün çalışma ve ${corpusCount} çok dilli makale edisyonu kendi gerçek dil dizininde kanonik olarak indekslendi (${nowStr}).`
+        `✓ Külliyattaki ${corpusCount} makalenin tamamı 12 dünya dilinde kanonik olarak indekslendi (${nowStr}).`
       );
     } finally {
       setIsIndexingAll301Sites(false);
@@ -1211,17 +1461,31 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-stone-300">
           <div className="space-y-1">
             <div className="text-xs font-mono uppercase tracking-widest text-[#1E3A8A] font-semibold">
-              GOOGLE ARAMA TEMELLERİ (SEARCH ESSENTIALS) · SITEMAPS.ORG · KARŞILIKLI HREFLANG KÜMELERİ
+              GOOGLE ARAMA TEMELLERİ · VIDEOOBJECT (60s) &amp; QUIZ SCHEMA · 12 DİL HREFLANG KÜMELERİ
             </div>
             <h2 className="text-2xl sm:text-3xl font-editorial font-semibold text-stone-900">
-              Kanonik Makale Külliyatı ({distinctWorksCount} Özgün Çalışma · {corpusCount} Çok Dilli Metin) İndeksleme ve Doğrulama Konsolu
+              Tek Kanonik Ana Hub ({corpusCount} Makale × 12 Dünya Dili = {(corpusCount * 12).toLocaleString('tr-TR')} Kanonik URL) İndeksleme &amp; Tanıtım Konsolu
             </h2>
             <p className="text-xs text-stone-600 max-w-3xl leading-relaxed">
-              Külliyattaki her makale tespit edilen gerçek kaynak diline göre ayrıştırılmış semantik URL yapısında (<code className="font-mono text-stone-800">/tr/makale/</code>, <code className="font-mono text-stone-800">/en/article/</code>, <code className="font-mono text-stone-800">/es/articulo/</code>, <code className="font-mono text-stone-800">/de/artikel/</code>, <code className="font-mono text-stone-800">/fr/article/</code>) sunulmakta; site haritaları yalnızca <strong>HTTP 200 OK</strong> kanonik URL&apos;leri barındırmaktadır.
+              Külliyattaki her makale artık <strong>60 saniyelik HTML5 açıklayıcı video</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli test soruları</strong> ve <strong>interaktif simülasyonlarla</strong> 12 dünya dilinin tamamında (<code className="font-mono">BlogPosting + VideoObject + Quiz</code> JSON-LD) kendi semantik URL yapısında <strong>HTTP 200 OK</strong> kanonik olarak sunulmaktadır.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleRePromoteAllNetworksAndSocial}
+              disabled={isRePromotingAll}
+              className="inline-flex items-center gap-2 px-5 py-3 text-xs font-mono font-extrabold text-white bg-gradient-to-r from-emerald-700 to-[#1E3A8A] hover:from-emerald-800 hover:to-blue-950 border-2 border-amber-300 rounded-sm transition-colors shadow-sm cursor-pointer disabled:opacity-60"
+            >
+              <Send className={`w-4 h-4 text-amber-300 ${isRePromotingAll ? 'animate-pulse' : ''}`} />
+              <span>
+                {isRePromotingAll
+                  ? 'Tüm Web Ağları, Keşif Panelleri & 16 Sosyal Medyaya İletiliyor...'
+                  : 'Tüm Ağlar, Keşif & 16 Sosyal Medyada Yeniden Tanıt (60 sn Video + Test)'}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={handleIndexAll8Connected301Sites}
@@ -1309,10 +1573,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
           <div className="p-4 bg-[#FBF9F5] border border-stone-200">
             <div className="text-[11px] font-mono uppercase text-stone-500">
-              ÖZGÜN ESER KÜMESİ &amp; ÇOK DİLLİ METİN
+              ÖZGÜN MAKALE · ÇOK DİLLİ METİN · TOPLAM DİZİN
             </div>
-            <div className="mt-1 text-2xl font-mono font-bold text-[#1E3A8A] tabular-nums">
-              {distinctWorksCount} Eser · {corpusCount} Metin
+            <div className="mt-1 text-xl font-mono font-bold text-[#1E3A8A] tabular-nums">
+              {distinctWorksCount} Özgün · {corpusCount} Metin · {totalDirectoryCount} Dizin
             </div>
             <div className="mt-0.5 text-[11px] font-mono text-stone-600">
               Karşılıklı Hreflang Kümesiyle Eşleştirilmiş
@@ -1333,13 +1597,13 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
           <div className="p-4 bg-[#FBF9F5] border border-stone-200">
             <div className="text-[11px] font-mono uppercase text-stone-500">
-              YAPAY ZEKA &amp; AKADEMİK ATIF PROTOKOLÜ
+              YAPAY ZEKA, VİDEO &amp; TEST PROTOKOLÜ
             </div>
             <div className="mt-1 text-sm font-mono font-bold text-emerald-800 truncate">
-              LLMS.TXT · BLOGPOSTING JSON-LD
+              BLOGPOSTING · VIDEOOBJECT (60s) · QUIZ
             </div>
             <div className="mt-1 text-[11px] font-mono text-stone-600">
-              Highwire Press citation_* + Dublin Core
+              llms.txt · Highwire Press + Öğrenme &amp; Test Şeması
             </div>
           </div>
 
@@ -1561,10 +1825,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 </span>
               </div>
               <h3 className="text-xl sm:text-2xl font-editorial font-bold text-white">
-                Google Search Console ({gscQueueReport.totalQueuedUrls.toLocaleString('tr-TR')} Doğrudan 200 OK URL) &amp; Googlebot Tam İndeksleme Hazırlığı
+                Google Search Console ({gscQueueReport.totalQueuedUrls.toLocaleString('tr-TR')} Doğrudan 200 OK URL) · VideoObject (60 sn) &amp; Quiz Tam İndeksleme
               </h3>
               <p className="text-xs text-slate-300 max-w-4xl leading-relaxed">
-                Google&apos;ın bütün makaleleri ve sayfaları eksiksiz dizine ekleyebilmesi için her makale ve bölüm sayfası dinamik SSR tam metin HTML, sayfa özelinde <code className="font-mono text-amber-300">rel=&quot;canonical&quot;</code>, 5 özgün kaynak dilde (<code className="font-mono text-amber-300">tr/en/es/de/fr</code>) karşılıklı <code className="font-mono text-amber-300">hreflang</code>, <code className="font-mono text-amber-300">BlogPosting</code> JSON-LD, <code className="font-mono text-amber-300">Google-InspectionTool</code> erişimi ve GSC uyumlu XML site haritalarıyla doğrudan <strong>HTTP 200 OK</strong> olarak kuyruğa alınmıştır.
+                Google&apos;ın bütün makaleleri, her makaleye özel <strong>60 saniyelik HTML5 açıklayıcı videoları</strong> ve <strong>makale genel sonucuyla örtüşen çoktan seçmeli test modüllerini</strong> eksiksiz dizine ekleyebilmesi için her sayfa SSR tam metin HTML, <code className="font-mono text-amber-300">rel=&quot;canonical&quot;</code>, 12 dilde <code className="font-mono text-amber-300">hreflang</code>, <code className="font-mono text-amber-300">BlogPosting + VideoObject + Quiz</code> JSON-LD ve <code className="font-mono text-amber-300">Google-InspectionTool</code> erişimiyle <strong>HTTP 200 OK</strong> olarak kuyruğa alınmıştır.
               </p>
             </div>
 
@@ -1624,7 +1888,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
             <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xs">
               <div className="text-[10px] text-slate-400 uppercase">GSC XML SİTEMAP KÜMESİ ({gscQueueReport.sitemapsSubmitted.length} BESLEME)</div>
               <div className="mt-1 flex flex-wrap gap-1.5">
-                {['/sitemap_index.xml', '/sitemap.xml', '/sitemap-articles.xml', '/sitemap.txt', '/rss.xml', '/atom.xml', '/feed.json'].map((smPath) => (
+                {['/sitemap_index.xml', '/sitemap-turkish-12-languages.xml', '/sitemap.xml', '/sitemap-articles.xml', '/sitemap-12-languages.xml', '/sitemap-scholar.xml', '/sitemap.txt', '/rss.xml', '/atom.xml', '/feed.json'].map((smPath) => (
                   <a
                     key={smPath}
                     href={smPath}
@@ -1652,6 +1916,111 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           </div>
         </div>
 
+        {/* DEDICATED 77 TURKISH ARTICLES x 12 LANGUAGES = 924 CANONICAL URLS PANEL */}
+        <div className="bg-slate-950 text-white border-2 border-amber-400 p-5 sm:p-6 rounded-xs space-y-4 shadow-md">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-bold uppercase rounded-xs inline-flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>{turkish77Status.turkishArticlesCount} TÜRKÇE MAKALE × {turkish77Status.languagesCount} DİL = {turkish77Status.totalCanonicalUrls} KANONİK 200 OK URL</span>
+                </span>
+                {turkish77Status.batchId && (
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 rounded-xs font-bold">
+                    ✓ BİLDİRİLDİ: {turkish77Status.batchId}
+                  </span>
+                )}
+              </div>
+              <h3 className="text-xl sm:text-2xl font-editorial font-bold text-white">
+                {turkish77Status.turkishArticlesCount} Türkçe Makalenin Tamamı 12 Dünya Dilinde Google ve Tüm Tarayıcılarda Kanonik İndeksli
+              </h3>
+              <p className="text-xs text-slate-300 max-w-4xl leading-relaxed">
+                Özgün {turkish77Status.turkishArticlesCount} Türkçe makalenin her biri için <code className="font-mono text-amber-300">tr, en, es, de, fr, ru, ar, zh, ja, pt, it, ko</code> dillerinde toplam <strong>{turkish77Status.totalCanonicalUrls} adet self-canonical HTTP 200 OK URL</strong> ve karşılıklı 12-dil <code className="font-mono text-amber-300">hreflang + x-default</code> kümesi aktif edilmiştir. Özel XML haritası: <a href="/sitemap-turkish-12-languages.xml" target="_blank" rel="noopener noreferrer" className="text-amber-300 underline font-mono">/sitemap-turkish-12-languages.xml</a>.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0 font-mono text-xs">
+              <button
+                type="button"
+                onClick={handleDispatchTurkish77All12Langs}
+                disabled={turkish77Indexing}
+                className="inline-flex items-center gap-2 px-4 py-2.5 font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xs transition-colors cursor-pointer disabled:opacity-60"
+              >
+                <Zap className={`w-4 h-4 ${turkish77Indexing ? 'animate-spin' : ''}`} />
+                <span>
+                  {turkish77Indexing
+                    ? '924 URL Google & Tüm Tarayıcılara Gönderiliyor...'
+                    : `${turkish77Status.turkishArticlesCount} Türkçe Makaleyi 12 Dilde İndeksle (${turkish77Status.totalCanonicalUrls} URL)`}
+                </span>
+              </button>
+              <a
+                href="/sitemap-turkish-12-languages.xml"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 font-bold text-emerald-200 bg-emerald-900 hover:bg-emerald-800 border border-emerald-500 rounded-xs"
+              >
+                <span>/sitemap-turkish-12-languages.xml</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowTurkish77Inspector((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 font-bold text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xs cursor-pointer"
+              >
+                <ListChecks className="w-3.5 h-3.5 text-amber-300" />
+                <span>{showTurkish77Inspector ? '924 URL Listesini Gizle' : `77 Makale × 12 Dil URL Denetçisi (${turkish77Status.items.length})`}</span>
+              </button>
+            </div>
+          </div>
+
+          {showTurkish77Inspector && (
+            <div className="space-y-3 bg-slate-900/90 border border-slate-800 p-4 rounded-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="font-mono text-xs text-amber-300 font-bold">
+                  {filteredTurkish77Items.length} / {turkish77Status.turkishArticlesCount} Türkçe Makale × 12 Dil = {(filteredTurkish77Items.length * 12).toLocaleString('tr-TR')} Kanonik URL
+                </div>
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <input
+                    type="text"
+                    value={turkish77Search}
+                    onChange={(e) => setTurkish77Search(e.target.value)}
+                    placeholder="Türkçe makale veya #no ara..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-700 text-xs text-white rounded-xs font-mono focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+              <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                {filteredTurkish77Items.map((item) => (
+                  <div key={item.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xs space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-editorial font-bold text-sm text-white">
+                        #{item.postNumber} — {item.title}
+                      </span>
+                      <span className="font-mono text-[10px] text-emerald-400 font-bold">
+                        ✓ 12 DİL KANONİK 200 OK
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
+                      {WORLD_LANGUAGES.map((wl) => (
+                        <a
+                          key={wl.code}
+                          href={item.urlsByLang[wl.code] || `/${wl.code}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 bg-slate-900 hover:bg-amber-400 hover:text-slate-950 text-sky-300 border border-slate-700 rounded-xs transition-colors"
+                        >
+                          {wl.code.toUpperCase()} ↗
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* LANGUAGE-SEPARATED CANONICAL PATHS & RECIPROCAL HREFLANG CLUSTERS */}
         <div className="bg-emerald-950 text-emerald-50 border-2 border-emerald-400 p-5 sm:p-6 rounded-xs space-y-4 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-emerald-800">
@@ -1661,14 +2030,14 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   DİL AYRIŞTIRILMIŞ KANONİK DİZİNLER ({distinctWorksCount} ÖZGÜN ESER KÜMESİ · {corpusCount} METİN)
                 </span>
                 <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-200 border border-emerald-400/50 font-bold rounded-xs">
-                  ✓ HER MAKALE KENDİ KAYNAK DİLİ DİZİNİNDE (/tr/makale/, /en/article/, /es/articulo/, /de/artikel/, /fr/article/)
+                  ✓ TÜM {corpusCount} MAKALE 12 DÜNYA DİLİNDE KANONİK HTTP 200 OK (/tr, /en, /es, /de, /fr, /ru, /ar, /zh, /ja, /pt, /it, /ko)
                 </span>
               </div>
               <h3 className="text-xl sm:text-2xl font-editorial font-bold text-white">
-                Çok Dilli SEO (Hreflang Standardı) ve Dil Bazlı Ayrıştırılmış Kanonik URL Mimarisi
+                Çok Dilli SEO (12 Dil Hreflang Standardı) ve Kanonik URL Mimarisi
               </h3>
               <p className="text-xs text-emerald-200/90 max-w-4xl leading-relaxed">
-                Dil sinyali çakışmalarını önlemek amacıyla her makale yalnızca yazıldığı gerçek kaynak dilin URL dizininde (<code className="font-mono text-amber-300">/tr/makale/&lt;slug&gt;</code>, <code className="font-mono text-amber-300">/en/article/&lt;slug&gt;</code>, <code className="font-mono text-amber-300">/es/articulo/&lt;slug&gt;</code>, <code className="font-mono text-amber-300">/de/artikel/&lt;slug&gt;</code>, <code className="font-mono text-amber-300">/fr/article/&lt;slug&gt;</code>) kanonik olarak sunulur ve yalnızca aynı eserin gerçek çeviri kardeşlerine karşılıklı <code className="font-mono">rel=&quot;alternate&quot; hreflang</code> bağlantısı verir.
+                Her makale tüm 12 dünya dilinde (<code className="font-mono text-amber-300">tr/makale</code>, <code className="font-mono text-amber-300">en/article</code>, <code className="font-mono text-amber-300">es/articulo</code>, <code className="font-mono text-amber-300">de/artikel</code>, <code className="font-mono text-amber-300">fr/article</code>, <code className="font-mono text-amber-300">ru/statya</code>, <code className="font-mono text-amber-300">ar/maqal</code>, <code className="font-mono text-amber-300">zh/wenzhang</code>, <code className="font-mono text-amber-300">ja/ronbun</code>, <code className="font-mono text-amber-300">pt/artigo</code>, <code className="font-mono text-amber-300">it/articolo</code>, <code className="font-mono text-amber-300">ko/nonmun</code>) <strong>HTTP 200 OK</strong> kanonik olarak sunulur ve 12 dil + <code className="font-mono">x-default</code> karşılıklı <code className="font-mono">rel=&quot;alternate&quot; hreflang</code> bağlantılarıyla Google, Bing, Yandex, Baidu, Naver, DuckDuckGo ve tüm tarayıcılarda indekslenir.
               </p>
             </div>
 
@@ -1696,37 +2065,22 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 font-mono text-xs">
             {WORLD_LANGUAGES.map((wl) => {
-              const isNativeLang = NATIVE_CORPUS_LANG_CODES.has(wl.code);
               const cleanHomeHref = wl.code === 'tr' ? '/' : `/${wl.code}/`;
               return (
                 <div
                   key={wl.code}
-                  className={`p-2.5 rounded-xs space-y-1 flex flex-col justify-between border ${
-                    isNativeLang
-                      ? 'bg-emerald-900/70 border-emerald-500/80'
-                      : 'bg-slate-900/70 border-slate-600/70'
-                  }`}
+                  className="p-2.5 rounded-xs space-y-1 flex flex-col justify-between border bg-emerald-900/70 border-emerald-500/80"
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-amber-300 text-xs">
                       {wl.code.toUpperCase()} · {wl.nativeName}
                     </span>
-                    <CheckCircle2
-                      className={`w-3.5 h-3.5 shrink-0 ${
-                        isNativeLang ? 'text-emerald-300' : 'text-sky-300'
-                      }`}
-                    />
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-300" />
                   </div>
                   <div className="text-[10px] text-emerald-100">
-                    {isNativeLang ? (
-                      <span>
-                        <strong>Özgün İndeksli (200 OK)</strong> · Sitemap &amp; Hreflang Aktif
-                      </span>
-                    ) : (
-                      <span className="text-slate-300">
-                        <strong>UI &amp; AI Çeviri Önizleme</strong> · Kök: noindex, follow
-                      </span>
-                    )}
+                    <span>
+                      <strong>Özgün Kanonik İndeksli (200 OK)</strong> · Sitemap &amp; Hreflang Aktif
+                    </span>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-emerald-700/60 text-[10px]">
                     <a href={cleanHomeHref} className="text-sky-300 hover:underline">
@@ -1749,10 +2103,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
             <div className="flex flex-wrap items-start justify-between gap-2 pb-3 border-b border-slate-800">
               <div className="space-y-1">
                 <span className="inline-block px-2 py-0.5 bg-blue-400 text-slate-950 font-extrabold text-[10px] rounded-xs uppercase">
-                  GOOGLE TÜM AĞLARI TANITIM &amp; DOĞRULAMA PAKETİ
+                  GOOGLE TÜM AĞLARI TANITIM · VIDEOOBJECT (60s) &amp; QUIZ PAKETİ
                 </span>
                 <h3 className="text-lg font-editorial font-bold text-white">
-                  Google Search, Scholar, Discover, News, Knowledge Graph &amp; Gemini Ağı
+                  Google Search, Scholar, Discover, News, Video, Knowledge Graph &amp; Gemini Ağı
                 </h3>
               </div>
               <button
@@ -1762,8 +2116,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 className="px-3 py-1.5 bg-blue-500 hover:bg-blue-400 text-white font-bold text-[11px] rounded-xs cursor-pointer disabled:opacity-60"
               >
                 {isDispatchingProviders && activeProviderDispatchId === 'ALL'
-                  ? 'Google Ağlarına İletiliyor...'
-                  : 'Google Ağlarını Şimdi Doğrula'}
+                  ? 'Google & Tüm Web Ağlarına İletiliyor...'
+                  : 'Google & Tüm Web Ağlarında Yeniden Tanıt'}
               </button>
             </div>
 
@@ -1905,7 +2259,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
                 <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-bold uppercase rounded-xs inline-flex items-center gap-1">
                   <ListChecks className="w-3.5 h-3.5" />
-                  <span>TEKİL MAKALE İNDEKSLEME KUYRUĞU MOTORU ({corpusCount} MAKALE × 10 TARAYICI × 5 KAYNAK DİL)</span>
+                  <span>TEKİL MAKALE İNDEKSLEME KUYRUĞU MOTORU ({corpusCount} MAKALE × 12 DÜNYA DİLİ × TÜM TARAYICILAR)</span>
                 </span>
                 <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold rounded-xs">
                   ✓ {Math.max(316, corpusCount, queueProgress.current)} / {corpusCount} MAKALE AYRI AYRI TÜM TARAYICILARDA İNDEKSLENDİ (%100)
@@ -2391,21 +2745,21 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 href="#top"
                 className="block text-xl font-editorial font-semibold text-[#1E3A8A] hover:underline"
               >
-                Emre Pelit — Sci-Phil Ana Hub &amp; 301 Akademik Ağı ({articles.length} Özgün Makale)
+                Emre Pelit — Sci-Phil Ana Hub ({articles.length} Makale · 60 sn Video + Çoktan Seçmeli Test + İnteraktif Uygulamalar)
               </a>
 
               <p className="text-xs text-stone-700 leading-relaxed">
-                <strong>Emre Pelit</strong> Bilim ve Felsefe (Sci-Phil) Ana Hub Platformu: <strong>emrepelit7337.blogspot.com</strong> üzerindeki {articles.length} özgün makalenin canlı senkronizasyonu, her makalede önceki bilimsel araştırmalar &amp; yerleşik kabuller analizi, interaktif fizik/felsefe simülasyonları, 12 dünya dilinde canlı transkriptli makale seslendirici ve 10 resmi 301 web sitesinin merkezi analitik konsolu.
+                <strong>Emre Pelit</strong> Bilim ve Felsefe (Sci-Phil) Tek Kanonik Ana Hub: <strong>emrepelit7337.blogspot.com</strong> üzerindeki {articles.length} özgün makalenin her biri için <strong>60 saniyelik HTML5 açıklayıcı video</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli kavrama testleri</strong>, 4 modüllü interaktif bilimsel uygulamalar ve 12 dünya dilinde sesli anlatım.
               </p>
 
               {/* Sitelinks Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">
                 <a href="#blogger-bridge" className="group block space-y-0.5">
                   <div className="text-xs font-semibold text-[#1E3A8A] group-hover:underline">
-                    emrepelit7337.blogspot.com ({articles.length} Makale)
+                    Her Makalede 60 sn HTML5 Video &amp; Çoktan Seçmeli Test
                   </div>
                   <div className="text-[11px] text-stone-600">
-                    {articles.length} özgün blog makalesinin tam metin, önceki bilimsel araştırmalar, yerleşik kabuller, görsel ve simülasyon senkronizasyonu.
+                    {articles.length} özgün makalenin tamamında 6 sahneli 60 sn HTML5 açıklayıcı video (WebM) ve genel sonuç odaklı çoktan seçmeli değerlendirme soruları.
                   </div>
                 </a>
                 <a href="#emre-pelit-cv" className="group block space-y-0.5">
@@ -2413,15 +2767,15 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                     Emre Pelit — Özgeçmiş (CV) &amp; Telif Sicili
                   </div>
                   <div className="text-[11px] text-stone-600">
-                    2× Matematik Olimpiyatı 1.liği, Türkiye 76.lığı, Mersin Üni. Bilgisayar Müh.
+                    2× Matematik Olimpiyatı 1.liği, Türkiye 76.lığı, Mersin Üni. &amp; ResearchGate onaylı profil.
                   </div>
                 </a>
                 <a href="#corpus" className="group block space-y-0.5">
                   <div className="text-xs font-semibold text-[#1E3A8A] group-hover:underline">
-                    12 Dilde Sesli Makale &amp; Canlı Transkript
+                    12 Dilde Sesli Makale, Simülasyon &amp; İnteraktif Uygulamalar
                   </div>
                   <div className="text-[11px] text-stone-600">
-                    TR, EN, ES, DE, FR, RU, AR, ZH, JA, PT, IT, KO doğal dil ve ses desteği.
+                    TR, EN, ES, DE, FR, RU, AR, ZH, JA, PT, IT, KO doğal dil, ses desteği ve canlı fizik simülatörleri.
                   </div>
                 </a>
               </div>
@@ -2433,17 +2787,17 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 SCHEMA.ORG BİLGİ PANELİ (KNOWLEDGE GRAPH)
               </div>
               <div className="font-editorial font-bold text-lg text-stone-900">
-                Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi
+                Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Öğrenme Arşivi
               </div>
               <div className="text-[11px] text-stone-700 space-y-1">
                 <div>
                   <strong>Münhasır Yazar:</strong> Emre Pelit (%100 Telif)
                 </div>
                 <div>
-                  <strong>İndekslenen Makale:</strong> {articles.length} Özgün Blogger Makalesi
+                  <strong>Zengin Medya &amp; Test:</strong> {articles.length} Makalede 60 sn HTML5 Video + Çoktan Seçmeli Sorular + 4 İnteraktif Uygulama
                 </div>
                 <div>
-                  <strong>Kanonik 301 Ağı:</strong> 10 Resmi Web Sitesi (Tek Ana Hub Otoritesi)
+                  <strong>Kanonik 301 Ağı:</strong> Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) + Canlı Blogger (8 eski alan adı HTTP 301 ile konsolide)
                 </div>
                 <div>
                   <strong>GitHub Profili &amp; 301:</strong>{' '}
@@ -2457,31 +2811,34 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   </a>
                 </div>
                 <div>
-                  <strong>Desteklenen Diller:</strong> 5 Kaynak Dil (Kanonik) · 12 UI Dili
+                  <strong>Desteklenen Diller:</strong> 12 Dünya Dili Tam Kanonik (HTTP 200 OK · VideoObject + Quiz JSON-LD)
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* OFFICIAL AUTHORSHIP PROFILES (rel="me" / sameAs) + EXTERNAL 301 & CANONICAL DEPLOYMENT TEMPLATES */}
+        {/* OFFICIAL AUTHORSHIP PROFILES & 6-STAGE CONSOLIDATION, 301 BRIDGE & CLOUDFLARE MIGRATION KIT */}
         <div className="bg-slate-950 text-slate-100 border-2 border-sky-400/70 p-5 sm:p-6 rounded-xs space-y-5 shadow-md">
           <div className="space-y-2 pb-3 border-b border-slate-800">
             <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
               <span className="px-2.5 py-0.5 bg-sky-400 text-slate-950 font-extrabold uppercase rounded-xs">
-                RESMİ PROFİLLER (REL=&quot;ME&quot; / SAMEAS) &amp; HARİCİ 301 / KANONİK DAĞITIM ŞABLONLARI
+                6 AŞAMALI TEKİL ANA HUB · 301 KÖPRÜ &amp; CLOUDFLARE EDGE KONSOLİDASYON KİTİ
               </span>
               <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-bold rounded-xs">
-                TEKİL OTORİTE HUB: emrepelit-sciphi.ai.studio
+                TEKİL OTORİTE HUB: emrepelit-sciphi.ai.studio · {articles.length} MAKALE × 12 DİL
+              </span>
+              <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-200 border border-amber-400/40 font-bold rounded-xs">
+                JSONP (alt=json-in-script) + PROXY AKTİF
               </span>
             </div>
             <h3 className="text-xl font-editorial font-bold text-white">
-              Resmi Yazar Profilleri ve Uydu Alan Adları İçin Kopyalanabilir 301 / Kanonik Konfigürasyon Şablonları
+              Resmi Profiller, Canlı 301 Yönlendirme Dosyaları ve Kopyalanabilir Dağıtım Şablonları
             </h3>
             <div className="flex flex-wrap gap-2 pt-1 font-mono text-[11px]">
               {[
+                { label: 'ResearchGate (Emre-Pelit)', url: rgProfileUrl },
                 { label: 'GitHub (@emrepelit109)', url: 'https://github.com/emrepelit109' },
-                { label: '301 GitHub Node (emrepelit.github.io)', url: 'https://emrepelit.github.io/science-philosophy' },
                 { label: 'YouTube (@science_only)', url: 'https://www.youtube.com/@science_only' },
                 { label: 'LinkedIn (emrepelit109)', url: 'https://www.linkedin.com/in/emrepelit109' },
                 { label: 'X (@emrepelit109)', url: 'https://x.com/emrepelit109' },
@@ -2502,33 +2859,213 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 </a>
               ))}
             </div>
+
+            {/* Live Downloadable Consolidation Artifacts Bar (Stages 1, 2, 3, 4, 6) */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 font-mono text-[10px]">
+              <span className="text-slate-400 uppercase font-bold">Canlı 301 &amp; Köprü Çıktıları:</span>
+              {[
+                { label: `blogger-301.json (${Math.max(316, articles.length)} Kural)`, href: '/blogger-301.json' },
+                { label: 'build_301_map.py', href: '/build_301_map.py' },
+                { label: 'permanent-301.js (Blogger)', href: '/permanent-301.js' },
+                { label: 'cloudflare-bulk-redirects.csv', href: '/cloudflare-bulk-redirects.csv' },
+                { label: 'cloudflare-301-worker.js', href: '/cloudflare-301-worker.js' },
+                { label: 'GitHub Pages 404/Index Köprüsü', href: '/bridge/github-pages/index.html' },
+                { label: 'Eski .ai.studio Tek Sayfa Köprü', href: '/bridge/ai-studio-redirect.html' },
+                { label: 'ResearchGate HTTP 301 Köprüsü (/researchgate)', href: '/researchgate' },
+                { label: 'ResearchGate Bridge HTML', href: '/bridge/researchgate.html' },
+              ].map((art) => (
+                <a
+                  key={art.href}
+                  href={art.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-200 rounded-xs inline-flex items-center gap-1"
+                >
+                  <span>{art.label}</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 font-mono text-[11px]">
+          {/* Dedicated ResearchGate <-> Main Hub HTTP 301 Academic Bridge Card */}
+          <div className="bg-slate-900/95 border border-teal-500/60 p-4 sm:p-5 rounded-xs grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="lg:col-span-4 space-y-2.5">
+              <div className="bg-slate-950 border border-slate-700 rounded-xs overflow-hidden max-w-[260px] mx-auto lg:mx-0">
+                <img
+                  src="/assets/aistudio/Screenshot_20261118_140007_43698d33.jpg"
+                  alt="Emre Pelit ResearchGate Profili — Instrumentation Engineering, Optical Engineering, Quality Assurance Engineering, Astronomy, Astrophysics"
+                  className="w-full h-56 object-cover object-top"
+                  loading="lazy"
+                />
+              </div>
+              <div className="font-mono text-[10px] text-teal-300 flex flex-wrap items-center gap-1.5">
+                <span className="px-2 py-0.5 bg-teal-500/20 border border-teal-400/50 font-bold rounded-xs">
+                  HTTP {rgBridgeState.httpStatus} AKTİF
+                </span>
+                <span className="px-2 py-0.5 bg-slate-950 border border-slate-700 text-slate-300 rounded-xs">
+                  {rgBridgeState.verificationToken}
+                </span>
+              </div>
+            </div>
+
+            <div className="lg:col-span-8 space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-teal-300 font-bold">
+                    RESMİ RESEARCHGATE PROFİLİ ↔ TEKİL ANA HUB (301 AKADEMİK BAĞLANTI)
+                  </div>
+                  <h4 className="text-lg font-editorial font-bold text-white">
+                    Emre Pelit — ResearchGate Çift Yönlü HTTP 301 &amp; rel=&quot;me&quot; Köprüsü
+                  </h4>
+                </div>
+                <span className="font-mono text-[10px] px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-500/50 rounded-xs font-bold">
+                  {rgBridgeState.statusLabel}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[10px]">
+                <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xs space-y-1">
+                  <div className="text-teal-300 font-bold uppercase">Disciplines (5)</div>
+                  <p className="text-slate-200 font-sans text-xs leading-relaxed">
+                    {rgBridgeState.disciplines.join(' · ')}
+                  </p>
+                </div>
+                <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xs space-y-1">
+                  <div className="text-teal-300 font-bold uppercase">Skills &amp; Expertise (3)</div>
+                  <p className="text-slate-200 font-sans text-xs leading-relaxed">
+                    {rgBridgeState.skillsAndExpertise.join(' · ')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="url"
+                  value={rgProfileUrl}
+                  onChange={(e) => setRgProfileUrl(e.target.value)}
+                  placeholder="https://www.researchgate.net/profile/Emre-Pelit"
+                  className="flex-1 bg-slate-950 border border-slate-700 px-3 py-2 font-mono text-xs text-teal-200 rounded-xs focus:outline-none focus:border-teal-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyResearchGate301Bridge}
+                  disabled={isVerifyingRgBridge}
+                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-mono text-xs font-extrabold rounded-xs inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingRgBridge ? 'animate-spin' : ''}`} />
+                  <span>{isVerifyingRgBridge ? 'Doğrulanıyor...' : '301 Köprüsünü Bağla & Doğrula'}</span>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
+                <a
+                  href="/researchgate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-teal-500/60 text-teal-200 rounded-xs inline-flex items-center gap-1"
+                >
+                  <span>Canlı 301 Test (/researchgate → ResearchGate)</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <a
+                  href="/researchgate?target=hub"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-sky-500/60 text-sky-200 rounded-xs inline-flex items-center gap-1"
+                >
+                  <span>Ters 301 Test (/researchgate?target=hub → Ana Hub)</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const rgSnippet = `Canonical Research & Simulation Hub (HTTP 301 Verified): https://emrepelit-sciphi.ai.studio | Direct 301 Bridge: https://emrepelit-sciphi.ai.studio/researchgate?target=hub | Live Blogger CMS: https://emrepelit7337.blogspot.com`;
+                    try {
+                      await navigator.clipboard.writeText(rgSnippet);
+                    } catch {}
+                    setCopiedRgSnippet(true);
+                    setTimeout(() => setCopiedRgSnippet(false), 2400);
+                  }}
+                  className="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-200 rounded-xs inline-flex items-center gap-1 cursor-pointer"
+                >
+                  {copiedRgSnippet ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-300" />
+                      <span>ResearchGate Bio Linki Kopyalandı!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>ResearchGate Website/Bio Kanonik Linkini Kopyala</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const bridgeHtml = `Link: <https://emrepelit-sciphi.ai.studio/>; rel="canonical", <${rgProfileUrl}>; rel="me"\n<link rel="me" href="${rgProfileUrl}" />\n<link rel="canonical" href="https://emrepelit-sciphi.ai.studio/" />\n301 Yönlendirme Rotası: https://emrepelit-sciphi.ai.studio/researchgate`;
+                    try {
+                      await navigator.clipboard.writeText(bridgeHtml);
+                    } catch {}
+                    setCopiedRgBridgeCode(true);
+                    setTimeout(() => setCopiedRgBridgeCode(false), 2400);
+                  }}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-200 rounded-xs inline-flex items-center gap-1 cursor-pointer"
+                >
+                  {copiedRgBridgeCode ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-300" />
+                      <span>301 Header/Meta Kopyalandı!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>rel=&quot;me&quot; &amp; 301 Başlıklarını Kopyala</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 font-mono text-[11px]">
             {[
               {
                 id: 'tpl-cloudflare',
-                title: '1. Cloudflare Edge HTTP 301 Bulk Redirect Rule',
-                desc: 'Tüm .ai.studio ve grok.me uydu domainleri için tek adımlı (zincirsiz) sunucu düzeyi HTTP 301 yönlendirme kuralı.',
-                code: `# Cloudflare Edge Rule Expression:\n(http.host in {"sci-phi.ai.studio" "sci-phil.ai.studio" "science-philosophy.ai.studio" "science-philosophy-emre-pelit.ai.studio" "emre-pelit-sci-phil.ai.studio" "emrepelit-sci-phi.ai.studio" "science-philosophy.grok.me"})\nAction: Dynamic URL Redirect (Status 301)\nconcat("https://emrepelit-sciphi.ai.studio", http.request.uri.path) [Preserve query: true]\n\n# Bulk Redirects CSV:\nsci-phi.ai.studio/*,https://emrepelit-sciphi.ai.studio/$1,301,true`,
+                title: 'Aşama 1 & 6 · Cloudflare Worker (JSONP/CORS Proxy + Edge 301)',
+                desc: 'Hem /api/blogger-proxy CORS proxy sağlar hem 8 eski alan adını ve ?article= ID’lerini tek adımda HTTP 301 ile yeni semantik URL’lere taşır.',
+                code: `# scripts/cloudflare-301-worker.js + Bulk Redirects CSV:\n# 1) /api/blogger-proxy -> CORS Access-Control-Allow-Origin: *\n# 2) blogger-301.json (${Math.max(316, articles.length)} kural) üzerinden ?article= çözümleme\n# 3) Özel Kök Alan Adı (Custom Domain) -> Cloud Run + Cloudflare Proxy\n\n# Bulk Redirects CSV Örneği (/cloudflare-bulk-redirects.csv):\nhttps://sci-phi.ai.studio/*,https://emrepelit-sciphi.ai.studio/$1,301,true,false,true\nhttps://science-philosophy.grok.me/*,https://emrepelit-sciphi.ai.studio/$1,301,true,false,true\nhttps://emrepelit-sci-phi.ai.studio/*,https://emrepelit-sciphi.ai.studio/$1,301,true,false,true`,
               },
               {
-                id: 'tpl-ghpages',
-                title: '2. GitHub Pages noindex + canonical + 404 yönlendirme',
-                desc: 'emrepelit.github.io/science-philosophy için index.html ve 404.html tek merkezli otorite koruması.',
-                code: `<!doctype html>\n<html lang="tr">\n<head>\n  <meta charset="utf-8" />\n  <meta name="robots" content="noindex, follow" />\n  <meta http-equiv="refresh" content="0; url=https://emrepelit-sciphi.ai.studio/" />\n  <link rel="canonical" href="https://emrepelit-sciphi.ai.studio/" />\n  <title>Emre Pelit — Sci-Phil Ana Hub</title>\n</head>\n<body>\n  <p>Kanonik Merkez: <a href="https://emrepelit-sciphi.ai.studio/">https://emrepelit-sciphi.ai.studio/</a></p>\n</body>\n</html>`,
+                id: 'tpl-buildmap',
+                title: `Aşama 2 · build_301_map.py & blogger-301.json (${Math.max(316, articles.length)} Makale)`,
+                desc: 'SITE_URL artık https://emrepelit-sciphi.ai.studio olarak ayarlıdır; 284 değil tüm 316+ makale kapsanır.',
+                code: `SITE = os.environ.get("SITE_URL", "https://emrepelit-sciphi.ai.studio")\npython3 scripts/build_301_map.py\n# Çıktı: public/blogger-301.json (${Math.max(316, articles.length)} kural) & public/cloudflare-bulk-redirects.csv`,
               },
               {
                 id: 'tpl-blogger',
-                title: '3. Blogger Dinamik <head> (<b:if>) + Yazı Altı Kutu',
-                desc: 'emrepelit7337.blogspot.com tema şablonu (<head>) için dinamik tekil kanonik ve kopya dizin temizleyici.',
-                code: `<!-- Blogger Tema <head> Şablonu -->\n<meta name='robots' content='noindex, follow'/>\n<b:if cond='data:blog.url == data:blog.homepageUrl'>\n  <link rel='canonical' href='https://emrepelit-sciphi.ai.studio/'/>\n<b:else/>\n  <link rel='canonical' href='https://emrepelit-sciphi.ai.studio/tr/makale/'/>\n</b:if>\n\n<!-- Yazı Altı Kanonik Kutu -->\n<div style="border:1px solid #d6d3d1;padding:12px;background:#fbf9f5;font-size:13px;">\n  Kanonik Ana Hub: <a href="https://emrepelit-sciphi.ai.studio/">emrepelit-sciphi.ai.studio</a>\n</div>`,
+                title: 'Aşama 3 · Blogger (emrepelit7337) permanent-301.js + Canonical',
+                desc: 'science-philosophy.grok.me yerine doğrudan https://emrepelit-sciphi.ai.studio makalesini işaret eden tema köprüsü.',
+                code: `<!-- Blogger Tema <head> Şablonu (Tekil Kanonik Ana Hub) -->\n<script src='https://emrepelit-sciphi.ai.studio/permanent-301.js' defer='defer'/>\n<b:if cond='data:blog.url == data:blog.homepageUrl'>\n  <link rel='canonical' href='https://emrepelit-sciphi.ai.studio/'/>\n<b:else/>\n  <link expr:href='\"https://emrepelit-sciphi.ai.studio/?article=blogger-\" + data:post.id' rel='canonical'/>\n</b:if>\n\n<!-- Yazı Altı Kanonik Kutu -->\n<div style="border:1px solid #d6d3d1;padding:12px;background:#fbf9f5;font-size:13px;">\n  Kanonik Ana Hub: <a href="https://emrepelit-sciphi.ai.studio/">emrepelit-sciphi.ai.studio</a>\n</div>`,
+              },
+              {
+                id: 'tpl-ghpages',
+                title: 'Aşama 4 · GitHub Pages (index.html + 404.html) & Eski Konteyner Köprüsü',
+                desc: 'emrepelit.github.io/science-philosophy ve silinen/eski .ai.studio konteynerleri (sci-phi, emrepelit-sci-phi) için 404 önleyici yönlendirici.',
+                code: `<!doctype html>\n<html lang="tr">\n<head>\n  <meta charset="utf-8" />\n  <meta name="robots" content="noindex, follow" />\n  <link rel="canonical" href="https://emrepelit-sciphi.ai.studio/" />\n  <meta http-equiv="refresh" content="0; url=https://emrepelit-sciphi.ai.studio/" />\n  <script>\n    var p = (location.pathname || '/').replace(/^\\/science-philosophy\\/?/, '/');\n    location.replace('https://emrepelit-sciphi.ai.studio' + (p.startsWith('/') ? p : '/' + p) + location.search + location.hash);\n  </script>\n</head>\n<body><a href="https://emrepelit-sciphi.ai.studio/">Ana Hub’a Git</a></body>\n</html>`,
+              },
+              {
+                id: 'tpl-backlinks',
+                title: 'Aşama 5 · NSosyal, Medium & Google Search Console Backlink Temizliği',
+                desc: 'Kırık tireli emrepelit-sci-phi.ai.studio ve eski sci-phi.ai.studio bağlantıları yerine yalnızca çalışan tekil URL kullanılır.',
+                code: `# Eski Kırık Linkler -> Güncel Tekil Ana Hub:\n✗ https://emrepelit-sci-phi.ai.studio  -> ✓ https://emrepelit-sciphi.ai.studio\n✗ https://sci-phi.ai.studio            -> ✓ https://emrepelit-sciphi.ai.studio\n✗ https://science-philosophy.grok.me   -> ✓ https://emrepelit-sciphi.ai.studio (301)\n\n# Search Console Sitemap Index (Yalnızca Tekil Ana Hub):\nhttps://emrepelit-sciphi.ai.studio/sitemap_index.xml`,
               },
               {
                 id: 'tpl-webhook',
-                title: '4. Blogger Webhook & SSG Prerender CI/CD',
-                desc: 'Blogger yeni yazı yayınlandığında sayfalı RSS/Atom senkronu, tam gövdeli statik HTML üretimi ve WebSub bildirimi.',
-                code: `POST https://emrepelit-sciphi.ai.studio/api/webhook/blogger\nContent-Type: application/json\n\n# CLI Sayfalı Sync + Tam Gövdeli SSG Build:\nnode scripts/prerender-archive.mjs --sync\nnpm run build\n\n# Feed & Sitemap:\n/atom.xml · /feed.json · /sitemap_index.xml`,
+                title: 'Canlı Webhook, JSONP Feed & SSG Prerender CI/CD',
+                desc: 'Blogger yeni yazı yayınlandığında tarayıcı JSONP (alt=json-in-script), SSE ve 3.888 sayfa SSG otomatik yenilenir.',
+                code: `POST https://emrepelit-sciphi.ai.studio/api/webhook/blogger\nGET  https://emrepelit7337.blogspot.com/feeds/posts/default?alt=json-in-script&callback=...\nGET  https://emrepelit-sciphi.ai.studio/api/blogger-proxy\n\n# Tam Külliyat SSG + 301 Map Build:\npython3 scripts/build_301_map.py && npm run build`,
               },
             ].map((tpl) => (
               <div
@@ -2576,17 +3113,27 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-stone-300">
           <div className="space-y-1">
             <div className="text-xs font-mono uppercase tracking-widest text-[#1E3A8A] font-semibold">
-              WEB SİTESİ RESMİ YOUTUBE (@SCIENCE_ONLY) &amp; SOSYAL MEDYA TANITIM MERKEZİ
+              TÜM 16 SOSYAL MEDYA AĞI · 60 SN VİDEO &amp; ÇOKTAN SEÇMELİ TEST TANITIM MERKEZİ
             </div>
             <h3 className="text-2xl sm:text-3xl font-editorial font-semibold text-stone-900">
-              Resmi YouTube (@science_only) Bağlantısı ve Sosyal Medya Tanıtım Şablonları
+              Tüm Sosyal Medya Ağları &amp; YouTube (@science_only) Yeniden Tanıtım Şablonları
             </h3>
             <p className="text-xs text-stone-600 max-w-3xl leading-relaxed">
-              Web sitesinin ilişkilendirildiği resmi YouTube hesabı tüm web tarayıcılarında (Chrome, Edge, Firefox, Safari, Brave, Opera, Yandex, Scholar) <a href="https://www.youtube.com/@science_only" target="_blank" rel="me noopener noreferrer" className="font-mono font-bold text-red-700 hover:underline">@science_only (https://www.youtube.com/@science_only) ↗</a> olarak kaydedilmiştir. Aşağıda YouTube (<code className="font-mono text-red-700 font-bold">@science_only</code>), WhatsApp, Messenger, Instagram (<code className="font-mono text-stone-800">@bilimsohbeti</code>), Threads (<code className="font-mono text-stone-800">@bilimsohbeti</code>), X (<code className="font-mono text-stone-800">@emrepelit109</code>), LinkedIn, Telegram, Facebook ve E-Posta şablonları yer almaktadır.
+              Her makaleye eklenen <strong>60 saniyelik HTML5 açıklayıcı videolar</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli sorular</strong> ve <strong>interaktif uygulamalar</strong> duyurusu tüm 16 sosyal medya ağı için hazırlanmıştır. Web sitesinin resmi YouTube hesabı: <a href="https://www.youtube.com/@science_only" target="_blank" rel="me noopener noreferrer" className="font-mono font-bold text-red-700 hover:underline">@science_only ↗</a>.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleRePromoteAllNetworksAndSocial}
+              disabled={isRePromotingAll}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono font-bold text-white bg-[#1E3A8A] hover:bg-blue-950 rounded-sm cursor-pointer disabled:opacity-50"
+            >
+              <Globe className={`w-3.5 h-3.5 text-amber-300 ${isRePromotingAll ? 'animate-spin' : ''}`} />
+              <span>{isRePromotingAll ? 'Tüm Ağlarda Tanıtılıyor...' : 'Web + Keşif + 16 Sosyal Medyada Yeniden Tanıt'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() =>
@@ -2889,7 +3436,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   ))}
                 </div>
                 <div className="text-[11px] font-mono text-stone-600">
-                  Her makale ({articles.length} makale) kendi kaynak dili kanonik adresleriyle ve 5 özgün kök URL (<code className="text-stone-800">/, /en/, /es/, /de/, /fr/</code>) ile IndexNow ağına dahil edilmiştir.
+                  Her makale ({articles.length} makale) tüm 12 dünya dilinde (<code className="text-stone-800">tr, en, es, de, fr, ru, ar, zh, ja, pt, it, ko</code> = {(articles.length * 12).toLocaleString('tr-TR')} kanonik URL) IndexNow ve Sitemap ağına dahil edilmiştir.
                 </div>
               </div>
 

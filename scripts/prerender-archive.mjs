@@ -24,7 +24,7 @@ const DIST_DATA_DIR = path.join(DIST_DIR, 'data');
 const CANONICAL_ORIGIN = 'https://emrepelit-sciphi.ai.studio';
 const BLOGGER_ORIGIN = 'https://emrepelit7337.blogspot.com';
 
-const NATIVE_LANGS = ['tr', 'en', 'es', 'de', 'fr'];
+const SUPPORTED_12_LANGS = ['tr', 'en', 'es', 'de', 'fr', 'ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko'];
 
 const LANG_ARTICLE_SEGMENT = {
   tr: 'makale',
@@ -44,40 +44,105 @@ const LANG_ARTICLE_SEGMENT = {
 const LANG_HUB_META = {
   tr: {
     path: '/',
-    title: 'Emre Pelit Sci-Phil — Bilim, Felsefe ve Simülasyon Arşivi',
-    desc: 'Emre Pelit tarafından kaleme alınan 316+ özgün bilim ve felsefe makalesi, önceki bilimsel araştırmalar ve interaktif fizik simülasyonları.',
+    title: 'Emre Pelit Sci-Phil — Bilim, Felsefe, Video, Test ve Simülasyon Arşivi',
+    desc: 'Emre Pelit tarafından kaleme alınan 316+ özgün bilim ve felsefe makalesi, her makaleye özel 60 sn HTML5 açıklayıcı videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonları.',
     h1: 'Emre Pelit — Bilim, Felsefe ve Simülasyon Arşivi',
     archiveLabel: 'Tüm Makale Arşivi',
   },
   en: {
     path: '/en/',
-    title: 'Emre Pelit Sci-Phil — Science, Philosophy & Simulation Archive',
-    desc: 'Independent author archive by Emre Pelit exploring quantum physics, cosmology, philosophy of mind, and interactive scientific models.',
+    title: 'Emre Pelit Sci-Phil — Science, Philosophy, Videos, Quizzes & Simulation Archive',
+    desc: 'Independent author archive by Emre Pelit with 316+ essays, per-article 60s HTML5 explainer videos, multiple-choice quizzes, and interactive scientific models.',
     h1: 'Emre Pelit — Science, Philosophy & Simulation Archive',
     archiveLabel: 'Complete Article Archive',
   },
   es: {
     path: '/es/',
-    title: 'Emre Pelit Sci-Phil — Archivo de Ciencia, Filosofía y Simulación',
-    desc: 'Archivo de autor independiente de Emre Pelit sobre física cuántica, cosmología, epistemología y modelos científicos interactivos.',
+    title: 'Emre Pelit Sci-Phil — Archivo de Ciencia, Filosofía, Videos y Cuestionarios',
+    desc: 'Archivo independiente de Emre Pelit con videos explicativos HTML5 de 60s por artículo, cuestionarios de opción múltiple, física cuántica, cosmología y simulaciones.',
     h1: 'Emre Pelit — Archivo de Ciencia, Filosofía y Simulación',
     archiveLabel: 'Archivo Completo de Artículos',
   },
   de: {
     path: '/de/',
-    title: 'Emre Pelit Sci-Phil — Archiv für Wissenschaft, Philosophie & Simulation',
-    desc: 'Unabhängiges Autorenarchiv von Emre Pelit zu Quantenphysik, Kosmologie, Bewusstseinsphilosophie und interaktiven Modellen.',
+    title: 'Emre Pelit Sci-Phil — Archiv für Wissenschaft, Videos, Tests & Simulation',
+    desc: 'Unabhängiges Autorenarchiv von Emre Pelit mit 60s-HTML5-Erklärvideos und Multiple-Choice-Tests zu jedem Artikel, Quantenphysik, Kosmologie und Simulationen.',
     h1: 'Emre Pelit — Archiv für Wissenschaft, Philosophie & Simulation',
     archiveLabel: 'Vollständiges Artikelarchiv',
   },
   fr: {
     path: '/fr/',
-    title: 'Emre Pelit Sci-Phil — Archives de Science, Philosophie et Simulation',
-    desc: 'Archives d’auteur indépendant d’Emre Pelit consacrées à la physique quantique, la cosmologie, l’épistémologie et la simulation.',
+    title: 'Emre Pelit Sci-Phil — Archives de Science, Vidéos, Quiz et Simulation',
+    desc: 'Archives indépendantes d’Emre Pelit avec vidéos explicatives HTML5 de 60s par article, quiz à choix multiples, physique quantique, cosmologie et simulation.',
     h1: 'Emre Pelit — Archives de Science, Philosophie et Simulation',
     archiveLabel: 'Archives Complètes des Articles',
   },
+  ru: {
+    path: '/ru/',
+    title: 'Emre Pelit Sci-Phil — Архив Науки, Философии, Видео и Тестов',
+    desc: 'Независимый архив Эмре Пелита: квантовая физика, космология, 60-секундные HTML5-видеопояснения и интерактивные тесты с выбором ответа для каждой статьи.',
+    h1: 'Emre Pelit — Архив Науки, Философии и Симуляции',
+    archiveLabel: 'Полный Архив Статей',
+  },
+  ar: {
+    path: '/ar/',
+    title: 'Emre Pelit Sci-Phil — أرشيف العلوم والفلسفة والفيديو والاختبارات',
+    desc: 'أرشيف إمره بيليت المستقل: مقالات فيزياء الكم وعلم الكونيات مع فيديو توضيحي HTML5 مدته 60 ثانية واختبارات اختيار من متعدد لكل مقال.',
+    h1: 'Emre Pelit — أرشيف العلوم والفلسفة والمحاكاة',
+    archiveLabel: 'الأرشيف الكامل للمقالات',
+  },
+  zh: {
+    path: '/zh/',
+    title: 'Emre Pelit Sci-Phil — 科学、哲学、视频、测验与模拟档案',
+    desc: '独立作者 Emre Pelit 档案库：涵盖量子物理与宇宙学论文，每篇文章均配有 60 秒 HTML5 科普视频、专业多项选择测验与交互式科学模拟。',
+    h1: 'Emre Pelit — 科学、哲学与数学模拟档案',
+    archiveLabel: '完整文章档案库',
+  },
+  ja: {
+    path: '/ja/',
+    title: 'Emre Pelit Sci-Phil — 科学・哲学・解説動画・理解度テストアーカイブ',
+    desc: '量子物理学・宇宙論・心の哲学を扱う Emre Pelit の独立アーカイブ。各記事に60秒HTML5解説動画、多肢選択クイズ、対話型シミュレーションを搭載。',
+    h1: 'Emre Pelit — 科学・哲学・シミュレーションアーカイブ',
+    archiveLabel: '全論文アーカイブ',
+  },
+  pt: {
+    path: '/pt/',
+    title: 'Emre Pelit Sci-Phil — Arquivo de Ciência, Vídeos, Quizzes e Simulação',
+    desc: 'Arquivo independente de Emre Pelit com vídeos explicativos HTML5 de 60s e quizzes de múltipla escolha por artigo, física quântica, cosmologia e simulações.',
+    h1: 'Emre Pelit — Arquivo de Ciência, Filosofia e Simulação',
+    archiveLabel: 'Arquivo Completo de Artigos',
+  },
+  it: {
+    path: '/it/',
+    title: 'Emre Pelit Sci-Phil — Archivio di Scienza, Video, Quiz e Simulazione',
+    desc: 'Archivio indipendente di Emre Pelit con video esplicativi HTML5 da 60s e quiz a scelta multipla per ogni articolo, fisica quantistica, cosmologia e simulazioni.',
+    h1: 'Emre Pelit — Archivio di Scienza, Filosofia e Simulazione',
+    archiveLabel: 'Archivio Completo degli Articoli',
+  },
+  ko: {
+    path: '/ko/',
+    title: 'Emre Pelit Sci-Phil — 과학·철학·해설 영상·퀴즈·시뮬레이션 아카이브',
+    desc: '양자 물리학과 우주론을 다루는 Emre Pelit 독립 아카이브: 각 논문별 60초 HTML5 해설 영상, 객관식 이해도 퀴즈 및 대화형 시뮬레이션 제공.',
+    h1: 'Emre Pelit — 과학·철학·시뮬레이션 아카이브',
+    archiveLabel: '전체 논문 아카이브',
+  },
 };
+
+const ACTIVE_LIVE_WEBSITES = [
+  'emrepelit-sciphi.ai.studio',
+  'emrepelit7337.blogspot.com',
+];
+
+const RETIRED_301_WEBSITES = [
+  'science-philosophy.grok.me',
+  'sci-phi.ai.studio',
+  'sci-phil.ai.studio',
+  'science-philosophy.ai.studio',
+  'science-philosophy-emre-pelit.ai.studio',
+  'emre-pelit-sci-phil.ai.studio',
+  'emrepelit.github.io/science-philosophy',
+  'emrepelit-sci-phi.ai.studio',
+];
 
 const GOVERNANCE_PAGES = {
   privacy: {
@@ -86,6 +151,41 @@ const GOVERNANCE_PAGES = {
     es: { title: 'Política de Privacidad — Emre Pelit Sci-Phil', desc: 'Principios de tratamiento de datos y privacidad.', heading: 'Política de Privacidad' },
     de: { title: 'Datenschutzrichtlinie — Emre Pelit Sci-Phil', desc: 'Grundsätze der Datenverarbeitung und Privatsphäre.', heading: 'Datenschutzrichtlinie' },
     fr: { title: 'Politique de Confidentialité — Emre Pelit Sci-Phil', desc: 'Principes de traitement des données et confidentialité.', heading: 'Politique de Confidentialité' },
+    ru: { title: 'Политика конфиденциальности — Emre Pelit Sci-Phil', desc: 'Принципы обработки данных и конфиденциальности.', heading: 'Политика конфиденциальности' },
+    ar: { title: 'سياسة الخصوصية — Emre Pelit Sci-Phil', desc: 'مبادئ معالجة البيانات وخصوصية المستخدم.', heading: 'سياسة الخصوصية' },
+    zh: { title: '隐私政策 — Emre Pelit Sci-Phil', desc: '数据处理原则与用户隐私保护政策。', heading: '隐私政策' },
+    ja: { title: 'プライバシーポリシー — Emre Pelit Sci-Phil', desc: 'データ処理原則とプライバシー保護方針。', heading: 'プライバシーポリシー' },
+    pt: { title: 'Política de Privacidade — Emre Pelit Sci-Phil', desc: 'Princípios de tratamento de dados e privacidade.', heading: 'Política de Privacidade' },
+    it: { title: 'Informativa sulla Privacy — Emre Pelit Sci-Phil', desc: 'Principi sul trattamento dei dati e sulla privacy.', heading: 'Informativa sulla Privacy' },
+    ko: { title: '개인정보 처리방침 — Emre Pelit Sci-Phil', desc: '데이터 처리 원칙 및 사용자 개인정보 보호 정책.', heading: '개인정보 처리방침' },
+  },
+  terms: {
+    tr: { title: 'Kullanım Koşulları — Emre Pelit Sci-Phil', desc: 'Özgün telif hakları, akademik atıf ve kullanım koşulları.', heading: 'Kullanım Koşulları' },
+    en: { title: 'Terms of Use — Emre Pelit Sci-Phil', desc: 'Exclusive authorship, citation permissions, and platform terms of use.', heading: 'Terms of Use' },
+    es: { title: 'Términos de Uso — Emre Pelit Sci-Phil', desc: 'Derechos de autor exclusivos, citas y condiciones de uso.', heading: 'Términos de Uso' },
+    de: { title: 'Nutzungsbedingungen — Emre Pelit Sci-Phil', desc: 'Urheberrechte, Zitationsrichtlinien und Nutzungsbedingungen.', heading: 'Nutzungsbedingungen' },
+    fr: { title: 'Conditions d’Utilisation — Emre Pelit Sci-Phil', desc: 'Droits d’auteur exclusifs, citations et conditions d’utilisation.', heading: 'Conditions d’Utilisation' },
+    ru: { title: 'Условия использования — Emre Pelit Sci-Phil', desc: 'Авторские права, правила цитирования и условия использования.', heading: 'Условия использования' },
+    ar: { title: 'شروط الاستخدام — Emre Pelit Sci-Phil', desc: 'حقوق التأليف الحصرية وشروط الاقتباس والاستخدام.', heading: 'شروط الاستخدام' },
+    zh: { title: '使用条款 — Emre Pelit Sci-Phil', desc: '独家版权、学术引用及平台使用条款。', heading: '使用条款' },
+    ja: { title: '利用規約 — Emre Pelit Sci-Phil', desc: '独占著作権・学術引用規定およびプラットフォーム利用規約。', heading: '利用規約' },
+    pt: { title: 'Termos de Uso — Emre Pelit Sci-Phil', desc: 'Direitos autorais exclusivos, citações e termos de uso.', heading: 'Termos de Uso' },
+    it: { title: 'Termini d’Uso — Emre Pelit Sci-Phil', desc: 'Diritti d’autore esclusivi, citazioni e condizioni d’uso.', heading: 'Termini d’Uso' },
+    ko: { title: '이용약관 — Emre Pelit Sci-Phil', desc: '독점 저작권, 학술 인용 및 플랫폼 이용 약관.', heading: '이용약관' },
+  },
+  imprint: {
+    tr: { title: 'Künye & Yasal İletişim — Emre Pelit Sci-Phil', desc: 'Yayıncı Emre Pelit künyesi, Mersin yayın merkezi ve resmi kanonik hub.', heading: 'Künye (Imprint)' },
+    en: { title: 'Imprint & Legal Notice — Emre Pelit Sci-Phil', desc: 'Publisher Emre Pelit imprint, location, contact details, and canonical hub registry.', heading: 'Imprint' },
+    es: { title: 'Aviso Legal / Imprint — Emre Pelit Sci-Phil', desc: 'Información editorial del autor Emre Pelit y registro canónico.', heading: 'Aviso Legal (Imprint)' },
+    de: { title: 'Impressum — Emre Pelit Sci-Phil', desc: 'Autorenangaben, Kontakt und kanonisches Hub-Register.', heading: 'Impressum' },
+    fr: { title: 'Mentions Légales — Emre Pelit Sci-Phil', desc: 'Informations éditoriales sur l’auteur Emre Pelit et registre canonique.', heading: 'Mentions Légales' },
+    ru: { title: 'Выходные данные (Imprint) — Emre Pelit Sci-Phil', desc: 'Сведения об авторе Эмре Пелите и каноническом хабе.', heading: 'Выходные данные' },
+    ar: { title: 'بيانات النشر والإشعار القانوني — Emre Pelit Sci-Phil', desc: 'بيانات المؤلف إمره بيليت وسجل المركز الأساسي.', heading: 'بيانات النشر' },
+    zh: { title: '出版说明与法律声明 — Emre Pelit Sci-Phil', desc: '作者 Emre Pelit 出版信息与唯一规范主枢纽档案。', heading: '出版说明 (Imprint)' },
+    ja: { title: '奥付・法的表記 — Emre Pelit Sci-Phil', desc: '著者 Emre Pelit の出版情報および正規ハブ登録情報。', heading: '奥付 (Imprint)' },
+    pt: { title: 'Expediente e Aviso Legal — Emre Pelit Sci-Phil', desc: 'Informações editoriais de Emre Pelit e registro do hub canônico.', heading: 'Expediente (Imprint)' },
+    it: { title: 'Colophon e Note Legali — Emre Pelit Sci-Phil', desc: 'Informazioni editoriali su Emre Pelit e registro del hub canonico.', heading: 'Note Legali (Imprint)' },
+    ko: { title: '출판 정보 및 법적 고지 — Emre Pelit Sci-Phil', desc: '저자 Emre Pelit 출판 정보 및 단일 정규 허브 등록부.', heading: '법적 고지 (Imprint)' },
   },
   kvkk: {
     tr: { title: '6698 Sayılı KVKK Aydınlatma Metni — Emre Pelit Sci-Phil', desc: '6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında açık rıza ve aydınlatma metni.', heading: '6698 Sayılı KVKK Aydınlatma Metni' },
@@ -93,6 +193,13 @@ const GOVERNANCE_PAGES = {
     es: { title: 'Aviso KVKK y Cookies — Emre Pelit Sci-Phil', desc: 'Aviso de protección de datos personales y consentimiento explícito.', heading: 'Aviso de Protección de Datos (KVKK)' },
     de: { title: 'KVKK & Einwilligungshinweis — Emre Pelit Sci-Phil', desc: 'Hinweise zum Datenschutz und zur expliziten Einwilligung.', heading: 'Datenschutzhinweis (KVKK)' },
     fr: { title: 'Notice KVKK & Cookies — Emre Pelit Sci-Phil', desc: 'Notice de protection des données personnelles et consentement.', heading: 'Notice de Protection des Données (KVKK)' },
+    ru: { title: 'Уведомление о защите данных (KVKK) — Emre Pelit Sci-Phil', desc: 'Защита персональных данных и согласие пользователя.', heading: 'Защита данных (KVKK)' },
+    ar: { title: 'إشعار حماية البيانات KVKK — Emre Pelit Sci-Phil', desc: 'إشعار حماية البيانات الشخصية والموافقة الصريحة.', heading: 'إشعار حماية البيانات (KVKK)' },
+    zh: { title: '数据保护与 KVKK 声明 — Emre Pelit Sci-Phil', desc: '个人数据保护说明与显式同意披露。', heading: '数据保护声明 (KVKK)' },
+    ja: { title: 'データ保護・KVKK 通知 — Emre Pelit Sci-Phil', desc: '個人データ保護と同意に関するご案内。', heading: 'データ保護通知 (KVKK)' },
+    pt: { title: 'Aviso de Proteção de Dados (KVKK) — Emre Pelit Sci-Phil', desc: 'Proteção de dados pessoais e consentimento explícito.', heading: 'Proteção de Dados (KVKK)' },
+    it: { title: 'Informativa KVKK e Cookie — Emre Pelit Sci-Phil', desc: 'Informativa sulla protezione dei dati personali e consenso.', heading: 'Protezione dei Dati (KVKK)' },
+    ko: { title: '개인정보 보호(KVKK) 고지 — Emre Pelit Sci-Phil', desc: '개인정보 보호 안내 및 동의 절차.', heading: '데이터 보호 고지 (KVKK)' },
   },
   disclaimer: {
     tr: { title: 'Bağımsız Yazar Arşivi & Feragatname — Emre Pelit Sci-Phil', desc: 'Bağımsız yazar arşivi statüsü (hakemli dergi değildir) ve içerik feragatnamesi.', heading: 'Bağımsız Yazar Arşivi & Feragatname' },
@@ -100,6 +207,13 @@ const GOVERNANCE_PAGES = {
     es: { title: 'Aviso Legal del Archivo Independiente — Emre Pelit Sci-Phil', desc: 'Archivo independiente de autor (no es una revista con revisión por pares).', heading: 'Aviso Legal y Naturaleza del Archivo' },
     de: { title: 'Haftungsausschluss & Unabhängiges Archiv — Emre Pelit Sci-Phil', desc: 'Hinweis zum unabhängigen Autorenarchiv (keine Peer-Review-Zeitschrift).', heading: 'Unabhängiges Autorenarchiv' },
     fr: { title: 'Avertissement Archive Indépendante — Emre Pelit Sci-Phil', desc: 'Statut d’archive d’auteur indépendant (non évalué par des pairs).', heading: 'Avertissement Archive Indépendante' },
+    ru: { title: 'Отказ от ответственности независимого архива — Emre Pelit Sci-Phil', desc: 'Статус независимого авторского архива.', heading: 'Статус независимого архива' },
+    ar: { title: 'إخلاء مسؤولية الأرشيف المستقل — Emre Pelit Sci-Phil', desc: 'إفصاح أرشيف المؤلف المستقل.', heading: 'إخلاء مسؤولية الأرشيف المستقل' },
+    zh: { title: '独立作者档案免责声明 — Emre Pelit Sci-Phil', desc: '独立作者研究档案说明（非同行评审期刊）。', heading: '独立作者档案免责声明' },
+    ja: { title: '独立著者アーカイブ免責事項 — Emre Pelit Sci-Phil', desc: '独立著者エッセイアーカイブの法的開示事項。', heading: '独立アーカイブ免責事項' },
+    pt: { title: 'Aviso do Arquivo Independente — Emre Pelit Sci-Phil', desc: 'Declaração de arquivo independente de autor.', heading: 'Aviso Legal do Arquivo' },
+    it: { title: 'Avvertenza Archivio Indipendente — Emre Pelit Sci-Phil', desc: 'Dichiarazione di archivio indipendente d’autore.', heading: 'Avvertenza Archivio Indipendente' },
+    ko: { title: '독립 저자 아카이브 면책 고지 — Emre Pelit Sci-Phil', desc: '독립 저자 에세이 아카이브 안내.', heading: '독립 아카이브 고지' },
   },
   methodology: {
     tr: { title: 'Yöntem, Simülasyon & AI Analiz Metodolojisi — Emre Pelit Sci-Phil', desc: 'Etkileşimli fizik simülasyonları, öngörüsel okuma ve kavramsal modelleme metodolojisi.', heading: 'Bilimsel Modelleme & Metodoloji' },
@@ -107,24 +221,62 @@ const GOVERNANCE_PAGES = {
     es: { title: 'Metodología y Simulación Conceptual — Emre Pelit Sci-Phil', desc: 'Metodología editorial y de simulaciones conceptuales.', heading: 'Metodología y Simulación' },
     de: { title: 'Methodik & Konzeptionelle Simulation — Emre Pelit Sci-Phil', desc: 'Methodik für konzeptionelle Simulationen und Essays.', heading: 'Methodik & Modellierung' },
     fr: { title: 'Méthodologie & Simulation Conceptuelle — Emre Pelit Sci-Phil', desc: 'Méthodologie éditoriale et simulations conceptuelles.', heading: 'Méthodologie & Modélisation' },
+    ru: { title: 'Методология и симуляции — Emre Pelit Sci-Phil', desc: 'Методология интерактивного моделирования и эпистемологического анализа.', heading: 'Методология и моделирование' },
+    ar: { title: 'المنهجية والمحاكاة المفاهيمية — Emre Pelit Sci-Phil', desc: 'منهجية المحاكاة الفيزيائية التفاعلية والمقالات.', heading: 'المنهجية والنمذجة العلمية' },
+    zh: { title: '研究方法与概念模拟方法论 — Emre Pelit Sci-Phil', desc: '交互式物理模拟与哲学文本分析方法论。', heading: '科研建模与方法论' },
+    ja: { title: '研究手法と数理シミュレーション方法論 — Emre Pelit Sci-Phil', desc: '対話型物理シミュレーションと認識論分析の方法論。', heading: '科学モデリングと方法論' },
+    pt: { title: 'Metodologia e Simulação Conceitual — Emre Pelit Sci-Phil', desc: 'Metodologia editorial e de simulações interativas.', heading: 'Metodologia e Modelagem' },
+    it: { title: 'Metodologia e Simulazione Concettuale — Emre Pelit Sci-Phil', desc: 'Metodologia per simulazioni fisiche interattive e saggi.', heading: 'Metodologia e Modellazione' },
+    ko: { title: '연구 방법론 및 개념 시뮬레이션 — Emre Pelit Sci-Phil', desc: '대화형 물리 시뮬레이션 및 철학 분석 방법론.', heading: '과학 모델링 및 방법론' },
   },
 };
 
 function detectLang(title = '', body = '') {
-  const sample = `${title} ${String(body).slice(0, 800)}`;
+  const sample = `${title || ''} ${String(body || '').slice(0, 1000)}`;
+  const lower = sample.toLowerCase();
+
   if ((sample.match(/[\u0600-\u06FF]/g) || []).length > 12) return 'ar';
   if ((sample.match(/[\u0400-\u04FF]/g) || []).length > 12) return 'ru';
-  if ((sample.match(/[\u3040-\u30FF]/g) || []).length > 6) return 'ja';
+  const jaMatches = (sample.match(/[\u3040-\u30FF]/g) || []).length;
+  if (jaMatches > 6) return 'ja';
   if ((sample.match(/[\uAC00-\uD7AF]/g) || []).length > 6) return 'ko';
-  if ((sample.match(/[\u4E00-\u9FFF]/g) || []).length > 12) return 'zh';
+  const zhMatches = (sample.match(/[\u4E00-\u9FFF]/g) || []).length;
+  if (zhMatches > 12 && jaMatches === 0) return 'zh';
 
-  const lower = sample.toLowerCase();
-  if (/[ğşıİĞŞ]/.test(sample) || /\b(ve|bir|için|üzerine|nedir|evren|zaman)\b/.test(lower)) return 'tr';
-  if (/[äÄß]/.test(sample) || /\b(der|die|das|und|über|warum)\b/.test(lower)) return 'de';
-  if (/[¿¡ñÑ]/.test(sample) || /\b(el|la|los|sobre|tiempo|universo)\b/.test(lower)) return 'es';
-  if (/[œŒæÆàâêîôùû]/.test(sample) || /\b(le|la|les|pour|sur|temps|univers)\b/.test(lower)) return 'fr';
-  if (/\b(the|and|of|universe|time|consciousness)\b/.test(lower)) return 'en';
-  return 'tr';
+  const scores = { tr: 0, en: 0, es: 0, de: 0, fr: 0, pt: 0, it: 0 };
+  scores.tr += (sample.match(/[ğşıİĞŞ]/g) || []).length * 16;
+  scores.de += (sample.match(/[äÄß]/g) || []).length * 16;
+  scores.es += (sample.match(/[¿¡ñÑ]/g) || []).length * 16;
+  scores.pt += (sample.match(/[ãõÃÕ]/g) || []).length * 16;
+  scores.fr += (sample.match(/[œŒæÆàâêîôùûÀÂÊÎÔÙÛçÇ]/g) || []).length * 6;
+  scores.it += (sample.match(/[ìòÌÒ]/g) || []).length * 6;
+
+  const stopWords = {
+    tr: new Set(['ve', 'bir', 'bu', 'için', 'ile', 'olan', 'olarak', 'gibi', 'daha', 'değil', 'ancak', 'fakat', 'üzerine', 'nedir', 'neden', 'kadar', 'mi', 'mı', 'mu', 'mü', 'evren', 'zaman', 'bilinç', 'gerçek', 'yoksa', 'var', 'yok', 'veya', 'ama']),
+    en: new Set(['the', 'and', 'of', 'to', 'in', 'is', 'that', 'it', 'for', 'as', 'with', 'on', 'this', 'are', 'not', 'but', 'from', 'by', 'or', 'we', 'be', 'what', 'when', 'why', 'how', 'an', 'universe', 'time', 'consciousness']),
+    es: new Set(['el', 'la', 'los', 'las', 'de', 'del', 'en', 'un', 'una', 'que', 'por', 'para', 'con', 'como', 'sobre', 'más', 'pero', 'entre', 'desde', 'todo', 'cuando', 'qué', 'si', 'es', 'son', 'tiempo', 'universo']),
+    de: new Set(['der', 'die', 'das', 'und', 'in', 'von', 'zu', 'mit', 'auf', 'für', 'ist', 'ein', 'eine', 'nicht', 'als', 'auch', 'des', 'dem', 'den', 'sich', 'über', 'wie', 'oder', 'zeit', 'universum', 'bewusstsein', 'warum']),
+    fr: new Set(['le', 'la', 'les', 'de', 'des', 'du', 'un', 'une', 'et', 'dans', 'pour', 'que', 'qui', 'est', 'en', 'par', 'sur', 'avec', 'plus', 'pas', 'ce', 'cette', 'nous', 'vous', 'mais', 'comme', 'temps', 'univers', 'conscience', 'si', 'qu', 'jusqu']),
+    pt: new Set(['o', 'a', 'os', 'as', 'do', 'da', 'dos', 'das', 'em', 'um', 'uma', 'para', 'com', 'não', 'como', 'mais', 'mas', 'sobre', 'entre', 'tempo']),
+    it: new Set(['il', 'lo', 'la', 'gli', 'le', 'di', 'del', 'della', 'nel', 'nella', 'con', 'per', 'che', 'non', 'come', 'più', 'tempo', 'universo', 'coscienza']),
+  };
+
+  const words = lower.match(/[\p{L}]+/gu) || [];
+  for (const w of words) {
+    for (const langKey of Object.keys(stopWords)) {
+      if (stopWords[langKey].has(w)) scores[langKey] += 5;
+    }
+  }
+
+  let bestLang = 'tr';
+  let bestScore = -1;
+  for (const langKey of Object.keys(scores)) {
+    if (scores[langKey] > bestScore) {
+      bestScore = scores[langKey];
+      bestLang = langKey;
+    }
+  }
+  return bestScore > 0 ? bestLang : 'tr';
 }
 
 function classifyEntry(title = '', plainText = '', idx = 0) {
@@ -166,14 +318,26 @@ function classifyEntry(title = '', plainText = '', idx = 0) {
 }
 
 function transliterateSlug(title, id, postNumber) {
-  const trMap = {
-    'ç': 'c', 'Ç': 'c', 'ğ': 'g', 'Ğ': 'g', 'ı': 'i', 'İ': 'i', 'I': 'i',
+  const charMap = {
+    'ç': 'c', 'Ç': 'c', 'ğ': 'g', 'Ğ': 'g', 'ı': 'i', 'İ': 'i',
     'ö': 'o', 'Ö': 'o', 'ş': 's', 'Ş': 's', 'ü': 'u', 'Ü': 'u',
-    'ä': 'ae', 'Ä': 'ae', 'ß': 'ss', 'ñ': 'n', 'Ñ': 'n', 'œ': 'oe', 'æ': 'ae',
+    'ä': 'ae', 'Ä': 'ae', 'ß': 'ss',
+    'é': 'e', 'É': 'e', 'è': 'e', 'È': 'e', 'ê': 'e', 'Ê': 'e', 'ë': 'e', 'Ë': 'e',
+    'à': 'a', 'À': 'a', 'á': 'a', 'Á': 'a', 'â': 'a', 'Â': 'a', 'ã': 'a', 'Ã': 'a', 'å': 'a', 'Å': 'a',
+    'î': 'i', 'Î': 'i', 'ï': 'i', 'Ï': 'i', 'í': 'i', 'Í': 'i', 'ì': 'i', 'Ì': 'i',
+    'ó': 'o', 'Ó': 'o', 'ò': 'o', 'Ò': 'o', 'ô': 'o', 'Ô': 'o', 'õ': 'o', 'Õ': 'o', 'ø': 'o', 'Ø': 'o',
+    'ú': 'u', 'Ú': 'u', 'ù': 'u', 'Ù': 'u', 'û': 'u', 'Û': 'u',
+    'ñ': 'n', 'Ñ': 'n', 'œ': 'oe', 'Œ': 'oe', 'æ': 'ae', 'Æ': 'ae',
   };
-  let s = String(title || '').replace(/[çÇğĞıİIöÖşŞüÜäÄßñÑœæ]/g, (c) => trMap[c] || c);
-  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  let s = String(title || '')
+    .split('')
+    .map((ch) => charMap[ch] || ch)
+    .join('')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
   if (s.length > 75) {
     const cut = s.slice(0, 75);
     const b = cut.replace(/-[^-]*$/, '');
@@ -181,6 +345,42 @@ function transliterateSlug(title, id, postNumber) {
   }
   const base = s || String(id || 'article').toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return postNumber ? `${base}-${postNumber}` : base;
+}
+
+function wrapStaticShell(lang, bodyHtml) {
+  const safeLang = SUPPORTED_12_LANGS.includes(lang) ? lang : 'tr';
+  const meta = LANG_HUB_META[safeLang] || LANG_HUB_META.tr;
+  const archivePath = safeLang === 'tr' ? '/archive' : `/${safeLang}/archive`;
+  const langNav = SUPPORTED_12_LANGS.map((l) => `<a href="${LANG_HUB_META[l].path}">${l.toUpperCase()}</a>`).join(' · ');
+  return `
+<header class="max-w-5xl mx-auto px-6 py-4 border-b border-stone-300 text-sm">
+  <nav aria-label="Primary Navigation" class="flex flex-wrap gap-4 items-center">
+    <a href="${meta.path}"><strong>Emre Pelit Sci-Phil</strong></a>
+    <a href="${archivePath}">${escapeHtml(meta.archiveLabel)}</a>
+    <a href="/?tab=simulators">Simulators</a>
+    <a href="/?tab=stats">301 Analytics</a>
+    <a href="https://github.com/emrepelit109" rel="me noopener noreferrer">GitHub</a>
+    <a href="https://www.researchgate.net/profile/Emre-Pelit" rel="me noopener noreferrer">ResearchGate</a>
+    <a href="https://www.youtube.com/@science_only" rel="me noopener noreferrer">YouTube (@science_only)</a>
+  </nav>
+</header>
+${bodyHtml}
+<section aria-label="Canonical Hub and Blogger Live Architecture" class="max-w-5xl mx-auto px-6 py-4 border-t border-stone-200 text-xs font-mono">
+  <p><strong>Live Websites (2):</strong> ${ACTIVE_LIVE_WEBSITES.join(' · ')}</p>
+  <p><strong>Retired 301 → Main Hub (8):</strong> ${RETIRED_301_WEBSITES.join(' · ')}</p>
+  <p><strong>12 Canonical Languages:</strong> ${langNav}</p>
+</section>
+<footer class="max-w-5xl mx-auto px-6 py-6 border-t border-stone-300 text-xs">
+  <p>© 2026 Emre Pelit · emrepelit39@gmail.com</p>
+  <nav aria-label="Legal Navigation" class="flex flex-wrap gap-3 mt-2">
+    <a href="/${safeLang}/privacy">${escapeHtml(GOVERNANCE_PAGES.privacy[safeLang].heading)}</a>
+    <a href="/${safeLang}/terms">${escapeHtml(GOVERNANCE_PAGES.terms[safeLang].heading)}</a>
+    <a href="/${safeLang}/imprint">${escapeHtml(GOVERNANCE_PAGES.imprint[safeLang].heading)}</a>
+    <a href="/${safeLang}/kvkk">${escapeHtml(GOVERNANCE_PAGES.kvkk[safeLang].heading)}</a>
+    <a href="/${safeLang}/disclaimer">${escapeHtml(GOVERNANCE_PAGES.disclaimer[safeLang].heading)}</a>
+    <a href="/${safeLang}/methodology">${escapeHtml(GOVERNANCE_PAGES.methodology[safeLang].heading)}</a>
+  </nav>
+</footer>`.trim();
 }
 
 function escapeHtml(str) {
@@ -219,7 +419,7 @@ async function syncFromBloggerIfRequested() {
       const timer = setTimeout(() => ctrl.abort(), 10000);
       const res = await fetch(url, {
         signal: ctrl.signal,
-        headers: { Accept: 'application/json', 'User-Agent': 'EmrePelit-SciPhil-SSG/5.1' },
+        headers: { Accept: 'application/json', 'User-Agent': 'EmrePelit-SciPhil-SSG/5.2' },
       });
       clearTimeout(timer);
       if (!res.ok) break;
@@ -277,7 +477,7 @@ async function syncFromBloggerIfRequested() {
     });
 
     const nextCache = {
-      blogTitle: 'Portal de Ciencia y Filosofía • Emre Pelit - Sci-Phil',
+      blogTitle: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi',
       blogUrl: BLOGGER_ORIGIN,
       totalResults: total,
       latestPostId: mergedEntries[0]?.id || '',
@@ -294,7 +494,7 @@ async function syncFromBloggerIfRequested() {
 }
 
 function buildReciprocalHreflangBlock(urlsByLang, xDefaultUrl) {
-  return NATIVE_LANGS.map((l) => {
+  return SUPPORTED_12_LANGS.map((l) => {
     const href = urlsByLang[l] || `${CANONICAL_ORIGIN}${LANG_HUB_META[l].path}`;
     return `    <link rel="alternate" hreflang="${l}" href="${escapeHtml(href)}" />`;
   })
@@ -341,7 +541,7 @@ function injectHeadAndRoot(baseHtml, opts) {
   }
 
   if (rootHtml) {
-    html = html.replace('<div id="root"></div>', `<div id="root">${rootHtml}</div>`);
+    html = html.replace('<div id="root"></div>', `<div id="root">${wrapStaticShell(lang, rootHtml)}</div>`);
   }
 
   return html;
@@ -419,47 +619,18 @@ async function run() {
   const baseHtml = fs.readFileSync(distIndex, 'utf-8');
   let generatedHtmlCount = 0;
 
-  // 1. Prerender all 316+ article routes with full semantic body content inside <div id="root">
+  // 1. Prerender all 316+ articles across ALL 12 canonical language routes with full reciprocal hreflang
   for (let i = 0; i < snapshot.length; i++) {
     const item = snapshot[i];
     const prevItem = i > 0 ? snapshot[i - 1] : null;
     const nextItem = i + 1 < snapshot.length ? snapshot[i + 1] : null;
-    const pageTitle = `${item.title} — Emre Pelit`;
     const desc = item.abstract || `${item.title} — Emre Pelit Sci-Phil Bilim ve Felsefe Arşivi.`;
-    const hubPath = item.lang === 'tr' ? '/' : `/${item.lang}/`;
-    const archivePath = item.lang === 'tr' ? '/archive' : `/${item.lang}/archive`;
-
-    const blogPostingLd = {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      headline: item.title,
-      description: desc,
-      datePublished: item.publishedAt,
-      dateModified: item.publishedAt,
-      inLanguage: item.lang,
-      image: `${CANONICAL_ORIGIN}/og-card.jpg`,
-      mainEntityOfPage: { '@type': 'WebPage', '@id': item.canonicalUrl },
-      author: { '@type': 'Person', name: 'Emre Pelit', url: `${CANONICAL_ORIGIN}/` },
-      publisher: { '@type': 'Organization', name: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi', url: `${CANONICAL_ORIGIN}/` },
-      isBasedOn: item.bloggerUrl || undefined,
-    };
-
     const bodyParagraphsHtml = item.paragraphs
       .map((p) => `<p>${escapeHtml(p)}</p>`)
       .join('\n');
     const trMonths = [
-      'Ocak',
-      'Şubat',
-      'Mart',
-      'Nisan',
-      'Mayıs',
-      'Haziran',
-      'Temmuz',
-      'Ağustos',
-      'Eylül',
-      'Ekim',
-      'Kasım',
-      'Aralık',
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
     ];
     const dMatch = String(item.publishedAt || '2026-11-01').match(/^(\d{4})-(\d{2})-(\d{2})/);
     const formattedOpeningDate =
@@ -473,14 +644,72 @@ async function run() {
             .join('')}</ul></section>`
         : '';
 
-    const rootHtml = `
+    const urlsByLang = Object.fromEntries(
+      SUPPORTED_12_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}/${l}/${LANG_ARTICLE_SEGMENT[l]}/${item.slug}`])
+    );
+    const articleHreflangBlock = buildReciprocalHreflangBlock(urlsByLang, item.canonicalUrl);
+
+    for (const targetLang of SUPPORTED_12_LANGS) {
+      const seg = LANG_ARTICLE_SEGMENT[targetLang];
+      const routePath = `/${targetLang}/${seg}/${item.slug}`;
+      const routeCanonicalUrl = `${CANONICAL_ORIGIN}${routePath}`;
+      const hubPath = LANG_HUB_META[targetLang].path;
+      const archivePath = targetLang === 'tr' ? '/archive' : `/${targetLang}/archive`;
+      const pageTitle = `${item.title} [${targetLang.toUpperCase()}] — Emre Pelit`;
+
+      const blogPostingLd = {
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'BlogPosting',
+            '@id': `${routeCanonicalUrl}#article`,
+            headline: item.title,
+            description: desc,
+            datePublished: item.publishedAt,
+            dateModified: item.publishedAt,
+            inLanguage: targetLang,
+            image: `${CANONICAL_ORIGIN}/og-card.jpg`,
+            mainEntityOfPage: { '@type': 'WebPage', '@id': routeCanonicalUrl },
+            author: { '@type': 'Person', name: 'Emre Pelit', url: `${CANONICAL_ORIGIN}/` },
+            publisher: { '@type': 'Organization', name: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi', url: `${CANONICAL_ORIGIN}/` },
+            isBasedOn: item.bloggerUrl || undefined,
+            video: { '@id': `${routeCanonicalUrl}#explainer-video` },
+          },
+          {
+            '@type': 'VideoObject',
+            '@id': `${routeCanonicalUrl}#explainer-video`,
+            name: `${item.title} — HTML5 Explainer Video (60s)`,
+            description: desc,
+            thumbnailUrl: `${CANONICAL_ORIGIN}/og-card.jpg`,
+            uploadDate: item.publishedAt,
+            duration: 'PT60S',
+            embedUrl: `${routeCanonicalUrl}#video`,
+            contentUrl: `${routeCanonicalUrl}#video`,
+            inLanguage: targetLang,
+            isFamilyFriendly: true,
+            author: { '@type': 'Person', name: 'Emre Pelit', url: `${CANONICAL_ORIGIN}/` },
+          },
+          {
+            '@type': 'Quiz',
+            '@id': `${routeCanonicalUrl}#quiz`,
+            name: `${item.title} — Multiple-Choice Comprehension Quiz`,
+            educationalUse: 'Self-assessment',
+            learningResourceType: 'Multiple-Choice Quiz',
+            inLanguage: targetLang,
+            about: item.category,
+            author: { '@type': 'Person', name: 'Emre Pelit', url: `${CANONICAL_ORIGIN}/` },
+          },
+        ],
+      };
+
+      const rootHtml = `
 <main class="max-w-4xl mx-auto px-6 py-10 space-y-6">
   <nav aria-label="Breadcrumb">
-    <a href="${hubPath}">Ana Hub</a> / <a href="${archivePath}">Arşiv</a> / <span>#${item.postNumber}</span>
+    <a href="${hubPath}">Ana Hub</a> / <a href="${archivePath}">Arşiv</a> / <span>#${item.postNumber} (${targetLang.toUpperCase()})</span>
   </nav>
   <article itemscope itemtype="https://schema.org/BlogPosting">
     <header>
-      <div><strong>Emre Pelit</strong> · Bağımsız Yazar Arşivi (Hakemli Dergi Değildir) · ${escapeHtml(item.category)} · ${escapeHtml(item.publishedAt)}</div>
+      <div><strong>Emre Pelit</strong> · Bağımsız Yazar Arşivi · ${escapeHtml(item.category)} · ${escapeHtml(item.publishedAt)}</div>
       <h1 itemprop="headline">${escapeHtml(item.title)}</h1>
       <p itemprop="description"><strong>${escapeHtml(desc)}</strong></p>
     </header>
@@ -489,43 +718,46 @@ async function run() {
       <p><em>${escapeHtml(`Bu makale ${formattedOpeningDate} tarihinde Mersin'de yazılmıştır.`)}</em></p>
     </div>
     ${findingsHtml}
+    <section aria-label="HTML5 Açıklayıcı Video ve Çoktan Seçmeli Test">
+      <h2>60 Saniyelik HTML5 Açıklayıcı Video &amp; Çoktan Seçmeli Kavrama Soruları</h2>
+      <p>Bu makale; 6 sahneli 60 saniyelik telifsiz HTML5 Canvas açıklayıcı video, makalenin genel sonucuyla uyumlu 4 soruluk profesyonel çoktan seçmeli test ve interaktif fizik/felsefe simülasyonu ile birlikte sunulmaktadır.</p>
+    </section>
     <footer>
-      <p>Kanonik Adres: <a href="${escapeHtml(item.canonicalUrl)}">${escapeHtml(item.canonicalUrl)}</a></p>
+      <p>Kanonik Adres (${targetLang.toUpperCase()}): <a href="${escapeHtml(routeCanonicalUrl)}">${escapeHtml(routeCanonicalUrl)}</a></p>
       <nav aria-label="Makale Gezinimi">
-        ${prevItem ? `<a href="${escapeHtml(prevItem.canonicalPath)}">← ${escapeHtml(prevItem.title)}</a>` : ''}
-        ${nextItem ? `<a href="${escapeHtml(nextItem.canonicalPath)}">${escapeHtml(nextItem.title)} →</a>` : ''}
+        ${prevItem ? `<a href="${escapeHtml(`/${targetLang}/${seg}/${prevItem.slug}`)}">← ${escapeHtml(prevItem.title)}</a>` : ''}
+        ${nextItem ? `<a href="${escapeHtml(`/${targetLang}/${seg}/${nextItem.slug}`)}">${escapeHtml(nextItem.title)} →</a>` : ''}
       </nav>
     </footer>
   </article>
 </main>`.trim();
 
-    const hreflangSelf = `    <link rel="alternate" hreflang="${escapeHtml(item.lang)}" href="${escapeHtml(item.canonicalUrl)}" />\n    <link rel="alternate" hreflang="x-default" href="${escapeHtml(item.canonicalUrl)}" />`;
+      const html = injectHeadAndRoot(baseHtml, {
+        lang: targetLang,
+        title: pageTitle,
+        description: desc,
+        canonicalUrl: routeCanonicalUrl,
+        ogType: 'article',
+        jsonLd: blogPostingLd,
+        hreflangBlock: articleHreflangBlock,
+        rootHtml,
+      });
 
-    const html = injectHeadAndRoot(baseHtml, {
-      lang: item.lang,
-      title: pageTitle,
-      description: desc,
-      canonicalUrl: item.canonicalUrl,
-      ogType: 'article',
-      jsonLd: blogPostingLd,
-      hreflangBlock: hreflangSelf,
-      rootHtml,
-    });
-
-    writeHtmlRoute(item.canonicalPath, html);
-    generatedHtmlCount += 1;
+      writeHtmlRoute(routePath, html);
+      generatedHtmlCount += 1;
+    }
   }
 
-  // 2. Prerender native language home hubs (/en/, /es/, /de/, /fr/)
+  // 2. Prerender ALL 12 language home hubs (/en/, /es/, /de/, /fr/, /ru/, /ar/, /zh/, /ja/, /pt/, /it/, /ko/)
   const hubHreflangs = Object.fromEntries(
-    NATIVE_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}${LANG_HUB_META[l].path}`])
+    SUPPORTED_12_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}${LANG_HUB_META[l].path}`])
   );
-  for (const lang of NATIVE_LANGS) {
+  for (const lang of SUPPORTED_12_LANGS) {
     if (lang === 'tr') continue; // dist/index.html is already TR root
     const meta = LANG_HUB_META[lang];
     const langArticles = snapshot.filter((a) => a.lang === lang).slice(0, 60);
     const listItems = (langArticles.length ? langArticles : snapshot.slice(0, 40))
-      .map((a) => `<li><a href="${escapeHtml(a.canonicalPath)}">${escapeHtml(a.title)}</a> <small>(${escapeHtml(a.publishedAt)})</small></li>`)
+      .map((a) => `<li><a href="/${lang}/${LANG_ARTICLE_SEGMENT[lang]}/${escapeHtml(a.slug)}">${escapeHtml(a.title)}</a> <small>(${escapeHtml(a.publishedAt)})</small></li>`)
       .join('\n');
 
     const rootHtml = `
@@ -534,7 +766,7 @@ async function run() {
     <h1>${escapeHtml(meta.h1)}</h1>
     <p>${escapeHtml(meta.desc)}</p>
     <nav aria-label="Languages">
-      <a href="/">TR</a> · <a href="/en/">EN</a> · <a href="/es/">ES</a> · <a href="/de/">DE</a> · <a href="/fr/">FR</a> · <a href="/${lang}/archive">${escapeHtml(meta.archiveLabel)}</a>
+      ${SUPPORTED_12_LANGS.map((l) => `<a href="${LANG_HUB_META[l].path}">${l.toUpperCase()}</a>`).join(' · ')} · <a href="/${lang}/archive">${escapeHtml(meta.archiveLabel)}</a>
     </nav>
   </header>
   <section aria-label="${escapeHtml(meta.archiveLabel)}">
@@ -554,18 +786,20 @@ async function run() {
     generatedHtmlCount += 1;
   }
 
-  // 3. Prerender full archive index routes (/archive & /<lang>/archive)
+  // 3. Prerender full archive index routes (/archive & /<12-langs>/archive)
   const archiveHreflangs = Object.fromEntries(
-    NATIVE_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}/${l}/archive`])
+    SUPPORTED_12_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}/${l}/archive`])
   );
-  const allArchiveListHtml = snapshot
-    .map((a) => `<li><a href="${escapeHtml(a.canonicalPath)}">#${a.postNumber} — ${escapeHtml(a.title)}</a> <span>[${escapeHtml(a.lang)}]</span></li>`)
-    .join('\n');
 
-  for (const archiveRoute of ['/archive', ...NATIVE_LANGS.map((l) => `/${l}/archive`)]) {
-    const routeLang = NATIVE_LANGS.find((l) => archiveRoute.startsWith(`/${l}/`)) || 'tr';
+  for (const archiveRoute of ['/archive', ...SUPPORTED_12_LANGS.map((l) => `/${l}/archive`)]) {
+    const routeLang = SUPPORTED_12_LANGS.find((l) => archiveRoute.startsWith(`/${l}/`)) || 'tr';
     const meta = LANG_HUB_META[routeLang];
+    const seg = LANG_ARTICLE_SEGMENT[routeLang];
     const canonicalUrl = `${CANONICAL_ORIGIN}${archiveRoute}`;
+    const allArchiveListHtml = snapshot
+      .map((a) => `<li><a href="/${routeLang}/${seg}/${escapeHtml(a.slug)}">#${a.postNumber} — ${escapeHtml(a.title)}</a> <span>[${escapeHtml(routeLang)}]</span></li>`)
+      .join('\n');
+
     const rootHtml = `
 <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
   <header>
@@ -588,15 +822,15 @@ async function run() {
     generatedHtmlCount += 1;
   }
 
-  // 4. Prerender governance routes (/tr|en|es|de|fr/<privacy|kvkk|disclaimer|methodology>)
+  // 4. Prerender governance routes across all 12 languages
   for (const [govKey, translations] of Object.entries(GOVERNANCE_PAGES)) {
     const govHreflangs = Object.fromEntries(
-      NATIVE_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}/${l}/${govKey}`])
+      SUPPORTED_12_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}/${l}/${govKey}`])
     );
-    for (const lang of NATIVE_LANGS) {
-      const info = translations[lang];
+    for (const lang of SUPPORTED_12_LANGS) {
+      const info = translations[lang] || translations.en;
       const canonicalUrl = `${CANONICAL_ORIGIN}/${lang}/${govKey}`;
-      const hubPath = lang === 'tr' ? '/' : `/${lang}/`;
+      const hubPath = LANG_HUB_META[lang].path;
       const rootHtml = `
 <main class="max-w-3xl mx-auto px-6 py-10 space-y-4">
   <nav><a href="${hubPath}">Hub</a> / <span>${escapeHtml(info.heading)}</span></nav>
@@ -618,38 +852,73 @@ async function run() {
     }
   }
 
-  // 5. Emit clean static sitemaps & robots.txt into /dist for pure static hosts
+  // 5. Emit clean static sitemaps (including sitemap-12-languages.xml) & robots.txt into /dist
   const todayIso = new Date().toISOString().slice(0, 10);
   const articleUrlsXml = snapshot
     .map(
       (a) =>
-        `  <url>\n    <loc>${escapeHtml(a.canonicalUrl)}</loc>\n    <lastmod>${escapeHtml(a.publishedAt || todayIso)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`
+        `  <url>\n    <loc>${escapeHtml(a.canonicalUrl)}</loc>\n    <lastmod>${escapeHtml(a.publishedAt || todayIso)}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.95</priority>\n  </url>`
     )
     .join('\n');
 
   const sitemapArticlesXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${articleUrlsXml}\n</urlset>\n`;
 
-  const mainPaths = ['/', '/en/', '/es/', '/de/', '/fr/', '/archive', ...NATIVE_LANGS.map((l) => `/${l}/archive`)];
+  const twelveLangUrlsXml = snapshot
+    .flatMap((a) => {
+      const altLinks = SUPPORTED_12_LANGS.map(
+        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${CANONICAL_ORIGIN}/${l}/${LANG_ARTICLE_SEGMENT[l]}/${escapeHtml(a.slug)}" />`
+      )
+        .concat([`    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeHtml(a.canonicalUrl)}" />`])
+        .join('\n');
+      return SUPPORTED_12_LANGS.map(
+        (l) =>
+          `  <url>\n    <loc>${CANONICAL_ORIGIN}/${l}/${LANG_ARTICLE_SEGMENT[l]}/${escapeHtml(a.slug)}</loc>\n    <lastmod>${escapeHtml(a.publishedAt || todayIso)}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.98</priority>\n${altLinks}\n  </url>`
+      );
+    })
+    .join('\n');
+
+  const sitemap12LanguagesXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${twelveLangUrlsXml}\n</urlset>\n`;
+
+  const turkishArticles = snapshot.filter((a) => a.lang === 'tr');
+  const turkish12LangUrlsXml = turkishArticles
+    .flatMap((a) => {
+      const trCanonical = `${CANONICAL_ORIGIN}/tr/${LANG_ARTICLE_SEGMENT.tr}/${escapeHtml(a.slug)}`;
+      const altLinks = SUPPORTED_12_LANGS.map(
+        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${CANONICAL_ORIGIN}/${l}/${LANG_ARTICLE_SEGMENT[l]}/${escapeHtml(a.slug)}" />`
+      )
+        .concat([`    <xhtml:link rel="alternate" hreflang="x-default" href="${trCanonical}" />`])
+        .join('\n');
+      return SUPPORTED_12_LANGS.map(
+        (l) =>
+          `  <url>\n    <loc>${CANONICAL_ORIGIN}/${l}/${LANG_ARTICLE_SEGMENT[l]}/${escapeHtml(a.slug)}</loc>\n    <lastmod>${escapeHtml(a.publishedAt || todayIso)}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n${altLinks}\n  </url>`
+      );
+    })
+    .join('\n');
+  const sitemapTurkish12LanguagesXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${turkish12LangUrlsXml}\n</urlset>\n`;
+
+  const mainPaths = ['/', ...SUPPORTED_12_LANGS.filter((l) => l !== 'tr').map((l) => `/${l}/`), '/archive', ...SUPPORTED_12_LANGS.map((l) => `/${l}/archive`)];
   const mainUrlsXml = mainPaths
     .map(
       (p) =>
-        `  <url>\n    <loc>${CANONICAL_ORIGIN}${p}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>${p === '/' ? '1.0' : '0.9'}</priority>\n  </url>`
+        `  <url>\n    <loc>${CANONICAL_ORIGIN}${p}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>${p === '/' ? '1.0' : '0.95'}</priority>\n  </url>`
     )
     .join('\n');
   const sitemapMainXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${mainUrlsXml}\n</urlset>\n`;
 
-  const sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-main.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-articles.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
+  const sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-main.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-articles.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-turkish-12-languages.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-12-languages.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-scholar.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
 
-  const robotsTxt = `User-agent: *\nAllow: /\n\nSitemap: ${CANONICAL_ORIGIN}/sitemap_index.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-articles.xml\n`;
+  const robotsTxt = `User-agent: *\nAllow: /\n\nSitemap: ${CANONICAL_ORIGIN}/sitemap_index.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-articles.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-turkish-12-languages.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-12-languages.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-scholar.xml\n`;
 
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap-articles.xml'), sitemapArticlesXml, 'utf-8');
+  fs.writeFileSync(path.join(DIST_DIR, 'sitemap-turkish-12-languages.xml'), sitemapTurkish12LanguagesXml, 'utf-8');
+  fs.writeFileSync(path.join(DIST_DIR, 'sitemap-12-languages.xml'), sitemap12LanguagesXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap-main.xml'), sitemapMainXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), sitemapArticlesXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap_index.xml'), sitemapIndexXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotsTxt, 'utf-8');
 
   console.log(
-    `[prerender] Complete: ${snapshot.length} snapshot items + ${generatedHtmlCount} static full-body SSG HTML routes + static sitemaps.`
+    `[prerender] Complete: ${snapshot.length} snapshot items + ${generatedHtmlCount} static full-body SSG HTML routes (12 langs) + static sitemaps.`
   );
 }
 

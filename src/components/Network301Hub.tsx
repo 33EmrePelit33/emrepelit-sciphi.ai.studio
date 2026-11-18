@@ -33,6 +33,7 @@ import {
   SiteMeasuredAnalytics,
 } from '../types';
 import {
+  ACTIVE_LIVE_WEBSITES,
   INITIAL_ARTICLES,
   INITIAL_HISTORICAL_APP_INTERACTION_BASELINE,
   mergeMonotonicAppInteractionTotals,
@@ -40,8 +41,56 @@ import {
   computeCumulativeNetworkStats,
   GROK_ME_RECONCILED_3_MONOGRAPHS,
 } from '../data/initialData';
+
+const LIVE_WEBSITES_SET = new Set<string>(ACTIVE_LIVE_WEBSITES);
 import { computeArticleAverageReadingTime } from '../utils/articleAnalysisEngine';
+import { computeCorpusCountMetrics } from '../utils/articleLocale';
 import { AnalyticsBenchmarkReport } from './AnalyticsBenchmarkReport';
+
+const TR_MONTH_INDEX: Record<string, number> = {
+  ocak: 0,
+  subat: 1,
+  şubat: 1,
+  mart: 2,
+  nisan: 3,
+  mayis: 4,
+  mayıs: 4,
+  haziran: 5,
+  temmuz: 6,
+  agustos: 7,
+  ağustos: 7,
+  eylul: 8,
+  eylül: 8,
+  ekim: 9,
+  kasim: 10,
+  kasım: 10,
+  aralik: 11,
+  aralık: 11,
+};
+
+function parseAllTurkishOrIsoDates(dateStr: string): number[] {
+  const results: number[] = [];
+  const raw = String(dateStr || '').trim();
+  if (!raw) return results;
+
+  const trRegex = /(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+(\d{4})/g;
+  let m: RegExpExecArray | null;
+  while ((m = trRegex.exec(raw)) !== null) {
+    const day = Number(m[1]);
+    const monthKey = m[2].toLocaleLowerCase('tr-TR');
+    const year = Number(m[3]);
+    const monthIdx = TR_MONTH_INDEX[monthKey];
+    if (Number.isFinite(day) && Number.isFinite(year) && typeof monthIdx === 'number') {
+      results.push(Date.UTC(year, monthIdx, day));
+    }
+  }
+
+  if (results.length === 0) {
+    const isoParsed = Date.parse(raw);
+    if (Number.isFinite(isoParsed)) results.push(isoParsed);
+  }
+  return results;
+}
 
 const ALLOWED_8_DOMAINS = new Set([
   'science-philosophy.grok.me',
@@ -138,6 +187,7 @@ interface Network301HubProps {
   onToggleAnalyticsPanel?: (open?: boolean) => void;
   articleStatsBoosts?: Record<string, { reads: number; views: number; citations: number }>;
   onIncrementArticleBoost?: (articleId: string) => void;
+  onForceLiveSync?: () => Promise<void>;
 }
 
 const COUNTRY_DEFINITIONS = [
@@ -255,6 +305,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   onToggleAnalyticsPanel,
   articleStatsBoosts: externalArticleBoosts,
   onIncrementArticleBoost,
+  onForceLiveSync,
 }) => {
   const [interactionFilter, setInteractionFilter] = useState<
     'ALL' | 'LIVE_ONLY' | 'HISTORICAL_ONLY' | AppInteractionCategory
@@ -263,7 +314,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     'overview' | 'articles-geo' | 'interactions' | 'benchmark'
   >('overview');
   const [showDetailedSiteCards, setShowDetailedSiteCards] = useState<boolean>(true);
-  const [showReconciliationDetails, setShowReconciliationDetails] = useState<boolean>(false);
+  const [showReconciliationDetails, setShowReconciliationDetails] = useState<boolean>(true);
+  const [expandedNodePubs, setExpandedNodePubs] = useState<Record<string, boolean>>({});
+  const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
   const resolvedAppInteractions = useMemo(
     () =>
       mergeMonotonicAppInteractionTotals(
@@ -560,6 +613,87 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     [resolvedAppInteractions, cumulative.totalViews, cumulative.netReads, cumulative.simulatorRuns]
   );
 
+  // Metric-by-metric cumulative breakdown splitting Live (2) vs Retired HTTP 301 (8) vs Total (10)
+  const cumulativeBreakdown = useMemo(() => {
+    const sumGroup = (group: Network301Node[]) => {
+      let totalViews = 0;
+      let netReads = 0;
+      let baseReads = 0;
+      let recent48hReads = 0;
+      let readingMinutesTotal = 0;
+      let audioMinutesTotal = 0;
+      let uniqueReaders = 0;
+      let simulatorRuns = 0;
+      let latencySum = 0;
+      let publicationsCount = 0;
+      let articlesSum = 0;
+      group.forEach((n) => {
+        totalViews += n.stats.totalViews ?? n.stats.netReads;
+        netReads += n.stats.netReads;
+        baseReads += n.stats.baseReads;
+        recent48hReads += n.stats.recent48hReads;
+        readingMinutesTotal += n.stats.readingTimeHours * 60 + n.stats.readingTimeMinutes;
+        audioMinutesTotal += n.stats.audioListenHours * 60 + n.stats.audioListenMinutes;
+        uniqueReaders += n.stats.uniqueReaders;
+        simulatorRuns += n.stats.simulatorRuns;
+        latencySum += n.stats.syncLatencyMs || 0;
+        publicationsCount += n.publications?.length || 0;
+        articlesSum += n.articlesCount || 0;
+      });
+      return {
+        count: group.length,
+        totalViews,
+        netReads,
+        baseReads,
+        recent48hReads,
+        readingMinutesTotal,
+        readingHours: Math.floor(readingMinutesTotal / 60),
+        readingMins: readingMinutesTotal % 60,
+        audioMinutesTotal,
+        audioHours: Math.floor(audioMinutesTotal / 60),
+        audioMins: audioMinutesTotal % 60,
+        uniqueReaders,
+        simulatorRuns,
+        avgLatencyMs: group.length > 0 ? Math.round(latencySum / group.length) : 0,
+        publicationsCount,
+        articlesSum,
+      };
+    };
+
+    const liveNodes = strictNodes.filter(
+      (n) => LIVE_WEBSITES_SET.has(n.domain) || Boolean(n.isLiveWebsite)
+    );
+    const retiredNodes = strictNodes.filter(
+      (n) => !(LIVE_WEBSITES_SET.has(n.domain) || Boolean(n.isLiveWebsite))
+    );
+
+    const live2 = sumGroup(liveNodes);
+    const retired8 = sumGroup(retiredNodes);
+    const total10 = sumGroup(strictNodes);
+
+    const refNowMs = Date.now();
+    const earliestLaunchMs = strictNodes.reduce((minMs, n) => {
+      const timestamps = parseAllTurkishOrIsoDates(n.launchDate);
+      const nodeEarliest = timestamps.length > 0 ? Math.min(...timestamps) : NaN;
+      return Number.isFinite(nodeEarliest) && nodeEarliest < minMs ? nodeEarliest : minMs;
+    }, refNowMs);
+    const networkAgeDays = Math.max(1, Math.floor((refNowMs - earliestLaunchMs) / 86400000) + 1);
+
+    return {
+      live2,
+      retired8,
+      total10,
+      networkAgeDays,
+    };
+  }, [strictNodes]);
+
+  const computeElapsedDaysSinceLaunch = (launchDate: string): number => {
+    const timestamps = parseAllTurkishOrIsoDates(launchDate);
+    if (timestamps.length === 0) return 1;
+    const primaryLaunch = timestamps[0];
+    return Math.max(1, Math.floor((Date.now() - primaryLaunch) / 86400000) + 1);
+  };
+
   const liveArithmeticEquation = useMemo(() => {
     const parts = strictNodes.map(
       (n) => `${n.stats.netReads.toLocaleString('tr-TR')} (${n.domain.replace('.ai.studio', '')})`
@@ -575,11 +709,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     return `${parts.join(' + ')} = ${cumulative.totalViews.toLocaleString('tr-TR')} KÜMÜLATİF TOPLAM GÖRÜNTÜLENME`;
   }, [strictNodes, cumulative.totalViews]);
 
-  // Active 306-article corpus
+  // Active corpus
   const activeArticles = useMemo(() => {
     if (articles && articles.length > 0) return articles;
     return INITIAL_ARTICLES;
   }, [articles]);
+  const corpusMetrics = useMemo(() => computeCorpusCountMetrics(activeArticles), [activeArticles]);
 
   // Compute deterministic, arithmetically reconciled per-article reads, views, citations & geographical breakdown
   // Zero synthetic floors: when cumulative counters start at 0, article counters start cleanly at 0 without NaN.
@@ -949,7 +1084,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               emrepelit-sciphi.ai.studio/#analytics
             </span>
             <span className="text-amber-300 font-bold">
-              10 Resmi Site · {activeArticles.length} Makale · Canlı Analitik &amp; 301 Konsolu
+              2 Canlı Web Sitesi (Ana Hub + Blogger) &amp; 8 Emekli 301 Düğümü (Toplam 10 Kayıt · {activeArticles.length} Makale) · Canlı Analitik
             </span>
             <span
               className={`px-2 py-0.5 font-extrabold text-[10px] rounded-xs inline-flex items-center gap-1 transition-all ${
@@ -964,6 +1099,27 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onForceLiveSync && (
+              <button
+                type="button"
+                disabled={isManualSyncing}
+                onClick={async () => {
+                  setIsManualSyncing(true);
+                  try {
+                    await onForceLiveSync();
+                    setAnalyticsNotice(
+                      '✓ Sunucu ile Canlı Monotonik Senkronizasyon Tamamlandı (Hiçbir veri azaltılmadan tüm 10 HTTP 301 düğümü eşitlendi).'
+                    );
+                  } finally {
+                    setIsManualSyncing(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-400/70 text-emerald-200 font-mono text-xs font-bold rounded-xs cursor-pointer transition-colors disabled:opacity-60"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} />
+                <span>{isManualSyncing ? 'Eşitleniyor...' : 'Canlı Sunucu Eşitle'}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -1011,7 +1167,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               <div className="text-base sm:text-lg font-extrabold text-cyan-200 mt-0.5">
                 {articleCumulativeData.totalViews.toLocaleString('tr-TR')}
               </div>
-              <div className="text-[9px] text-slate-400">10 Site = {activeArticles.length} Makale</div>
+              <div className="text-[9px] text-slate-400">2 Canlı + 8 Emekli 301 = {activeArticles.length} Makale</div>
             </div>
 
             <div className="bg-slate-900 border border-amber-400/60 px-3 py-2.5 rounded-xs">
@@ -1093,7 +1249,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
 
           <div className="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xs flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-slate-300">
             <span>
-              <strong className="text-emerald-300">1:1 Tam Senkron &amp; GitHub Ağı:</strong> Σ 10 Düğüm = Σ {activeArticles.length} Makale = Σ 5 Coğrafya · GitHub:{' '}
+              <strong className="text-emerald-300">1:1 Tam Senkron &amp; GitHub Ağı:</strong> Σ (2 Canlı Site + 8 Dondurulmuş 301 Kaydı) = Σ {activeArticles.length} Makale = Σ 5 Coğrafya · GitHub:{' '}
               <a
                 href="https://github.com/emrepelit109"
                 target="_blank"
@@ -1130,7 +1286,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
             [
               {
                 id: 'overview',
-                label: '1. Genel Bakış & 10 Resmi Site (Açılıştan Bugüne)',
+                label: '1. Genel Bakış: 2 Canlı Site + 8 Emekli 301 (Açılıştan Bugüne)',
               },
               {
                 id: 'articles-geo',
@@ -1166,18 +1322,274 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           })}
         </div>
 
-        {/* TAB 1: OVERVIEW & ALL 10 OFFICIAL WEBSITES SINCE LAUNCH */}
+        {/* TAB 1: OVERVIEW, METRIC-BY-METRIC CUMULATIVE MATRIX & ALL 10 OFFICIAL WEBSITES SINCE LAUNCH */}
         {activeHubTab === 'overview' && (
           <div className="space-y-5">
+            {/* Dedicated Cumulative Total Metric-by-Metric Breakdown Section */}
+            <div className="bg-slate-900/95 border-2 border-emerald-400/80 p-4 rounded-xs space-y-3 font-mono text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <div className="space-y-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2 py-0.5 bg-emerald-400 text-slate-950 font-extrabold text-[10px] rounded-xs">
+                      KÜMÜLATİF TOPLAM · METRİK METRİK
+                    </span>
+                    <span className="text-emerald-300 font-bold uppercase text-[11px]">
+                      TÜM HTTP 301 BAĞLI WEB SİTELERİNİN AÇILIŞTAN BUGÜNE ({cumulativeBreakdown.networkAgeDays} GÜN) BİRLEŞİK TOPLAMI
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-300">
+                    Her ziyarette otomatik sunucu senkronizasyonu (<code className="text-cyan-300">POST /api/analytics/record-visit</code> + SSE + BroadcastChannel) devrededir; monotonik kilit nedeniyle hiçbir metrik hiçbir zaman azalmaz.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] tabular-nums">
+                  <span className="px-2 py-1 bg-emerald-950 border border-emerald-500/60 text-emerald-300 rounded-xs font-bold inline-flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    <span>MONOTONİK KİLİT AKTİF · AZALTMA KAPALI</span>
+                  </span>
+                  <span className="px-2 py-1 bg-cyan-950 border border-cyan-500/60 text-cyan-300 rounded-xs font-bold">
+                    Senkron #{lastStatsSyncEvent?.syncSeq || liveSyncCounter}
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-800 bg-slate-950 rounded-xs">
+                <table className="w-full text-left border-collapse text-[11px] tabular-nums">
+                  <thead className="bg-slate-900 text-slate-300 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-3">Metrik Adı (Açılıştan Beri)</th>
+                      <th className="py-2 px-3 text-right text-emerald-300">
+                        Canlı 2 Web Sitesi (Ana Hub + Blogger)
+                      </th>
+                      <th className="py-2 px-3 text-right text-slate-300">
+                        Emekli 8 HTTP 301 Düğümü (Tarihsel Taban)
+                      </th>
+                      <th className="py-2 px-3 text-right text-amber-300">
+                        Σ 10 Web Sitesi Kümülatif Toplamı
+                      </th>
+                      <th className="py-2 px-3">Oran / Dönüşüm / Ayrıntılı Hesap</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-900 text-slate-200">
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-cyan-300">1. Toplam Görüntülenme</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.totalViews.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.totalViews.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-cyan-200 font-extrabold text-xs">
+                        {cumulativeBreakdown.total10.totalViews.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Günlük ort.{' '}
+                        {Math.round(
+                          cumulativeBreakdown.total10.totalViews / cumulativeBreakdown.networkAgeDays
+                        ).toLocaleString('tr-TR')}{' '}
+                        gör./gün · Canlı Pay: %
+                        {(
+                          (cumulativeBreakdown.live2.totalViews /
+                            Math.max(1, cumulativeBreakdown.total10.totalViews)) *
+                          100
+                        ).toFixed(2)}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-amber-300">2. Birleşik Net Okunma</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.netReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.netReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-amber-300 font-extrabold text-xs">
+                        {cumulativeBreakdown.total10.netReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Okunma/Gör. Dönüşüm: %
+                        {(
+                          (cumulativeBreakdown.total10.netReads /
+                            Math.max(1, cumulativeBreakdown.total10.totalViews)) *
+                          100
+                        ).toFixed(2)}{' '}
+                        · Son 48s: +{cumulativeBreakdown.total10.recent48hReads.toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-amber-200">3. Toplam Okuma Süresi</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.readingHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.live2.readingMins} dk
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.readingHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.retired8.readingMins} dk
+                      </td>
+                      <td className="py-2 px-3 text-right text-amber-200 font-extrabold text-xs">
+                        {cumulativeBreakdown.total10.readingHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.total10.readingMins} dk
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        {cumulativeBreakdown.total10.readingMinutesTotal.toLocaleString('tr-TR')} toplam dk ·{' '}
+                        {(cumulativeBreakdown.total10.readingMinutesTotal / 1440).toFixed(1)} kesintisiz gün · Ort.{' '}
+                        {(
+                          cumulativeBreakdown.total10.readingMinutesTotal /
+                          Math.max(1, cumulativeBreakdown.total10.netReads)
+                        ).toFixed(2)}{' '}
+                        dk/okuma
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-emerald-300">4. Sesli Dinleme Süresi</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.audioHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.live2.audioMins} dk
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.audioHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.retired8.audioMins} dk
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-extrabold text-xs">
+                        {cumulativeBreakdown.total10.audioHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.total10.audioMins} dk
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        {cumulativeBreakdown.total10.audioMinutesTotal.toLocaleString('tr-TR')} toplam dk ·{' '}
+                        {(cumulativeBreakdown.total10.audioMinutesTotal / 1440).toFixed(1)} gün · Ses Oturumu:{' '}
+                        {syncedAppInteractions.audioListens.toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-purple-300">5. Toplam Tekil Okur</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.uniqueReaders.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.uniqueReaders.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-purple-200 font-extrabold text-xs">
+                        {cumulativeBreakdown.total10.uniqueReaders.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Okur başına{' '}
+                        {(
+                          cumulativeBreakdown.total10.totalViews /
+                          Math.max(1, cumulativeBreakdown.total10.uniqueReaders)
+                        ).toFixed(2)}{' '}
+                        görüntülenme · 5 Kıta / 12 Ülke
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-sky-300">6. Simülatör Çalıştırma</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.simulatorRuns.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.simulatorRuns.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-sky-200 font-extrabold text-xs">
+                        {cumulativeBreakdown.total10.simulatorRuns.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Canlı Kuantum/Higgs/Kaotik Parametre Deneyi · %100 Etkileşim Mutabakatı
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-emerald-200">
+                        7. Toplam Yayınlanan Makale &amp; 12-Dil Kanonik Sayfa
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {(activeArticles.length * cumulativeBreakdown.live2.count).toLocaleString('tr-TR')} yayın ({activeArticles.length}/site)
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.articlesSum.toLocaleString('tr-TR')} tarihsel indeks
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-extrabold text-xs">
+                        {(activeArticles.length * strictNodes.length).toLocaleString('tr-TR')} ağ yayını
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Tekil Korpus: {activeArticles.length} Makale × 12 Dil ={' '}
+                        {(activeArticles.length * 12).toLocaleString('tr-TR')} Kanonik Sayfa
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-teal-300">
+                        8. Akademik Atıf &amp; 301 Backlink Ağı
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {cumulativeBreakdown.live2.publicationsCount} canlı backlink
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        {cumulativeBreakdown.retired8.publicationsCount} köprülü backlink
+                      </td>
+                      <td className="py-2 px-3 text-right text-teal-200 font-extrabold text-xs">
+                        {articleCumulativeData.totalCitations.toLocaleString('tr-TR')} atıf ·{' '}
+                        {cumulativeBreakdown.total10.publicationsCount} yayın
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Scholar, OpenAlex &amp; ResearchGate (<code className="text-emerald-300">/researchgate</code> 301 Köprüsü)
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-white">
+                        9. Toplam Uygulama Etkileşimi (Açılıştan Bugüne)
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        Canlı Oturum +{resolvedSessionInteractions.totalInteractionsSinceLaunch.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        Tarihsel + Çoklu Site Akışı
+                      </td>
+                      <td className="py-2 px-3 text-right text-white font-extrabold text-xs">
+                        {syncedAppInteractions.totalInteractionsSinceLaunch.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        Analiz: {syncedAppInteractions.analysisModals.toLocaleString('tr-TR')} · Dil/Arama/Dışa Aktarım:{' '}
+                        {syncedAppInteractions.languageSearchExports.toLocaleString('tr-TR')} · İtiraz:{' '}
+                        {syncedAppInteractions.qaObjections.toLocaleString('tr-TR')} · PWA:{' '}
+                        {syncedAppInteractions.pwaDownloads.toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-slate-200">
+                        10. HTTP Durum, TLS 1.3 &amp; Ortalama Senkron Gecikmesi
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        2 Canlı (HTTP 200) · {cumulativeBreakdown.live2.avgLatencyMs} ms
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-300">
+                        8 Emekli (HTTP 301 → Hub) · {cumulativeBreakdown.retired8.avgLatencyMs} ms
+                      </td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-extrabold text-xs">
+                        10 / 10 Düğüm · {cumulativeBreakdown.total10.avgLatencyMs} ms ort.
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        TLS 1.3 / SHA-256 · Blogger Canlı Senkron: {bloggerSyncedCount} Makale
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {/* Consolidated 10-Website Comparison Table Since Launch */}
             <div className="bg-slate-900/95 border border-cyan-500/50 p-4 rounded-xs space-y-3 font-mono text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                 <div className="space-y-0.5">
                   <span className="text-cyan-300 font-bold uppercase text-[11px]">
-                    10 RESMİ WEB SİTESİNİN AÇILIŞLARINDAN BERİ TÜM İSTATİSTİKLERİ (KARŞILAŞTIRMALI TABLO)
+                    2 CANLI WEB SİTESİ (ANA HUB + BLOGGER) VE 8 EMEKLİ 301 DÜĞÜMÜNÜN AÇILIŞTAN BERİ İSTATİSTİKLERİ (TOPLAM 10 KAYIT)
                   </span>
                   <div className="text-[10px] text-slate-400">
-                    Her sitenin açılış tarihinden bugüne kadar biriken görüntülenme, net okunma, okuma/ses süreleri, tekil okur ve simülatör çalıştırmaları 1:1 mutabakatla listelenir.
+                    Canlı artışlar yalnızca emrepelit-sciphi.ai.studio ve emrepelit7337.blogspot.com üzerinde toplanır; yayından kaldırılan 8 eski 301 alan adı taban değerinde dondurulmuştur ve hiçbir sayı azaltılmaz.
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1186,14 +1598,14 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     onClick={() => setShowDetailedSiteCards((v) => !v)}
                     className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-amber-300 text-[10px] font-bold rounded-xs cursor-pointer"
                   >
-                    {showDetailedSiteCards ? 'Site Kartlarını Gizle' : '10 Site Detay Kartlarını Göster'}
+                    {showDetailedSiteCards ? 'Detaylı Site Kartlarını Gizle' : '10 Web Sitesi Detay Kartlarını Göster'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowReconciliationDetails((v) => !v)}
                     className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-emerald-500/50 text-emerald-300 text-[10px] font-bold rounded-xs cursor-pointer"
                   >
-                    {showReconciliationDetails ? 'Mutabakat & Güvenliği Gizle' : 'Mutabakat Denklemleri & Zero-Trust'}
+                    {showReconciliationDetails ? 'Mutabakat Denklemlerini Gizle' : 'Mutabakat Denklemleri & Zero-Trust'}
                   </button>
                 </div>
               </div>
@@ -1203,23 +1615,28 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   <thead className="bg-slate-900 text-slate-300 uppercase text-[10px] border-b border-slate-800">
                     <tr>
                       <th className="py-2 px-2.5">#</th>
-                      <th className="py-2 px-2.5">Web Sitesi</th>
+                      <th className="py-2 px-2.5">Web Sitesi &amp; Durum</th>
                       <th className="py-2 px-2.5">Açılış Tarihi</th>
                       <th className="py-2 px-2.5 text-right">Makale</th>
                       <th className="py-2 px-2.5 text-right text-cyan-300">Görüntülenme</th>
                       <th className="py-2 px-2.5 text-right text-amber-300">Net Okunma</th>
+                      <th className="py-2 px-2.5 text-right text-teal-300">Dönüşüm</th>
                       <th className="py-2 px-2.5 text-right">Ağ Payı</th>
                       <th className="py-2 px-2.5 text-right text-amber-200">Okuma Süresi</th>
                       <th className="py-2 px-2.5 text-right text-emerald-300">Sesli Dinleme</th>
                       <th className="py-2 px-2.5 text-right text-purple-300">Tekil Okur</th>
                       <th className="py-2 px-2.5 text-right text-sky-300">Simülatör</th>
+                      <th className="py-2 px-2.5 text-right">Gecikme</th>
                       <th className="py-2 px-2.5 text-right">İşlem</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-900 text-slate-200">
                     {strictNodes.map((node) => {
                       const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
+                      const isLiveNode =
+                        LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
                       const nodeViews = node.stats.totalViews ?? node.stats.netReads;
+                      const convPct = ((node.stats.netReads / Math.max(1, nodeViews)) * 100).toFixed(1);
                       const readMinsTotal =
                         node.stats.readingTimeHours * 60 + node.stats.readingTimeMinutes;
                       const audioMinsTotal =
@@ -1228,22 +1645,42 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         (node.stats.netReads / Math.max(1, cumulative.netReads)) *
                         100
                       ).toFixed(2);
+                      const elapsedDays = computeElapsedDaysSinceLaunch(node.launchDate);
                       return (
                         <tr
                           key={`summary-row-${node.id}`}
-                          className={isMainHub ? 'bg-emerald-950/35' : 'hover:bg-slate-900/70'}
+                          className={
+                            isMainHub
+                              ? 'bg-emerald-950/35'
+                              : !isLiveNode
+                                ? 'bg-slate-950/60 opacity-85'
+                                : 'hover:bg-slate-900/70'
+                          }
                         >
                           <td className="py-2 px-2.5 font-bold text-amber-400">#{node.rank}</td>
                           <td className="py-2 px-2.5 font-semibold whitespace-nowrap">
-                            <span className={isMainHub ? 'text-emerald-300' : 'text-white'}>
+                            <span className={isMainHub ? 'text-emerald-300' : isLiveNode ? 'text-amber-200' : 'text-slate-300'}>
                               {node.domain}
                             </span>{' '}
-                            <span className="text-[9px] text-slate-400">
-                              ({isMainHub ? 'HTTP 200 Hub' : `HTTP ${node.httpCode} → Hub`})
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-xs border ${
+                                isMainHub
+                                  ? 'bg-emerald-950 border-emerald-500/60 text-emerald-300'
+                                  : isLiveNode
+                                    ? 'bg-amber-950/60 border-amber-400/50 text-amber-300'
+                                    : 'bg-slate-900 border-slate-700 text-slate-400'
+                              }`}
+                            >
+                              {isMainHub
+                                ? 'CANLI ANA HUB · HTTP 200'
+                                : isLiveNode
+                                  ? 'CANLI BLOGGER · HTTP 200'
+                                  : 'YAYINDAN KALDIRILDI · HTTP 301 → Hub'}
                             </span>
                           </td>
                           <td className="py-2 px-2.5 text-amber-200 whitespace-nowrap">
-                            {node.launchDate}
+                            {node.launchDate}{' '}
+                            <span className="text-[9px] text-slate-400">({elapsedDays}g)</span>
                           </td>
                           <td className="py-2 px-2.5 text-right text-emerald-300">
                             {Math.max(activeArticles.length, node.articlesCount)}
@@ -1254,6 +1691,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                           <td className="py-2 px-2.5 text-right font-bold text-amber-300">
                             {node.stats.netReads.toLocaleString('tr-TR')}
                           </td>
+                          <td className="py-2 px-2.5 text-right text-teal-300">%{convPct}</td>
                           <td className="py-2 px-2.5 text-right text-slate-300">%{sharePct}</td>
                           <td className="py-2 px-2.5 text-right whitespace-nowrap text-amber-200">
                             {node.stats.readingTimeHours.toLocaleString('tr-TR')} sa{' '}
@@ -1275,38 +1713,145 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                           <td className="py-2 px-2.5 text-right text-sky-300">
                             {node.stats.simulatorRuns.toLocaleString('tr-TR')}
                           </td>
+                          <td className="py-2 px-2.5 text-right text-slate-400 whitespace-nowrap">
+                            {node.stats.syncLatencyMs} ms
+                          </td>
                           <td className="py-2 px-2.5 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onRecordAnalyticsMeasurement?.(
-                                  node.domain,
-                                  {
-                                    viewsDelta: 1,
-                                    readsDelta: 1,
-                                    readingMinutesDelta: 5,
-                                    uniqueReadersDelta: 1,
-                                  },
-                                  'ANALYTICS_PANEL',
-                                  `Canlı Senkron (#${node.rank} ${node.domain} · Açılış: ${node.launchDate}): +1 Görüntülenme, +1 Okunma, +5 dk Okuma, +1 Tekil Okur`
-                                );
-                                setAnalyticsNotice(
-                                  `✓ #${node.rank} ${node.domain} için +1 Görüntülenme ve +1 Okunma kaydedildi.`
-                                );
-                              }}
-                              className="px-2 py-0.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300 font-bold text-[10px] rounded-xs cursor-pointer"
-                            >
-                              +1 Kaydet
-                            </button>
+                            {isLiveNode ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onRecordAnalyticsMeasurement?.(
+                                    node.domain,
+                                    {
+                                      viewsDelta: 1,
+                                      readsDelta: 1,
+                                      readingMinutesDelta: 5,
+                                      uniqueReadersDelta: 1,
+                                    },
+                                    'ANALYTICS_PANEL',
+                                    `Canlı Senkron (#${node.rank} ${node.domain} · Açılış: ${node.launchDate}): +1 Görüntülenme, +1 Okunma, +5 dk Okuma, +1 Tekil Okur`
+                                  );
+                                  setAnalyticsNotice(
+                                    `✓ #${node.rank} ${node.domain} için +1 Görüntülenme ve +1 Okunma kaydedildi.`
+                                  );
+                                }}
+                                className="px-2 py-0.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300 font-bold text-[10px] rounded-xs cursor-pointer"
+                              >
+                                +1 Kaydet
+                              </button>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-slate-400 text-[10px] rounded-xs">
+                                Donduruldu (301 → Hub)
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
                   <tfoot>
+                    <tr className="bg-emerald-950/30 border-t border-emerald-500/50 text-[11px] font-bold">
+                      <td colSpan={3} className="py-2 px-2.5 text-emerald-300">
+                        Ara Toplam · Canlı 2 Web Sitesi (Ana Hub + Blogger)
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-emerald-300">
+                        {activeArticles.length} × 2
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-cyan-300">
+                        {cumulativeBreakdown.live2.totalViews.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-amber-300">
+                        {cumulativeBreakdown.live2.netReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-teal-300">
+                        %
+                        {(
+                          (cumulativeBreakdown.live2.netReads /
+                            Math.max(1, cumulativeBreakdown.live2.totalViews)) *
+                          100
+                        ).toFixed(1)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-emerald-200">
+                        %
+                        {(
+                          (cumulativeBreakdown.live2.netReads /
+                            Math.max(1, cumulative.netReads)) *
+                          100
+                        ).toFixed(2)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right whitespace-nowrap text-amber-200">
+                        {cumulativeBreakdown.live2.readingHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.live2.readingMins} dk
+                      </td>
+                      <td className="py-2 px-2.5 text-right whitespace-nowrap text-emerald-300">
+                        {cumulativeBreakdown.live2.audioHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.live2.audioMins} dk
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-purple-300">
+                        {cumulativeBreakdown.live2.uniqueReaders.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-sky-300">
+                        {cumulativeBreakdown.live2.simulatorRuns.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-slate-300">
+                        {cumulativeBreakdown.live2.avgLatencyMs} ms
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-emerald-300 text-[10px]">
+                        Canlı Aktif
+                      </td>
+                    </tr>
+                    <tr className="bg-slate-950 border-t border-slate-800 text-[11px] font-semibold text-slate-300">
+                      <td colSpan={3} className="py-2 px-2.5">
+                        Ara Toplam · Emekli 8 HTTP 301 Düğümü (Dondurulmuş Taban)
+                      </td>
+                      <td className="py-2 px-2.5 text-right">{activeArticles.length} × 8</td>
+                      <td className="py-2 px-2.5 text-right text-cyan-300">
+                        {cumulativeBreakdown.retired8.totalViews.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-amber-300">
+                        {cumulativeBreakdown.retired8.netReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-teal-300">
+                        %
+                        {(
+                          (cumulativeBreakdown.retired8.netReads /
+                            Math.max(1, cumulativeBreakdown.retired8.totalViews)) *
+                          100
+                        ).toFixed(1)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right">
+                        %
+                        {(
+                          (cumulativeBreakdown.retired8.netReads /
+                            Math.max(1, cumulative.netReads)) *
+                          100
+                        ).toFixed(2)}
+                      </td>
+                      <td className="py-2 px-2.5 text-right whitespace-nowrap text-amber-200">
+                        {cumulativeBreakdown.retired8.readingHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.retired8.readingMins} dk
+                      </td>
+                      <td className="py-2 px-2.5 text-right whitespace-nowrap text-emerald-300">
+                        {cumulativeBreakdown.retired8.audioHours.toLocaleString('tr-TR')} sa{' '}
+                        {cumulativeBreakdown.retired8.audioMins} dk
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-purple-300">
+                        {cumulativeBreakdown.retired8.uniqueReaders.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-sky-300">
+                        {cumulativeBreakdown.retired8.simulatorRuns.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-slate-400">
+                        {cumulativeBreakdown.retired8.avgLatencyMs} ms
+                      </td>
+                      <td className="py-2 px-2.5 text-right text-slate-400 text-[10px]">
+                        301 Sabit
+                      </td>
+                    </tr>
                     <tr className="bg-slate-900 border-t-2 border-emerald-400 font-extrabold text-xs">
                       <td colSpan={3} className="py-2.5 px-2.5 text-emerald-300">
-                        Σ 10 WEB SİTESİ GENEL TOPLAMI (AÇILIŞTAN BUGÜNE %100 MUTABAKAT)
+                        Σ 10 WEB SİTESİ KÜMÜLATİF GENEL TOPLAMI (AÇILIŞTAN BUGÜNE %100 MUTABAKAT)
                       </td>
                       <td className="py-2.5 px-2.5 text-right text-emerald-300">
                         {activeArticles.length} / Site
@@ -1316,6 +1861,13 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       </td>
                       <td className="py-2.5 px-2.5 text-right text-amber-300">
                         {cumulative.netReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-2.5 px-2.5 text-right text-teal-300">
+                        %
+                        {(
+                          (cumulative.netReads / Math.max(1, cumulative.totalViews)) *
+                          100
+                        ).toFixed(1)}
                       </td>
                       <td className="py-2.5 px-2.5 text-right text-emerald-300">%100,00</td>
                       <td className="py-2.5 px-2.5 text-right whitespace-nowrap text-amber-200">
@@ -1332,6 +1884,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <td className="py-2.5 px-2.5 text-right text-sky-300">
                         {cumulative.simulatorRuns.toLocaleString('tr-TR')}
                       </td>
+                      <td className="py-2.5 px-2.5 text-right text-emerald-300">
+                        {cumulativeBreakdown.total10.avgLatencyMs} ms
+                      </td>
                       <td className="py-2.5 px-2.5 text-right text-emerald-300 text-[10px]">
                         1:1 Eşit
                       </td>
@@ -1341,89 +1896,262 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               </div>
             </div>
 
-            {/* Collapsible 5x2 Individual Launch-Date & Per-Site Cards */}
+            {/* Detailed 10-Website Launch-Date & Full-Stats Cards */}
             {showDetailedSiteCards && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
-                {strictNodes.map((node) => {
-                  const m = analyticsMeasurements?.[node.domain];
-                  const totalReadsSinceLaunch = node.stats.netReads;
-                  const totalViewsSinceLaunch = node.stats.totalViews ?? node.stats.netReads;
-                  const totalReadMinsSinceLaunch =
-                    node.stats.readingTimeHours * 60 + node.stats.readingTimeMinutes;
-                  const totalAudioMinsSinceLaunch =
-                    node.stats.audioListenHours * 60 + node.stats.audioListenMinutes;
-                  const readH = Math.floor(totalReadMinsSinceLaunch / 60);
-                  const readM = totalReadMinsSinceLaunch % 60;
-                  const audioH = Math.floor(totalAudioMinsSinceLaunch / 60);
-                  const audioM = totalAudioMinsSinceLaunch % 60;
-                  const sharePct = (
-                    (totalReadsSinceLaunch / Math.max(1, cumulative.netReads)) *
-                    100
-                  ).toFixed(2);
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3 font-mono text-xs">
+                  {strictNodes.map((node) => {
+                    const m = analyticsMeasurements?.[node.domain];
+                    const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
+                    const isLiveNode =
+                      LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
+                    const totalReadsSinceLaunch = node.stats.netReads;
+                    const totalViewsSinceLaunch = node.stats.totalViews ?? node.stats.netReads;
+                    const totalReadMinsSinceLaunch =
+                      node.stats.readingTimeHours * 60 + node.stats.readingTimeMinutes;
+                    const totalAudioMinsSinceLaunch =
+                      node.stats.audioListenHours * 60 + node.stats.audioListenMinutes;
+                    const readH = Math.floor(totalReadMinsSinceLaunch / 60);
+                    const readM = totalReadMinsSinceLaunch % 60;
+                    const audioH = Math.floor(totalAudioMinsSinceLaunch / 60);
+                    const audioM = totalAudioMinsSinceLaunch % 60;
+                    const sharePct = (
+                      (totalReadsSinceLaunch / Math.max(1, cumulative.netReads)) *
+                      100
+                    ).toFixed(2);
+                    const convPct = (
+                      (totalReadsSinceLaunch / Math.max(1, totalViewsSinceLaunch)) *
+                      100
+                    ).toFixed(2);
+                    const elapsedDays = computeElapsedDaysSinceLaunch(node.launchDate);
+                    const dailyAvgViews = Math.round(totalViewsSinceLaunch / elapsedDays);
+                    const dailyAvgReads = Math.round(totalReadsSinceLaunch / elapsedDays);
+                    const viewsPerUnique = (
+                      totalViewsSinceLaunch / Math.max(1, node.stats.uniqueReaders)
+                    ).toFixed(2);
+                    const isPubsExpanded = Boolean(expandedNodePubs[node.id]);
 
-                  return (
-                    <div
-                      key={`analytics-measured-${node.id}`}
-                      className="bg-slate-900/95 border border-slate-700 hover:border-emerald-400/80 p-3.5 rounded-xs space-y-2 transition-colors flex flex-col justify-between"
+                    return (
+                      <div
+                        key={`analytics-measured-${node.id}`}
+                        className={`p-4 rounded-xs space-y-3 transition-colors flex flex-col justify-between border ${
+                          isMainHub
+                            ? 'bg-emerald-950/40 border-emerald-400/90'
+                            : isLiveNode
+                              ? 'bg-slate-900/95 border-amber-400/70'
+                              : 'bg-slate-950/85 border-slate-800'
+                        }`}
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className={`font-extrabold text-[11px] leading-snug break-all ${
+                                    isMainHub
+                                      ? 'text-emerald-300'
+                                      : isLiveNode
+                                        ? 'text-amber-200'
+                                        : 'text-slate-200'
+                                  }`}
+                                  title={node.domain}
+                                >
+                                  #{node.rank} {node.domain}
+                                </span>
+                                <span className="px-1.5 py-0.5 text-[9px] bg-slate-900 text-cyan-300 border border-cyan-500/40 rounded-xs shrink-0">
+                                  HTTP {node.httpCode}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 break-words leading-snug mt-0.5" title={node.nodeTitle}>
+                                {node.nodeTitle}
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-xs shrink-0 tabular-nums font-bold">
+                              Ağ Payı: %{sharePct}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                            <span
+                              className={`px-2 py-0.5 rounded-xs font-bold uppercase ${
+                                isMainHub
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/50'
+                                  : isLiveNode
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50'
+                                    : 'bg-slate-900 text-slate-300 border border-slate-700'
+                              }`}
+                            >
+                              {isMainHub
+                                ? 'CANLI ANA HUB (HTTP 200 · TEKİL KANONİK)'
+                                : isLiveNode
+                                  ? 'CANLI BLOGGER CMS (HTTP 200 → HUB)'
+                                  : 'EMEKLİ HTTP 301 DÜĞÜMÜ → HUB · DONDURULDU'}
+                            </span>
+                            <span className="bg-amber-950/40 border border-amber-400/50 px-2 py-0.5 rounded-xs text-amber-200 font-bold">
+                              Açılış: {node.launchDate} ({elapsedDays} gün) · {corpusMetrics.distinctOriginalCount} Özgün · {corpusMetrics.multilingualTextsCount} Metin
+                            </span>
+                          </div>
+
+                          {node.decommissionedNote && (
+                            <div className="bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 rounded-xs text-[10px] text-slate-300 leading-snug">
+                              <strong className="text-amber-300">301 Yönlendirme Notu:</strong>{' '}
+                              {node.decommissionedNote}{' '}
+                              <span className="text-cyan-300">→ {node.redirectTargetUrl}</span>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-300 tabular-nums">
+                            <div className="bg-slate-950 px-2.5 py-1.5 rounded-xs border border-cyan-500/40">
+                              <span className="text-[9px] text-cyan-300 block">GÖRÜNTÜLENME</span>
+                              <strong className="text-cyan-300 text-xs">
+                                {totalViewsSinceLaunch.toLocaleString('tr-TR')}
+                              </strong>
+                              <span className="text-[9px] text-slate-400 block">
+                                Ort. {dailyAvgViews.toLocaleString('tr-TR')}/gün
+                              </span>
+                            </div>
+                            <div className="bg-slate-950 px-2.5 py-1.5 rounded-xs border border-amber-500/40">
+                              <span className="text-[9px] text-amber-300 block">NET OKUNMA</span>
+                              <strong className="text-amber-300 text-xs">
+                                {totalReadsSinceLaunch.toLocaleString('tr-TR')}
+                              </strong>
+                              <span className="text-[9px] text-slate-400 block">
+                                Ort. {dailyAvgReads.toLocaleString('tr-TR')}/gün · %{convPct}
+                              </span>
+                            </div>
+                            <div className="bg-slate-950 px-2.5 py-1.5 rounded-xs border border-slate-800">
+                              <span className="text-[9px] text-amber-200 block">OKUMA SÜRESİ</span>
+                              <strong className="text-amber-200">
+                                {readH.toLocaleString('tr-TR')} sa {readM} dk
+                              </strong>
+                              <span className="text-[9px] text-slate-400 block">
+                                {totalReadMinsSinceLaunch.toLocaleString('tr-TR')} dk
+                              </span>
+                            </div>
+                            <div className="bg-slate-950 px-2.5 py-1.5 rounded-xs border border-slate-800">
+                              <span className="text-[9px] text-emerald-300 block">SESLİ DİNLEME</span>
+                              <strong className="text-emerald-300">
+                                {audioH.toLocaleString('tr-TR')} sa {audioM} dk
+                              </strong>
+                              <span className="text-[9px] text-slate-400 block">
+                                {totalAudioMinsSinceLaunch.toLocaleString('tr-TR')} dk
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] tabular-nums">
+                            <div className="bg-slate-950 px-2 py-1 rounded-xs border border-slate-800 flex items-center justify-between">
+                              <span className="text-slate-400">Tekil Okur:</span>
+                              <strong className="text-purple-300">
+                                {node.stats.uniqueReaders.toLocaleString('tr-TR')} ({viewsPerUnique}x)
+                              </strong>
+                            </div>
+                            <div className="bg-slate-950 px-2 py-1 rounded-xs border border-slate-800 flex items-center justify-between">
+                              <span className="text-slate-400">Simülatör:</span>
+                              <strong className="text-sky-300">
+                                {node.stats.simulatorRuns.toLocaleString('tr-TR')}
+                              </strong>
+                            </div>
+                            <div className="bg-slate-950 px-2 py-1 rounded-xs border border-slate-800 flex items-center justify-between">
+                              <span className="text-slate-400">Taban / 48s:</span>
+                              <strong className="text-slate-200">
+                                {node.stats.baseReads.toLocaleString('tr-TR')} / +{node.stats.recent48hReads}
+                              </strong>
+                            </div>
+                            <div className="bg-slate-950 px-2 py-1 rounded-xs border border-slate-800 flex items-center justify-between">
+                              <span className="text-slate-400">Makale / Gecikme:</span>
+                              <strong className="text-emerald-300">
+                                {Math.max(activeArticles.length, node.articlesCount)} · {node.stats.syncLatencyMs}ms
+                              </strong>
+                            </div>
+                          </div>
+
+                          {node.publications && node.publications.length > 0 && (
+                            <div className="border border-slate-800 bg-slate-950/90 rounded-xs p-2 space-y-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedNodePubs((prev) => ({
+                                    ...prev,
+                                    [node.id]: !prev[node.id],
+                                  }))
+                                }
+                                className="w-full flex items-center justify-between text-[10px] font-bold text-cyan-300 hover:text-cyan-200 cursor-pointer"
+                              >
+                                <span>
+                                  301 Backlink &amp; İndekslenmiş Yayın Kayıtları ({node.publications.length} Kayıt)
+                                </span>
+                                {isPubsExpanded ? (
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                ) : (
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              {isPubsExpanded && (
+                                <div className="space-y-1 pt-1 border-t border-slate-800 max-h-44 overflow-y-auto">
+                                  {node.publications.map((pub) => (
+                                    <div
+                                      key={pub.id}
+                                      className="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-2 py-1 rounded-xs text-[10px]"
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onSelectArticleFromBacklink(pub.relatedArticleId, node.domain)
+                                        }
+                                        className="text-left text-emerald-300 hover:underline font-semibold truncate cursor-pointer"
+                                        title={`${pub.title} (${pub.sourceUrl} → ${pub.hubBacklinkUrl})`}
+                                      >
+                                        {pub.title}
+                                      </button>
+                                      <span className="text-[9px] text-slate-400 shrink-0 tabular-nums">
+                                        {pub.publishedDate} · HTTP {pub.httpStatus} · +{pub.monthlyReferralsToHub}/ay
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[9px] text-emerald-400">
+                          <span>✓ {node.tlsProtocol} · WAF · Monotonik Kilit (Azaltılamaz)</span>
+                          <span>
+                            Hedef: {node.redirectTargetUrl.replace('https://', '')} ·{' '}
+                            {m?.lastMeasuredAt ? m.lastMeasuredAt.slice(0, 19) : 'Canlı Senkron'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ResearchGate Academic Profile 301 Bridge Status Card */}
+                <div className="bg-slate-950 border border-emerald-500/60 p-3 rounded-xs flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-bold rounded-xs text-[10px]">
+                      AKADEMİK PROFİL HTTP 301 KÖPRÜSÜ
+                    </span>
+                    <span className="text-slate-200 font-bold">
+                      ResearchGate: Emre Pelit (Enstrümantasyon, Optik, Kalite Güvence, Astronomi &amp; Astrofizik)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-[10px]">
+                    <span className="text-cyan-300">
+                      Yerel Uçlar: <code>/researchgate</code> &amp; <code>/301/researchgate</code> → HTTP 301 Ana Hub (+1 Görüntülenme Oto-Senkron)
+                    </span>
+                    <a
+                      href="https://www.researchgate.net/profile/Emre-Pelit"
+                      target="_blank"
+                      rel="me noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-400/60 text-emerald-200 font-bold rounded-xs"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-1 border-b border-slate-800 pb-1.5">
-                          <span className="text-emerald-400 font-bold text-[11px] truncate" title={node.domain}>
-                            #{node.rank} {node.domain}
-                          </span>
-                          <span className="px-1.5 py-0.5 text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-xs shrink-0 tabular-nums">
-                            %{sharePct}
-                          </span>
-                        </div>
-
-                        <div className="bg-amber-950/40 border border-amber-400/50 px-2 py-1 rounded-xs flex items-center justify-between gap-1 text-[10px]">
-                          <span className="text-amber-200 font-semibold">AÇILIŞ:</span>
-                          <strong className="text-amber-300 font-bold">{node.launchDate}</strong>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-300 tabular-nums">
-                          <div className="bg-slate-950 px-2 py-1.5 rounded-xs border border-cyan-500/40">
-                            <span className="text-[9px] text-cyan-300 block">GÖRÜNTÜLENME</span>
-                            <strong className="text-cyan-300 text-xs">
-                              {totalViewsSinceLaunch.toLocaleString('tr-TR')}
-                            </strong>
-                          </div>
-                          <div className="bg-slate-950 px-2 py-1.5 rounded-xs border border-slate-800">
-                            <span className="text-[9px] text-slate-400 block">NET OKUNMA</span>
-                            <strong className="text-amber-400 text-xs">
-                              {totalReadsSinceLaunch.toLocaleString('tr-TR')}
-                            </strong>
-                          </div>
-                          <div className="bg-slate-950 px-2 py-1.5 rounded-xs border border-slate-800">
-                            <span className="text-[9px] text-slate-400 block">OKUMA SÜRESİ</span>
-                            <strong className="text-amber-200">
-                              {readH.toLocaleString('tr-TR')} sa {readM} dk
-                            </strong>
-                          </div>
-                          <div className="bg-slate-950 px-2 py-1.5 rounded-xs border border-slate-800">
-                            <span className="text-[9px] text-slate-400 block">SESLİ DİNLEME</span>
-                            <strong className="text-emerald-400">
-                              {audioH.toLocaleString('tr-TR')} sa {audioM} dk
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-950 px-2 py-1 rounded-xs border border-slate-800 flex items-center justify-between text-[10px] tabular-nums">
-                          <span className="text-slate-400">Tekil / Sim:</span>
-                          <strong className="text-purple-300">
-                            {node.stats.uniqueReaders.toLocaleString('tr-TR')} ·{' '}
-                            <span className="text-sky-400">{node.stats.simulatorRuns.toLocaleString('tr-TR')}</span>
-                          </strong>
-                        </div>
-                      </div>
-
-                      <div className="pt-1 border-t border-slate-800 flex items-center justify-between text-[9px] text-emerald-400">
-                        <span>✓ TLS 1.3 · WAF · Zero-Trust</span>
-                        <span>{m?.lastMeasuredAt ? m.lastMeasuredAt.slice(11, 19) : 'Senkron'}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                      <span>researchgate.net/profile/Emre-Pelit</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1435,7 +2163,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     ✓ CANLI DİNAMİK ARİTMETİK MUTABAKAT &amp; ZERO-TRUST GÜVENLİK ({securitySealState.batchToken})
                   </span>
                   <span className="text-[10px] text-amber-300 font-bold">
-                    10/10 Düğüm Korumalı · Dış Müdahale Kapalı
+                    2 Canlı Site + 8 Dondurulmuş 301 Kaydı Korumalı · Dış Müdahale Kapalı
                   </span>
                 </div>
                 <div className="space-y-1.5">
@@ -1601,7 +2329,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <span>ORTALAMA OKUMA SÜRESİ SIRALAMASI (EN FAZLA → EN AZ)</span>
                     </span>
                     <span className="text-emerald-400 font-bold text-[11px]">
-                      {activeArticles.length} Metin · 10 Resmi Sitede Eşzamanlı
+                      {activeArticles.length} Metin · 2 Canlı Sitede Senkron (8 Eski Alan Adı 301 → Hub)
                     </span>
                   </div>
                 </div>
@@ -2120,7 +2848,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <span>UYGULAMA ETKİLEŞİM MERKEZİ · CANLI + KÜMÜLATİF</span>
                     </span>
                     <span className="px-2 py-0.5 bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold text-[10px] rounded-xs">
-                      10 Resmi 301 Web Sitesi &amp; Kurulabilir PWA Senkron
+                      2 Canlı Site (Ana Hub + Blogger) &amp; 8 Dondurulmuş 301 Kaydı Senkron
                     </span>
                   </div>
                   <h4 className="text-base sm:text-lg font-editorial font-bold text-white">
@@ -2281,12 +3009,15 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     onChange={(e) => setAnalyticsTargetDomain(e.target.value)}
                     className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
                   >
-                    {strictNodes.map((n) => (
-                      <option key={n.domain} value={n.domain}>
-                        #{n.rank} {n.domain} (Açılış: {n.launchDate})
-                      </option>
-                    ))}
-                    <option value="ALL_10_SITES">10 Sitenin Tamamı (Eşzamanlı)</option>
+                    {strictNodes.map((n) => {
+                      const isLive = LIVE_WEBSITES_SET.has(n.domain) || Boolean(n.isLiveWebsite);
+                      return (
+                        <option key={n.domain} value={n.domain} disabled={!isLive}>
+                          #{n.rank} {n.domain} {isLive ? `(Canlı 200 · Açılış: ${n.launchDate})` : '(Emekli 301 - Donduruldu)'}
+                        </option>
+                      );
+                    })}
+                    <option value="ALL_10_SITES">Tüm Canlı Siteler (Ana Hub + Blogger)</option>
                   </select>
                 </div>
 
@@ -2366,7 +3097,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="text-[11px] text-slate-300">
                   {analyticsNotice ||
-                    'Her yeni görüntülenme, okuma, dinleme veya simülatör girişi gerçekleştiğinde 10 düğüm, makale tablosu ve uygulama etkileşimleri 1:1 senkronize edilir.'}
+                    'Her yeni görüntülenme, okuma, dinleme veya simülatör girişi yalnızca canlı 2 web sitesinde artar; 8 emekli 301 düğümü taban değerinde dondurulmuştur ve genel mutabakat 1:1 senkronize edilir.'}
                 </div>
                 <button
                   type="submit"
@@ -2448,7 +3179,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         </span>
                         <span className="text-emerald-400 text-[10px] shrink-0">
                           {ev.cumulativeViewsAfter ? `Σ Gör.: ${ev.cumulativeViewsAfter.toLocaleString('tr-TR')} · ` : ''}
-                          {ev.targetDomain === 'ALL_10_SITES' || ev.targetDomain === 'ALL_8_SITES' ? '10 Site' : ev.targetDomain}
+                          {ev.targetDomain === 'ALL_10_SITES' || ev.targetDomain === 'ALL_8_SITES' ? 'Ana Hub + Blogger' : ev.targetDomain}
                         </span>
                       </div>
                     ))}

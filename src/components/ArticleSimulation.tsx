@@ -620,7 +620,7 @@ export const ArticleSimulation: React.FC<ArticleSimulationProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-4 items-stretch">
         <div className="lg:col-span-5 flex flex-col justify-between space-y-3.5 bg-white p-4 border border-stone-200">
           <div className="space-y-3.5">
-            <div className="text-xs font-mono text-stone-700 bg-stone-100 px-3 py-2 border border-stone-200 overflow-x-auto">
+            <div className="text-xs font-mono text-stone-700 bg-stone-100 px-3 py-2 pr-8 border border-stone-200 overflow-x-auto">
               <MathFormula tex={sim.equationLatex} showCopyButton={true} />
             </div>
 

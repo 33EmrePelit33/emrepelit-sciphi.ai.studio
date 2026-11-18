@@ -29,6 +29,7 @@ import {
   SiteMeasuredAnalytics,
 } from './types';
 import {
+  ACTIVE_LIVE_WEBSITES,
   buildScientificPlateDataUri,
   INITIAL_301_NETWORK_NODES,
   INITIAL_ARTICLES,
@@ -42,6 +43,8 @@ import {
   mergeMonotonicNetworkNodes,
   computeCumulativeNetworkStats,
 } from './data/initialData';
+
+const LIVE_WEBSITES_SET = new Set<string>(ACTIVE_LIVE_WEBSITES);
 import {
   UI_TEXT,
   WORLD_LANGUAGES,
@@ -59,6 +62,9 @@ import { EmrePelitCVMenu } from './components/EmrePelitCVMenu';
 import { GlobalIndexingAndSocialHub } from './components/GlobalIndexingAndSocialHub';
 import { ArticleAnalysisModal } from './components/ArticleAnalysisModal';
 import { ArticleQuestionModule } from './components/ArticleQuestionModule';
+import { ArticleExplainerVideo } from './components/ArticleExplainerVideo';
+import { ArticleQuizModule } from './components/ArticleQuizModule';
+import { InteractiveAppsSuite } from './components/InteractiveAppsSuite';
 import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallButton';
 import { GovernanceLegalModal, GovernanceTab } from './components/GovernanceLegalModal';
 import { MathFormula } from './components/MathFormula';
@@ -74,9 +80,11 @@ import {
 import {
   ALL_ARTICLE_ROUTE_SEGMENTS,
   buildArticleWorkClusters,
+  computeCorpusCountMetrics,
   detectEntrySourceLanguage,
   getLocalizedArticlePath,
 } from './utils/articleLocale';
+import { fetchBloggerFeedViaJsonp } from './utils/bloggerJsonp';
 
 const APP_CHROME_I18N: Record<
   LanguageCode,
@@ -94,10 +102,26 @@ const APP_CHROME_I18N: Record<
     cardCopyrightNotice: (year: string) => string;
     footerArchiveTitle: string;
     privacy: string;
+    terms: string;
+    imprint: string;
     kvkk: string;
     disclaimer: string;
     methodology: string;
     searchPlaceholderPrefix: string;
+    network301FooterLabel: string;
+    cookiePrefsLabel: string;
+    consentActive: string;
+    consentRejected: string;
+    consentPending: string;
+    langDirsLabel: string;
+    fullArchiveLabel: string;
+    publishedOn10SitesHeading: (active: number, total: number) => string;
+    publishedOn10SitesDesc: string;
+    publicationUrlLabel: string;
+    canonicalCounterpartBtn: string;
+    mainAuthorityCenterLabel: string;
+    liveMainHubBadge: string;
+    liveRedirectBadge: string;
   }
 > = {
   tr: {
@@ -116,10 +140,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (Bağımsız Yazar Arşivi · Hakemli Dergi Değildir · Tüm Hakları Emre Pelit’e Aittir)',
     privacy: 'Gizlilik',
+    terms: 'Kullanım Koşulları',
+    imprint: 'Künye',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Sorumluluk Reddi',
     methodology: 'YZ & Telemetri Metodolojisi',
     searchPlaceholderPrefix: '⌘K Hızlı Arama',
+    network301FooterLabel: 'Tek Kanonik Merkez & Canlı Ağı (2 Canlı Site + 8 Emekli 301):',
+    cookiePrefsLabel: 'Çerez & KVKK Tercihleri',
+    consentActive: 'Açık Rıza Aktif',
+    consentRejected: 'Reddedildi',
+    consentPending: 'Bekliyor',
+    langDirsLabel: 'Dil Dizinleri (12 Dil):',
+    fullArchiveLabel: 'Tam Arşiv',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `2 Canlı Web Sitesi (Ana Hub + Blogger) & 8 Emekli 301 Kaydı (${active}/${total} Düğüm Mutabakatı)`,
+    publishedOn10SitesDesc:
+      'Bu makale canlı Ana Hub (emrepelit-sciphi.ai.studio) ve canlı Blogger kaynağı (emrepelit7337.blogspot.com) üzerinde yayındadır; 8 eski alan adı HTTP 301 ile tek merkeze yönlendirilmiştir:',
+    publicationUrlLabel: 'Yayın URL:',
+    canonicalCounterpartBtn: 'Ana Hub Karşılığı ↗',
+    mainAuthorityCenterLabel: 'Ana Otorite Merkezi & Kanonik Bağlantı:',
+    liveMainHubBadge: '✓ CANLI ANA HUB · HTTP 200 (%100 OTORİTE)',
+    liveRedirectBadge: 'YAYINDAN KALDIRILDI (HTTP 301 → ANA HUB)',
   },
   en: {
     analyticsShort: 'Analytics',
@@ -137,10 +179,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Sci-Phil Science, Philosophy & Simulation Archive (Independent Author Archive · Not a Peer-Reviewed Journal · Sole Copyright: Emre Pelit)',
     privacy: 'Privacy',
+    terms: 'Terms of Use',
+    imprint: 'Imprint',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Disclaimer',
     methodology: 'AI & Telemetry Methodology',
     searchPlaceholderPrefix: '⌘K Quick Search',
+    network301FooterLabel: 'Permanent 301 & Canonical Network (10 Official Nodes):',
+    cookiePrefsLabel: 'Cookie & KVKK Preferences',
+    consentActive: 'Consent Active',
+    consentRejected: 'Declined',
+    consentPending: 'Pending',
+    langDirsLabel: 'Language Directories:',
+    fullArchiveLabel: 'Full Archive',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `All 10 Official 301 Network Publication & Canonical Records (${active}/${total} Live)`,
+    publishedOn10SitesDesc:
+      'All 10 official 301/canonical network nodes carrying this essay (100% authority consolidates solely on emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'Published URL:',
+    canonicalCounterpartBtn: 'Main Hub Canonical ↗',
+    mainAuthorityCenterLabel: 'Main Authority & Canonical Center:',
+    liveMainHubBadge: '✓ LIVE (100% MAIN HUB)',
+    liveRedirectBadge: '✓ LIVE (301 → MAIN HUB)',
   },
   es: {
     analyticsShort: 'Analítica',
@@ -158,10 +218,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Archivo Sci-Phil de Ciencia, Filosofía y Simulación (Archivo Independiente · No es Revista Arbitrada)',
     privacy: 'Privacidad',
+    terms: 'Términos de Uso',
+    imprint: 'Aviso Legal',
     kvkk: 'KVKK (6698)',
-    disclaimer: 'Aviso Legal',
+    disclaimer: 'Exención Legal',
     methodology: 'Metodología IA y Telemetría',
     searchPlaceholderPrefix: '⌘K Búsqueda',
+    network301FooterLabel: 'Red Permanente 301 y Canónica (10 Nodos Oficiales):',
+    cookiePrefsLabel: 'Preferencias de Cookies y KVKK',
+    consentActive: 'Consentimiento Activo',
+    consentRejected: 'Rechazado',
+    consentPending: 'Pendiente',
+    langDirsLabel: 'Directorios de Idioma:',
+    fullArchiveLabel: 'Archivo Completo',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `Registros Canónicos de los 10 Sitios Oficiales 301 (${active}/${total} en Vivo)`,
+    publishedOn10SitesDesc:
+      'Los 10 sitios web oficiales de la red 301 que distribuyen este ensayo (la autoridad canónica se consolida al 100% en emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'URL de Publicación:',
+    canonicalCounterpartBtn: 'Enlace al Hub Principal ↗',
+    mainAuthorityCenterLabel: 'Centro Canónico Principal:',
+    liveMainHubBadge: '✓ EN VIVO (100% HUB PRINCIPAL)',
+    liveRedirectBadge: '✓ EN VIVO (301 → HUB)',
   },
   de: {
     analyticsShort: 'Analytik',
@@ -179,10 +257,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Sci-Phil Wissenschafts-, Philosophie- & Simulationsarchiv (Unabhängiges Autorenarchiv · Keine Peer-Review-Zeitschrift)',
     privacy: 'Datenschutz',
+    terms: 'Nutzungsbedingungen',
+    imprint: 'Impressum',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Haftungsausschluss',
     methodology: 'KI- & Telemetrie-Methodik',
     searchPlaceholderPrefix: '⌘K Schnellsuche',
+    network301FooterLabel: 'Permanentes 301- & Kanonisches Netzwerk (10 Knoten):',
+    cookiePrefsLabel: 'Cookie- & KVKK-Einstellungen',
+    consentActive: 'Einwilligung Aktiv',
+    consentRejected: 'Abgelehnt',
+    consentPending: 'Ausstehend',
+    langDirsLabel: 'Sprachverzeichnisse:',
+    fullArchiveLabel: 'Gesamtarchiv',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `Kanonische Register aller 10 Offiziellen 301-Websites (${active}/${total} Aktiv)`,
+    publishedOn10SitesDesc:
+      'Alle 10 offiziellen 301-Netzwerk-Knoten dieses Essays (100 % Autorität bündelt sich auf emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'Publikations-URL:',
+    canonicalCounterpartBtn: 'Zum Haupt-Hub ↗',
+    mainAuthorityCenterLabel: 'Kanonisches Hauptzentrum:',
+    liveMainHubBadge: '✓ LIVE (100 % HAUPT-HUB)',
+    liveRedirectBadge: '✓ LIVE (301 → HAUPT-HUB)',
   },
   fr: {
     analyticsShort: 'Analytique',
@@ -200,10 +296,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Archive Sci-Phil de Science, Philosophie et Simulation (Archive Indépendante · Sans Comité de Lecture)',
     privacy: 'Confidentialité',
+    terms: 'Conditions d’Utilisation',
+    imprint: 'Mentions Légales',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Avertissement',
     methodology: 'Méthodologie IA & Télémétrie',
     searchPlaceholderPrefix: '⌘K Recherche',
+    network301FooterLabel: 'Réseau Permanent 301 & Canonique (10 Nœuds Officiels) :',
+    cookiePrefsLabel: 'Préférences Cookies & KVKK',
+    consentActive: 'Consentement Actif',
+    consentRejected: 'Refusé',
+    consentPending: 'En attente',
+    langDirsLabel: 'Répertoires Linguistiques :',
+    fullArchiveLabel: 'Archive Complète',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `Registres Canoniques des 10 Sites Officiels 301 (${active}/${total} En Ligne)`,
+    publishedOn10SitesDesc:
+      'Les 10 sites officiels du réseau 301 diffusant cet essai (100 % de l’autorité est consolidée sur emrepelit-sciphi.ai.studio) :',
+    publicationUrlLabel: 'URL de Publication :',
+    canonicalCounterpartBtn: 'Version Hub Principal ↗',
+    mainAuthorityCenterLabel: 'Centre d’Autorité Canonique :',
+    liveMainHubBadge: '✓ EN LIGNE (100 % HUB PRINCIPAL)',
+    liveRedirectBadge: '✓ EN LIGNE (301 → HUB)',
   },
   ru: {
     analyticsShort: 'Аналитика',
@@ -221,10 +335,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Архив науки, философии и симуляций Sci-Phil (Независимый авторский архив · Не рецензируемый журнал)',
     privacy: 'Конфиденциальность',
+    terms: 'Условия использования',
+    imprint: 'Выходные данные',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Отказ от ответственности',
     methodology: 'Методология ИИ и телеметрии',
     searchPlaceholderPrefix: '⌘K Поиск',
+    network301FooterLabel: 'Постоянная сеть 301 и канонических узлов (10 сайтов):',
+    cookiePrefsLabel: 'Настройки Cookie и KVKK',
+    consentActive: 'Согласие активно',
+    consentRejected: 'Отклонено',
+    consentPending: 'Ожидание',
+    langDirsLabel: 'Языковые каталоги:',
+    fullArchiveLabel: 'Полный архив',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `Канонические записи на 10 официальных сайтах сети 301 (${active}/${total})`,
+    publishedOn10SitesDesc:
+      'Все 10 официальных сайтов сети 301, публикующих данную статью (100% авторитета объединяется на emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'URL публикации:',
+    canonicalCounterpartBtn: 'На главный хаб ↗',
+    mainAuthorityCenterLabel: 'Главный канонический центр:',
+    liveMainHubBadge: '✓ АКТИВЕН (100% ГЛАВНЫЙ ХАБ)',
+    liveRedirectBadge: '✓ АКТИВЕН (301 → ХАБ)',
   },
   ar: {
     analyticsShort: 'التحليلات',
@@ -242,10 +374,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'إمره بيليت — أرشيف Sci-Phil للعلوم والفلسفة والمحاكاة (أرشيف مؤلف مستقل · ليس مجلة محكّمة)',
     privacy: 'الخصوصية',
+    terms: 'شروط الاستخدام',
+    imprint: 'بيانات النشر',
     kvkk: 'KVKK (6698)',
     disclaimer: 'إخلاء المسؤولية',
     methodology: 'منهجية الذكاء الاصطناعي والقياس',
     searchPlaceholderPrefix: '⌘K بحث سريع',
+    network301FooterLabel: 'شبكة 301 الدائمة والروابط الأساسية (10 مواقع رسمية):',
+    cookiePrefsLabel: 'تفضيلات ملفات الارتباط و KVKK',
+    consentActive: 'الموافقة مفعّلة',
+    consentRejected: 'مرفوض',
+    consentPending: 'قيد الانتظار',
+    langDirsLabel: 'أدلة اللغات:',
+    fullArchiveLabel: 'الأرشيف الكامل',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `سجلات النشر على المواقع الرسمية الـ 10 (${active}/${total} متاح)`,
+    publishedOn10SitesDesc:
+      'المواقع الرسمية الـ 10 المتصلة بشبكة 301 لهذا المقال (تتجمع 100% من السلطة الأساسية في emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'رابط النشر:',
+    canonicalCounterpartBtn: 'المركز الرئيسي ↗',
+    mainAuthorityCenterLabel: 'المركز الأساسي للسلطة العلمية:',
+    liveMainHubBadge: '✓ متاح (المركز الرئيسي 100%)',
+    liveRedirectBadge: '✓ متاح (301 → المركز)',
   },
   zh: {
     analyticsShort: '分析',
@@ -263,10 +413,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Sci-Phil 科学、哲学与模拟档案库（独立作者档案 · 非同行评审期刊）',
     privacy: '隐私政策',
+    terms: '使用条款',
+    imprint: '版权与出版声明',
     kvkk: 'KVKK (6698)',
     disclaimer: '科学免责声明',
     methodology: 'AI 与遥测方法论',
     searchPlaceholderPrefix: '⌘K 快速搜索',
+    network301FooterLabel: '永久 301 与规范网络（10 个官方节点）：',
+    cookiePrefsLabel: 'Cookie 与 KVKK 偏好设置',
+    consentActive: '已同意',
+    consentRejected: '已拒绝',
+    consentPending: '待定',
+    langDirsLabel: '语言目录：',
+    fullArchiveLabel: '完整档案',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `全部 10 个官方 301 网站发布与规范记录 (${active}/${total})`,
+    publishedOn10SitesDesc:
+      '收录本文的 10 个官方 301 网络站点（100% 规范权重归集于 emrepelit-sciphi.ai.studio）：',
+    publicationUrlLabel: '发布网址：',
+    canonicalCounterpartBtn: '打开主枢纽 ↗',
+    mainAuthorityCenterLabel: '规范权威中心：',
+    liveMainHubBadge: '✓ 在线 (100% 主枢纽)',
+    liveRedirectBadge: '✓ 在线 (301 → 主枢纽)',
   },
   ja: {
     analyticsShort: '分析',
@@ -284,10 +452,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Sci-Phil 科学・哲学・シミュレーションアーカイブ（独立著者アーカイブ・査読誌ではありません）',
     privacy: 'プライバシー',
+    terms: '利用規約',
+    imprint: '運営者情報',
     kvkk: 'KVKK (6698)',
     disclaimer: '免責事項',
     methodology: 'AI・計測手法',
     searchPlaceholderPrefix: '⌘K 検索',
+    network301FooterLabel: '恒久301＆正規ネットワーク（公式10ノード）：',
+    cookiePrefsLabel: 'Cookie＆KVKK設定',
+    consentActive: '同意有効',
+    consentRejected: '拒否',
+    consentPending: '保留中',
+    langDirsLabel: '言語ディレクトリ:',
+    fullArchiveLabel: '全アーカイブ',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `公式301ネットワーク全10サイトの公開・正規記録 (${active}/${total})`,
+    publishedOn10SitesDesc:
+      '本論文を公開している公式10サイト一覧（正規評価の100%は emrepelit-sciphi.ai.studio に集約されます）：',
+    publicationUrlLabel: '公開URL:',
+    canonicalCounterpartBtn: 'メインハブを開く ↗',
+    mainAuthorityCenterLabel: '正規オーソリティ中心:',
+    liveMainHubBadge: '✓ 公開中 (100% メインハブ)',
+    liveRedirectBadge: '✓ 公開中 (301 → ハブ)',
   },
   pt: {
     analyticsShort: 'Analítica',
@@ -305,10 +491,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Arquivo Sci-Phil de Ciência, Filosofia e Simulação (Arquivo Independente · Não é Periódico Arbitrado)',
     privacy: 'Privacidade',
+    terms: 'Termos de Uso',
+    imprint: 'Expediente / Imprint',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Aviso Científico',
     methodology: 'Metodologia IA e Telemetria',
     searchPlaceholderPrefix: '⌘K Busca Rápida',
+    network301FooterLabel: 'Rede Permanente 301 e Canônica (10 Nós Oficiais):',
+    cookiePrefsLabel: 'Preferências de Cookies e KVKK',
+    consentActive: 'Consentimento Ativo',
+    consentRejected: 'Recusado',
+    consentPending: 'Pendente',
+    langDirsLabel: 'Diretórios de Idioma:',
+    fullArchiveLabel: 'Arquivo Completo',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `Registros Canônicos nos 10 Sites Oficiais 301 (${active}/${total} Ativos)`,
+    publishedOn10SitesDesc:
+      'Os 10 sites oficiais da rede 301 onde este ensaio é publicado (100% da autoridade consolida-se em emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'URL Publicada:',
+    canonicalCounterpartBtn: 'Abrir no Hub Principal ↗',
+    mainAuthorityCenterLabel: 'Centro de Autoridade Canônica:',
+    liveMainHubBadge: '✓ ATIVO (100% HUB PRINCIPAL)',
+    liveRedirectBadge: '✓ ATIVO (301 → HUB)',
   },
   it: {
     analyticsShort: 'Analisi',
@@ -326,10 +530,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Archivio Sci-Phil di Scienza, Filosofia e Simulazione (Archivio Indipendente · Non è Rivista Peer-Reviewed)',
     privacy: 'Privacy',
+    terms: 'Termini di Utilizzo',
+    imprint: 'Note Legali / Imprint',
     kvkk: 'KVKK (6698)',
     disclaimer: 'Disclaimer',
     methodology: 'Metodologia IA e Telemetria',
     searchPlaceholderPrefix: '⌘K Ricerca Rapida',
+    network301FooterLabel: 'Rete Permanente 301 e Canonica (10 Nodi Ufficiali):',
+    cookiePrefsLabel: 'Preferenze Cookie e KVKK',
+    consentActive: 'Consenso Attivo',
+    consentRejected: 'Rifiutato',
+    consentPending: 'In attesa',
+    langDirsLabel: 'Directory Linguistiche:',
+    fullArchiveLabel: 'Archivio Completo',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `Registri Canonici sui 10 Siti Ufficiali 301 (${active}/${total} Attivi)`,
+    publishedOn10SitesDesc:
+      'Tutti i 10 siti ufficiali della rete 301 che ospitano questo saggio (100% dell’autorità converge su emrepelit-sciphi.ai.studio):',
+    publicationUrlLabel: 'URL Pubblicazione:',
+    canonicalCounterpartBtn: 'Apri su Hub Principale ↗',
+    mainAuthorityCenterLabel: 'Centro Canonico Principale:',
+    liveMainHubBadge: '✓ ATTIVO (100% HUB PRINCIPALE)',
+    liveRedirectBadge: '✓ ATTIVO (301 → HUB)',
   },
   ko: {
     analyticsShort: '분석',
@@ -347,10 +569,28 @@ const APP_CHROME_I18N: Record<
     footerArchiveTitle:
       'Emre Pelit — Sci-Phil 과학·철학·시뮬레이션 아카이브 (독립 저자 아카이브 · 동료 심사 학술지 아님)',
     privacy: '개인정보',
+    terms: '이용약관',
+    imprint: '법적 고지 (Imprint)',
     kvkk: 'KVKK (6698)',
     disclaimer: '면책 조항',
     methodology: 'AI·측정 방법론',
     searchPlaceholderPrefix: '⌘K 빠른 검색',
+    network301FooterLabel: '영구 301 및 정규 네트워크 (공식 10개 사이트):',
+    cookiePrefsLabel: '쿠키 및 KVKK 설정',
+    consentActive: '동의 활성',
+    consentRejected: '거부됨',
+    consentPending: '대기 중',
+    langDirsLabel: '언어 디렉터리:',
+    fullArchiveLabel: '전체 아카이브',
+    publishedOn10SitesHeading: (active: number, total: number) =>
+      `공식 301 네트워크 10개 사이트 게시 및 정규 기록 (${active}/${total})`,
+    publishedOn10SitesDesc:
+      '본 논문이 게시된 공식 10개 301 네트워크 사이트 (정규 권위 100%는 emrepelit-sciphi.ai.studio 로 통합됩니다):',
+    publicationUrlLabel: '게시 URL:',
+    canonicalCounterpartBtn: '메인 허브로 이동 ↗',
+    mainAuthorityCenterLabel: '정규 권위 중심지:',
+    liveMainHubBadge: '✓ 게시됨 (100% 메인 허브)',
+    liveRedirectBadge: '✓ 게시됨 (301 → 메인 허브)',
   },
 };
 
@@ -415,8 +655,7 @@ function buildSemanticArticleSlug(title: string, articleId: string, postNum?: nu
   return cleanId ? `${normalized}-${cleanId}` : normalized;
 }
 
-const NATIVE_CORPUS_LANGS: LanguageCode[] = ['tr', 'en', 'es', 'de', 'fr'];
-const UNTRANSLATED_PREVIEW_LANGS: LanguageCode[] = ['ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko'];
+const CANONICAL_12_LANGS: LanguageCode[] = WORLD_LANGUAGES.map((wl) => wl.code);
 
 function findArticleIndexByLookup(articlesList: Article[], rawLookup: string | null | undefined): number {
   if (!rawLookup || articlesList.length === 0) return -1;
@@ -501,8 +740,21 @@ export default function App() {
     })
   );
   const workClustersData = useMemo(() => buildArticleWorkClusters(articles), [articles]);
-  const distinctWorksCount = workClustersData.distinctWorkCount;
-  const corpusArticlesCount = Math.max(316, articles.length);
+  const corpusMetrics = useMemo(() => computeCorpusCountMetrics(articles), [articles]);
+  const distinctWorksCount = corpusMetrics.distinctOriginalCount;
+  const corpusArticlesCount = corpusMetrics.multilingualTextsCount;
+  const totalDirectoryCount = corpusMetrics.totalDirectoryCount;
+  type WorkspaceTab = 'corpus' | 'simulators' | 'stats' | 'automation' | 'apps';
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(() => {
+    if (typeof window !== 'undefined') {
+      const qTab = (new URLSearchParams(window.location.search).get('tab') || '').toLowerCase();
+      if (qTab === 'simulators') return 'simulators';
+      if (qTab === 'stats' || qTab === 'analytics') return 'stats';
+      if (qTab === 'automation' || qTab === 'ai-studio') return 'automation';
+      if (qTab === 'apps') return 'apps';
+    }
+    return 'corpus';
+  });
   const [showAllLanguagesCorpus, setShowAllLanguagesCorpus] = useState<boolean>(false);
   const [kvkkConsent, setKvkkConsent] = useState<KvkkConsentState>(() => {
     if (typeof window !== 'undefined') {
@@ -756,7 +1008,7 @@ export default function App() {
     lastSyncedAt: '2026-11-14 21:40 UTC',
     liveCount: 316,
     totalBloggerCount: 316,
-    blogTitle: 'Portal de Ciencia y Filosofía • Emre Pelit - Sci-Phil',
+    blogTitle: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi',
     latestDetectedTitle:
       'The Conventional Monotony of Human Comprehension, the Silicon-Based Equivalent of Biological Processes, and the Incomprehensibility of Human Beings',
     newPostAlert: null,
@@ -814,10 +1066,12 @@ export default function App() {
       const parts = window.location.pathname.toLowerCase().split('/').filter(Boolean);
       const sec = new URLSearchParams(window.location.search).get('section')?.toLowerCase() || '';
       const candidate = parts.find((p) =>
-        ['privacy', 'kvkk', 'disclaimer', 'methodology'].includes(p)
+        ['privacy', 'terms', 'imprint', 'kvkk', 'disclaimer', 'methodology'].includes(p)
       ) || sec;
       if (
         candidate === 'privacy' ||
+        candidate === 'terms' ||
+        candidate === 'imprint' ||
         candidate === 'kvkk' ||
         candidate === 'disclaimer' ||
         candidate === 'methodology'
@@ -832,9 +1086,9 @@ export default function App() {
       const parts = window.location.pathname.toLowerCase().split('/').filter(Boolean);
       const sec = new URLSearchParams(window.location.search).get('section')?.toLowerCase() || '';
       const candidate = parts.find((p) =>
-        ['privacy', 'kvkk', 'disclaimer', 'methodology'].includes(p)
+        ['privacy', 'terms', 'imprint', 'kvkk', 'disclaimer', 'methodology'].includes(p)
       ) || sec;
-      return ['privacy', 'kvkk', 'disclaimer', 'methodology'].includes(candidate);
+      return ['privacy', 'terms', 'imprint', 'kvkk', 'disclaimer', 'methodology'].includes(candidate);
     }
     return false;
   });
@@ -949,7 +1203,9 @@ export default function App() {
         : 'https://emrepelit-sciphi.ai.studio';
       const params = new URLSearchParams(window.location.search);
       const urlArticleId = params.get('article');
-      const urlSection = params.get('section') || params.get('tab');
+      const urlSectionParam = params.get('section')?.trim();
+      const urlTabParam = params.get('tab')?.trim();
+      const urlSection = urlSectionParam || urlTabParam;
       const pathParts = window.location.pathname.split('/').filter(Boolean);
       let pathSlug: string | null = null;
       if (
@@ -968,7 +1224,8 @@ export default function App() {
       const matchedIdx = targetLookup ? findArticleIndexByLookup(articles, targetLookup) : -1;
       const matchedArticle = matchedIdx >= 0 ? articles[matchedIdx] : null;
       const effectiveArticleLang: LanguageCode = matchedArticle
-        ? matchedArticle.sourceLang ||
+        ? language ||
+          matchedArticle.sourceLang ||
           detectEntrySourceLanguage(
             getLocalizedText(matchedArticle.title, 'tr'),
             getLocalizedText(matchedArticle.abstract, 'tr')
@@ -977,10 +1234,14 @@ export default function App() {
       const effectiveLangMeta = getLanguageMeta(effectiveArticleLang);
       document.documentElement.lang = effectiveArticleLang;
       document.documentElement.dir = effectiveLangMeta.dir;
+      const ogLocaleMeta = document.querySelector('meta[property="og:locale"]');
+      if (ogLocaleMeta) {
+        ogLocaleMeta.setAttribute('content', effectiveLangMeta.bcp47.replace('-', '_'));
+      }
 
       const baseTitle = 'Emre Pelit Sci-Phil — Bilim, Felsefe ve Simülasyon';
       const baseDesc =
-        `Emre Pelit'in ${corpusArticlesCount} özgün bilim ve felsefe makalesi, önceki bilimsel araştırmalar, interaktif fizik simülasyonları ve çok dilli sesli arşivini keşfedin.`;
+        `Emre Pelit'in ${corpusArticlesCount} özgün bilim ve felsefe makalesi, her makaleye özel 60 sn HTML5 açıklayıcı videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonlarını keşfedin.`;
 
       const dynamicTitle = matchedArticle
         ? `${getLocalizedText(matchedArticle.title, effectiveArticleLang)} — Emre Pelit Sci-Phil (${effectiveLangMeta.shortLabel})`
@@ -991,10 +1252,10 @@ export default function App() {
         : `${t.hero.title} — Emre Pelit Sci-Phil (${currentLangMeta.nativeName})`;
 
       const dynamicDesc = matchedArticle
-        ? `${getLocalizedText(matchedArticle.abstract, effectiveArticleLang).slice(0, 155)}...`
+        ? `${getLocalizedText(matchedArticle.abstract, effectiveArticleLang).slice(0, 130)} — HTML5 Video (60s) & Çoktan Seçmeli Test`
         : language === 'tr'
         ? baseDesc
-        : `${t.hero.subtitle} (${distinctWorksCount} Distinct Works · ${corpusArticlesCount} Multilingual Texts)`;
+        : `${t.hero.subtitle} (${distinctWorksCount} Distinct Works · 60s HTML5 Videos · Multiple-Choice Quizzes · ${corpusArticlesCount} Multilingual Texts)`;
 
       document.title = dynamicTitle;
 
@@ -1011,11 +1272,9 @@ export default function App() {
       const ogTypeMeta = document.querySelector('meta[property="og:type"]');
       if (ogTypeMeta) ogTypeMeta.setAttribute('content', matchedArticle ? 'article' : 'website');
 
-      // Emit noindex, follow on non-article routes for untranslated preview languages or internal ?q= search pages
+      // All 12 languages are canonical and indexable HTTP 200 OK; only ?q= internal search pages emit noindex, follow
       const isSearchQueryView = !matchedArticle && Boolean(params.get('q')?.trim() || searchQuery.trim());
-      const isUntranslatedNonArticle =
-        (!matchedArticle && UNTRANSLATED_PREVIEW_LANGS.includes(language)) || isSearchQueryView;
-      const robotsDirective = isUntranslatedNonArticle
+      const robotsDirective = isSearchQueryView
         ? 'noindex, follow'
         : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
       (['robots', 'googlebot', 'bingbot'] as const).forEach((metaName) => {
@@ -1029,12 +1288,17 @@ export default function App() {
       });
 
       const isArchivePage = pathParts[0] === 'archive' || pathParts[1] === 'archive';
+      const canonicalQuerySuffix = urlSectionParam
+        ? `?section=${encodeURIComponent(urlSectionParam)}`
+        : urlTabParam
+        ? `?tab=${encodeURIComponent(urlTabParam)}`
+        : '';
       const canonicalHref = matchedArticle
         ? `${CANONICAL_ORIGIN}${getLocalizedArticlePath(effectiveArticleLang, matchedArticle.slug)}`
         : isArchivePage
         ? `${CANONICAL_ORIGIN}/${language}/archive`
-        : urlSection
-        ? `${CANONICAL_ORIGIN}/${language === 'tr' ? '' : `${language}/`}?section=${encodeURIComponent(urlSection)}`
+        : canonicalQuerySuffix
+        ? `${CANONICAL_ORIGIN}/${language === 'tr' ? '' : `${language}/`}${canonicalQuerySuffix}`
         : language === 'tr'
         ? `${CANONICAL_ORIGIN}/`
         : `${CANONICAL_ORIGIN}/${language}/`;
@@ -1052,9 +1316,7 @@ export default function App() {
         oembedEl.setAttribute('href', `${CANONICAL_ORIGIN}/oembed.json?url=${encodeURIComponent(canonicalHref)}`);
       }
 
-      // Dynamically synchronize reciprocal hreflang alternate links:
-      // For article pages, emit ONLY real translated sibling URLs in the article's work cluster + x-default.
-      // For Home/Archive/Section pages, emit ONLY native corpus languages (tr, en, es, de, fr) + x-default.
+      // Dynamically synchronize reciprocal hreflang alternate links across all 12 world languages + x-default
       document
         .querySelectorAll('link[rel="alternate"][hreflang]')
         .forEach((el) => el.parentNode?.removeChild(el));
@@ -1069,40 +1331,33 @@ export default function App() {
 
       if (matchedArticle) {
         const cluster = workClustersData.clusterByArticleId[matchedArticle.id];
-        if (cluster) {
-          (Object.entries(cluster.byLang) as [LanguageCode, Article | undefined][]).forEach(
-            ([sibLang, sibArt]) => {
-              if (!sibArt) return;
-              appendHreflangLink(
-                sibLang,
-                `${CANONICAL_ORIGIN}${getLocalizedArticlePath(sibLang, sibArt.slug)}`
-              );
-            }
-          );
-          const xDefArticle =
-            cluster.byLang.tr || cluster.byLang.en || cluster.articles[0] || matchedArticle;
-          const xDefLang =
-            xDefArticle.sourceLang ||
-            detectEntrySourceLanguage(
-              getLocalizedText(xDefArticle.title, 'tr'),
-              getLocalizedText(xDefArticle.abstract, 'tr')
-            );
+        WORLD_LANGUAGES.forEach((wl) => {
+          const sibArt = cluster?.byLang?.[wl.code] || matchedArticle;
           appendHreflangLink(
-            'x-default',
-            `${CANONICAL_ORIGIN}${getLocalizedArticlePath(xDefLang, xDefArticle.slug)}`
+            wl.code,
+            `${CANONICAL_ORIGIN}${getLocalizedArticlePath(wl.code, sibArt.slug)}`
           );
-        } else {
-          appendHreflangLink(effectiveArticleLang, canonicalHref);
-          appendHreflangLink('x-default', canonicalHref);
-        }
+        });
+        const xDefArticle =
+          cluster?.byLang?.tr || cluster?.byLang?.en || matchedArticle;
+        const xDefLang =
+          xDefArticle.sourceLang ||
+          detectEntrySourceLanguage(
+            getLocalizedText(xDefArticle.title, 'tr'),
+            getLocalizedText(xDefArticle.abstract, 'tr')
+          );
+        appendHreflangLink(
+          'x-default',
+          `${CANONICAL_ORIGIN}${getLocalizedArticlePath(xDefLang, xDefArticle.slug)}`
+        );
       } else {
-        NATIVE_CORPUS_LANGS.forEach((langCode) => {
+        CANONICAL_12_LANGS.forEach((langCode) => {
           appendHreflangLink(
             langCode,
             isArchivePage
               ? `${CANONICAL_ORIGIN}/${langCode}/archive`
-              : urlSection
-              ? `${CANONICAL_ORIGIN}/${langCode === 'tr' ? '' : `${langCode}/`}?section=${encodeURIComponent(urlSection)}`
+              : canonicalQuerySuffix
+              ? `${CANONICAL_ORIGIN}/${langCode === 'tr' ? '' : `${langCode}/`}${canonicalQuerySuffix}`
               : langCode === 'tr'
               ? `${CANONICAL_ORIGIN}/`
               : `${CANONICAL_ORIGIN}/${langCode}/`
@@ -1112,8 +1367,8 @@ export default function App() {
           'x-default',
           isArchivePage
             ? `${CANONICAL_ORIGIN}/archive`
-            : urlSection
-            ? `${CANONICAL_ORIGIN}/?section=${encodeURIComponent(urlSection)}`
+            : canonicalQuerySuffix
+            ? `${CANONICAL_ORIGIN}/${canonicalQuerySuffix}`
             : `${CANONICAL_ORIGIN}/`
         );
       }
@@ -1173,6 +1428,19 @@ export default function App() {
         ghMeLink.href = 'https://github.com/emrepelit109';
         document.head.appendChild(ghMeLink);
       }
+      if (!document.querySelector('link[rel="me"][href="https://www.researchgate.net/profile/Emre-Pelit"]')) {
+        const rgMeLink = document.createElement('link');
+        rgMeLink.rel = 'me';
+        rgMeLink.href = 'https://www.researchgate.net/profile/Emre-Pelit';
+        document.head.appendChild(rgMeLink);
+      }
+      let rgMeta = document.querySelector('meta[name="researchgate:profile"]');
+      if (!rgMeta) {
+        rgMeta = document.createElement('meta');
+        rgMeta.setAttribute('name', 'researchgate:profile');
+        document.head.appendChild(rgMeta);
+      }
+      rgMeta.setAttribute('content', 'https://www.researchgate.net/profile/Emre-Pelit');
 
       // Inject dynamic BlogPosting ItemList JSON-LD for the top synced articles with clean semantic URLs
       let dynScript = document.getElementById('dynamic-scholarly-jsonld') as HTMLScriptElement | null;
@@ -1201,6 +1469,7 @@ export default function App() {
               url: 'https://emrepelit-sciphi.ai.studio/#emre-pelit',
               sameAs: [
                 'https://github.com/emrepelit109',
+                'https://www.researchgate.net/profile/Emre-Pelit',
                 'https://www.youtube.com/@science_only',
                 'https://www.linkedin.com/in/emrepelit109',
                 'https://x.com/emrepelit109',
@@ -1342,16 +1611,17 @@ export default function App() {
     const rawHash = window.location.hash.replace(/^#/, '');
     const pathParts = window.location.pathname.split('/').filter(Boolean);
 
-    const govRoutes = ['privacy', 'kvkk', 'disclaimer', 'methodology'] as const;
+    const govRoutes = ['privacy', 'terms', 'imprint', 'kvkk', 'disclaimer', 'methodology'] as const;
     const matchedDirectGov = pathParts.find((part) =>
       (govRoutes as readonly string[]).includes(part.toLowerCase())
-    )?.toLowerCase() as ('privacy' | 'kvkk' | 'disclaimer' | 'methodology') | undefined;
+    )?.toLowerCase() as GovernanceTab | undefined;
     const matchedQueryGov =
       targetSection && (govRoutes as readonly string[]).includes(targetSection.toLowerCase())
-        ? (targetSection.toLowerCase() as 'privacy' | 'kvkk' | 'disclaimer' | 'methodology')
+        ? (targetSection.toLowerCase() as GovernanceTab)
         : undefined;
     if (matchedDirectGov || matchedQueryGov) {
       setGovernanceTab(matchedDirectGov || matchedQueryGov!);
+      setGovernanceModalOpen(true);
       return;
     }
 
@@ -1364,19 +1634,29 @@ export default function App() {
     }
 
     if (targetTab === 'stats' || targetTab === 'analytics') {
+      setActiveTab('stats');
       setAnalyticsPanelOpen(true);
       return;
     }
     if (targetTab === 'automation' || targetTab === 'ai-studio') {
+      setActiveTab('automation');
       setTimeout(() => {
         document.getElementById('ai-studio')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
       return;
     }
     if (targetTab === 'simulators') {
+      setActiveTab('simulators');
+      const firstArtId = articles[0]?.id;
+      if (firstArtId) {
+        setExpandedArticleIds((prev) => ({ ...prev, [firstArtId]: true }));
+      }
       setTimeout(() => {
-        document.getElementById('corpus')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 120);
+        const simTarget = document.getElementById('featured-simulator-container');
+        if (simTarget) {
+          simTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 180);
       return;
     }
 
@@ -1408,18 +1688,28 @@ export default function App() {
             getLocalizedText(matched.title, 'tr'),
             getLocalizedText(matched.abstract, 'tr')
           );
+        const maybePathLang = (pathParts[0] || '').toLowerCase() as LanguageCode;
+        const explicitPathLang = WORLD_LANGUAGES.some((wl) => wl.code === maybePathLang)
+          ? maybePathLang
+          : null;
         if (!didSyncDeepLinkLangRef.current) {
           didSyncDeepLinkLangRef.current = true;
-          if (!explicitQueryLang && artLang !== language) {
+          if (!explicitQueryLang && !explicitPathLang && artLang !== language) {
             setLanguage(artLang);
           }
         }
+        const resolvedRouteLang =
+          (WORLD_LANGUAGES.some((wl) => wl.code === explicitQueryLang)
+            ? (explicitQueryLang as LanguageCode)
+            : null) ||
+          explicitPathLang ||
+          language ||
+          artLang;
         setExpandedArticleIds((prev) => ({ ...prev, [matched.id]: true }));
         setShowAllLanguagesCorpus(true);
         const pageNum = Math.floor(idx / articlesPerPage) + 1;
         setCurrentPage(pageNum);
-        // Consolidate legacy ?article=blogger-<ID> or mismatched language paths into true language-separated canonical URLs
-        const semanticPath = getLocalizedArticlePath(artLang, matched.slug);
+        const semanticPath = getLocalizedArticlePath(resolvedRouteLang, matched.slug);
         if (window.location.pathname !== semanticPath) {
           try {
             window.history.replaceState(null, '', semanticPath);
@@ -1604,6 +1894,11 @@ export default function App() {
         sourcePanel === 'EXPORT_CITATION' ||
         sourcePanel === 'NAVIGATION';
 
+      // Strict KVKK Law No. 6698 opt-in gate: do not mutate session analytics or hit backend telemetry endpoints until accepted
+      if (kvkkConsentRef.current.status !== 'accepted' || !kvkkConsentRef.current.analytics) {
+        return;
+      }
+
       // Strict guard: If no measured value changed AND not an explicit UI interaction, skip
       if (
         !hasExplicitInteraction &&
@@ -1663,11 +1958,17 @@ export default function App() {
         );
       }
 
+      const isMainHubTarget =
+        isAllSites || !LIVE_WEBSITES_SET.has(targetDomainOrAll);
       const computeNextNodes = (baseNodes: Network301Node[]) => {
         const safePrev = mergeMonotonicNetworkNodes(baseNodes);
         const updated = safePrev.map((node) => {
-          const shouldApply =
-            isAllSites || node.domain === targetDomainOrAll || node.id === targetDomainOrAll;
+          const isLiveNode =
+            LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
+          if (!isLiveNode) return node;
+          const shouldApply = isMainHubTarget
+            ? node.domain === 'emrepelit-sciphi.ai.studio'
+            : node.domain === targetDomainOrAll || node.id === targetDomainOrAll;
           if (!shouldApply) return node;
 
           const totalReadMins =
@@ -1707,7 +2008,7 @@ export default function App() {
 
       setNetworkNodes((prevNodes) => mergeMonotonicNetworkNodes(prevNodes, mergedUpdated));
 
-      // Keep analyticsMeasurements 100% synchronized with updated networkNodes
+      // Keep analyticsMeasurements 100% synchronized with updated networkNodes (retired 8 domains stay frozen)
       setAnalyticsMeasurements((prevMap) => {
         const nextMap = { ...prevMap };
         mergedUpdated.forEach((node) => {
@@ -1718,8 +2019,13 @@ export default function App() {
           const nodeAudioMins =
             node.stats.audioListenHours * 60 + node.stats.audioListenMinutes;
           const prevEntry = nextMap[domain];
+          const isLiveNode =
+            LIVE_WEBSITES_SET.has(domain) || Boolean(node.isLiveWebsite);
           const didChange =
-            isAllSites || domain === targetDomainOrAll || node.id === targetDomainOrAll;
+            isLiveNode &&
+            (isMainHubTarget
+              ? domain === 'emrepelit-sciphi.ai.studio'
+              : domain === targetDomainOrAll || node.id === targetDomainOrAll);
           nextMap[domain] = {
             domain,
             measuredReads: Math.max(node.stats.netReads, prevEntry?.measuredReads || 0),
@@ -1845,7 +2151,7 @@ export default function App() {
         cumulativeReadsAfter: nextCumulative.netReads,
       });
 
-      // Fire Live Sync Event (CustomEvent + BroadcastChannel) asynchronously after current call stack
+      // Fire Live Sync Event (CustomEvent + BroadcastChannel) AND Atomic Server Visit/Event Sync asynchronously
       if (typeof window !== 'undefined') {
         window.setTimeout(() => {
           try {
@@ -1871,6 +2177,36 @@ export default function App() {
             // Ignore BroadcastChannel error
           }
         }, 0);
+
+        // Atomic server-side increment ensures fresh browsers & concurrent visits NEVER lose increments to Math.max races
+        void fetch('/api/analytics/record-visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body: JSON.stringify({
+            targetDomain: isAllSites ? 'emrepelit-sciphi.ai.studio' : targetDomainOrAll,
+            targetArticleId: delta.targetArticleId,
+            viewsDelta: vDelta,
+            readsDelta: rDelta,
+            citationsDelta: cDelta,
+            readingMinutesDelta: rmDelta,
+            audioMinutesDelta: amDelta,
+            uniqueReadersDelta: uDelta,
+            simulatorRunsDelta: sDelta,
+            sourcePanel,
+            interactionCategory: inferredCategory,
+            metricSummary,
+          }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((serverData) => {
+            if (serverData && serverData.success) {
+              applyServerSnapshotRef.current?.(serverData, false);
+            }
+          })
+          .catch(() => {
+            // Monotonic localStorage & 15s cloud sync remain active as fallback
+          });
       }
     },
     []
@@ -2018,16 +2354,21 @@ export default function App() {
     };
   }, []);
 
-  // Automatically record each valid session/page entry in sync across 10-node & article analytics
+  // Automatically record session/page entry strictly AFTER visitor grants KVKK opt-in analytics consent
   useEffect(() => {
-    if (initialEntryRecordedRef.current || typeof window === 'undefined') {
+    if (
+      initialEntryRecordedRef.current ||
+      typeof window === 'undefined' ||
+      kvkkConsent.status !== 'accepted' ||
+      !kvkkConsent.analytics
+    ) {
       return;
     }
     initialEntryRecordedRef.current = true;
     const params = new URLSearchParams(window.location.search);
     const sourceParam = params.get('source') || '';
     const articleParam = params.get('article') || '';
-    const entryDomain = OFFICIAL_10_WEBSITES.includes(sourceParam as any)
+    const entryDomain = LIVE_WEBSITES_SET.has(sourceParam)
       ? sourceParam
       : 'emrepelit-sciphi.ai.studio';
     handleRecordAnalyticsMeasurement(
@@ -2044,9 +2385,9 @@ export default function App() {
         ? `Canlı Senkron: Yeni Görüntülenme & Makale Ziyareti (${entryDomain} · #${articleParam}): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur`
         : `Canlı Senkron: Yeni Platform Görüntülenmesi (${entryDomain}): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur`
     );
-  }, [handleRecordAnalyticsMeasurement]);
+  }, [kvkkConsent.status, kvkkConsent.analytics, handleRecordAnalyticsMeasurement]);
 
-  // Increment cumulative views & app interactions whenever Analytics Panel, Archive Directory, Page, or Language changes
+  // Increment cumulative views & app interactions strictly when KVKK analytics consent is active
   const didMountViewTrackerRef = useRef<boolean>(false);
   const prevTrackedLangRef = useRef<LanguageCode>(language);
   useEffect(() => {
@@ -2057,6 +2398,9 @@ export default function App() {
     }
     const isLangChange = prevTrackedLangRef.current !== language;
     prevTrackedLangRef.current = language;
+    if (kvkkConsentRef.current.status !== 'accepted' || !kvkkConsentRef.current.analytics) {
+      return;
+    }
     handleRecordAnalyticsMeasurement(
       'emrepelit-sciphi.ai.studio',
       {
@@ -2077,11 +2421,14 @@ export default function App() {
     handleRecordAnalyticsMeasurement,
   ]);
 
-  // Track category / domain filter interactions after initial mount
+  // Track category / domain filter interactions strictly when KVKK analytics consent is active
   const didMountFilterTrackerRef = useRef<boolean>(false);
   useEffect(() => {
     if (!didMountFilterTrackerRef.current) {
       didMountFilterTrackerRef.current = true;
+      return;
+    }
+    if (kvkkConsentRef.current.status !== 'accepted' || !kvkkConsentRef.current.analytics) {
       return;
     }
     handleRecordAnalyticsMeasurement(
@@ -2113,94 +2460,119 @@ export default function App() {
     [handleRecordAnalyticsMeasurement]
   );
 
-  // Reusable monotonic cloud state puller so server, analytics panel, and all tabs stay synchronized
-  const syncCloudAnalyticsState = useCallback(async (applyConfigAndArticles = false) => {
-    try {
-      const res = await fetch('/api/cloud/state');
-      if (!res.ok) return;
-      const data = await res.json();
+  const applyServerSnapshotRef = useRef<((data: any, applyConfigAndArticles?: boolean) => void) | null>(
+    null
+  );
+
+  const applyMonotonicServerAnalyticsSnapshot = useCallback(
+    (data: any, applyConfigAndArticles = false) => {
+      if (!data || typeof data !== 'object') return;
       if (applyConfigAndArticles && Array.isArray(data?.articles) && data.articles.length >= 316) {
         setArticles(data.articles as Article[]);
       }
+
+      if (typeof data?.syncSeq === 'number' && data.syncSeq > syncSeqRef.current) {
+        syncSeqRef.current = data.syncSeq;
+      } else if (typeof data?.syncSeqCounter === 'number' && data.syncSeqCounter > syncSeqRef.current) {
+        syncSeqRef.current = data.syncSeqCounter;
+      }
+
       const nextMergedNodes = mergeMonotonicNetworkNodes(
         INITIAL_301_NETWORK_NODES,
         networkNodesRef.current,
         data?.networkNodes
       );
       networkNodesRef.current = nextMergedNodes;
-      setNetworkNodes((prev) => mergeMonotonicNetworkNodes(INITIAL_301_NETWORK_NODES, prev, data?.networkNodes));
+      setNetworkNodes((prev) =>
+        mergeMonotonicNetworkNodes(INITIAL_301_NETWORK_NODES, prev, data?.networkNodes)
+      );
       const mergedNodeSums = computeCumulativeNetworkStats(nextMergedNodes);
 
-      if (data?.analyticsMeasurements && typeof data.analyticsMeasurements === 'object') {
-        setAnalyticsMeasurements((prev) => {
-          const merged = { ...prev };
-          OFFICIAL_10_WEBSITES.forEach((domain) => {
-            const cloudItem = data.analyticsMeasurements[domain];
-            const nodeItem = nextMergedNodes.find((n) => n.domain === domain);
-            const nodeViews = nodeItem?.stats?.totalViews || 0;
-            const nodeReadMins =
-              (nodeItem?.stats?.readingTimeHours || 0) * 60 + (nodeItem?.stats?.readingTimeMinutes || 0);
-            const nodeAudioMins =
-              (nodeItem?.stats?.audioListenHours || 0) * 60 + (nodeItem?.stats?.audioListenMinutes || 0);
-            const cur = merged[domain];
-            merged[domain] = {
-              domain,
-              measuredReads: Math.max(
-                nodeItem?.stats?.netReads || 0,
-                cur?.measuredReads || 0,
-                Number(cloudItem?.measuredReads) || 0
-              ),
-              measuredViews: Math.max(
-                nodeViews,
-                cur?.measuredViews || 0,
-                Number(cloudItem?.measuredViews) || 0
-              ),
-              measuredReadingMinutes: Math.max(
-                nodeReadMins,
-                cur?.measuredReadingMinutes || 0,
-                Number(cloudItem?.measuredReadingMinutes) || 0
-              ),
-              measuredAudioMinutes: Math.max(
-                nodeAudioMins,
-                cur?.measuredAudioMinutes || 0,
-                Number(cloudItem?.measuredAudioMinutes) || 0
-              ),
-              measuredUniqueReaders: Math.max(
-                nodeItem?.stats?.uniqueReaders || 0,
-                cur?.measuredUniqueReaders || 0,
-                Number(cloudItem?.measuredUniqueReaders) || 0
-              ),
-              measuredSimulatorRuns: Math.max(
-                nodeItem?.stats?.simulatorRuns || 0,
-                cur?.measuredSimulatorRuns || 0,
-                Number(cloudItem?.measuredSimulatorRuns) || 0
-              ),
-              lastMeasuredAt: String(cloudItem?.lastMeasuredAt || cur?.lastMeasuredAt || ''),
-            };
-          });
-          return merged;
+      setAnalyticsMeasurements((prev) => {
+        const merged = { ...prev };
+        OFFICIAL_10_WEBSITES.forEach((domain) => {
+          const cloudItem = data?.analyticsMeasurements?.[domain];
+          const nodeItem = nextMergedNodes.find((n) => n.domain === domain);
+          const nodeViews = nodeItem?.stats?.totalViews || 0;
+          const nodeReadMins =
+            (nodeItem?.stats?.readingTimeHours || 0) * 60 +
+            (nodeItem?.stats?.readingTimeMinutes || 0);
+          const nodeAudioMins =
+            (nodeItem?.stats?.audioListenHours || 0) * 60 +
+            (nodeItem?.stats?.audioListenMinutes || 0);
+          const cur = merged[domain];
+          merged[domain] = {
+            domain,
+            measuredReads: Math.max(
+              nodeItem?.stats?.netReads || 0,
+              cur?.measuredReads || 0,
+              Number(cloudItem?.measuredReads) || 0
+            ),
+            measuredViews: Math.max(
+              nodeViews,
+              cur?.measuredViews || 0,
+              Number(cloudItem?.measuredViews) || 0
+            ),
+            measuredReadingMinutes: Math.max(
+              nodeReadMins,
+              cur?.measuredReadingMinutes || 0,
+              Number(cloudItem?.measuredReadingMinutes) || 0
+            ),
+            measuredAudioMinutes: Math.max(
+              nodeAudioMins,
+              cur?.measuredAudioMinutes || 0,
+              Number(cloudItem?.measuredAudioMinutes) || 0
+            ),
+            measuredUniqueReaders: Math.max(
+              nodeItem?.stats?.uniqueReaders || 0,
+              cur?.measuredUniqueReaders || 0,
+              Number(cloudItem?.measuredUniqueReaders) || 0
+            ),
+            measuredSimulatorRuns: Math.max(
+              nodeItem?.stats?.simulatorRuns || 0,
+              cur?.measuredSimulatorRuns || 0,
+              Number(cloudItem?.measuredSimulatorRuns) || 0
+            ),
+            lastMeasuredAt: String(cloudItem?.lastMeasuredAt || cur?.lastMeasuredAt || ''),
+          };
         });
-      }
+        return merged;
+      });
 
-      setAppInteractionTotals((prev) =>
-        mergeMonotonicAppInteractionTotals(prev, data?.appInteractionTotals, {
+      setAppInteractionTotals((prev) => {
+        const merged = mergeMonotonicAppInteractionTotals(prev, data?.appInteractionTotals, {
           pageViews: mergedNodeSums.totalViews,
           articleReads: mergedNodeSums.netReads,
           simulationRuns: mergedNodeSums.simulatorRuns,
-        })
-      );
+        });
+        appInteractionTotalsRef.current = merged;
+        return merged;
+      });
 
-      if (Array.isArray(data?.appInteractionLog) && data.appInteractionLog.length > 0) {
+      const incomingLog = Array.isArray(data?.appInteractionLog)
+        ? data.appInteractionLog
+        : data?.event
+          ? [data.event]
+          : data?.payload
+            ? [data.payload]
+            : [];
+      if (incomingLog.length > 0) {
         setAnalyticsEventLog((prev) => {
           const seen = new Set<string>();
           const combined: AnalyticsMeasurementEvent[] = [];
-          for (const item of [...prev, ...data.appInteractionLog, ...INITIAL_HISTORICAL_INTERACTION_MILESTONES]) {
+          for (const item of [
+            ...incomingLog,
+            ...prev,
+            ...INITIAL_HISTORICAL_INTERACTION_MILESTONES,
+          ]) {
             if (item && typeof item.id === 'string' && !seen.has(item.id)) {
               seen.add(item.id);
               combined.push(item);
             }
           }
-          return combined.slice(0, 150);
+          const live = combined.filter((i) => !i.isHistoricalBaseline);
+          const hist = combined.filter((i) => i.isHistoricalBaseline);
+          return [...live.slice(0, 140), ...hist].slice(0, 180);
         });
       }
 
@@ -2226,14 +2598,47 @@ export default function App() {
         });
       }
 
+      const latestEv = data?.event || data?.payload || incomingLog[0];
+      if (latestEv && typeof latestEv === 'object') {
+        const nextSeqVal = Math.max(syncSeqRef.current, Number(latestEv.syncSeq || data?.syncSeq) || 1);
+        setLastStatsSyncEvent({
+          timestamp: String(latestEv.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC'),
+          targetDomain: String(latestEv.targetDomain || 'ALL_10_SITES'),
+          summary: String(latestEv.metricSummary || 'Canlı Sunucu Senkronizasyonu Tamamlandı'),
+          syncSeq: nextSeqVal,
+          viewsDelta: Number(latestEv.viewsDelta) || 0,
+          readsDelta: Number(latestEv.readsDelta) || 0,
+          cumulativeViewsAfter: mergedNodeSums.totalViews,
+          cumulativeReadsAfter: mergedNodeSums.netReads,
+        });
+      }
+
       if (applyConfigAndArticles) {
         if (data?.gatewayConfig) setGatewayConfig(data.gatewayConfig);
         if (data?.snapshots?.length) setSnapshots(data.snapshots);
       }
-    } catch {
-      // Proceed with monotonic dataset
-    }
-  }, []);
+    },
+    []
+  );
+
+  useEffect(() => {
+    applyServerSnapshotRef.current = applyMonotonicServerAnalyticsSnapshot;
+  }, [applyMonotonicServerAnalyticsSnapshot]);
+
+  // Reusable monotonic cloud state puller so server, analytics panel, and all tabs stay synchronized
+  const syncCloudAnalyticsState = useCallback(
+    async (applyConfigAndArticles = false) => {
+      try {
+        const res = await fetch('/api/cloud/state');
+        if (!res.ok) return;
+        const data = await res.json();
+        applyMonotonicServerAnalyticsSnapshot(data, applyConfigAndArticles);
+      } catch {
+        // Proceed with monotonic dataset
+      }
+    },
+    [applyMonotonicServerAnalyticsSnapshot]
+  );
 
   // Re-sync from server whenever the Analytics Panel opens so cross-session reads/views appear immediately
   useEffect(() => {
@@ -2242,19 +2647,22 @@ export default function App() {
     }
   }, [analyticsPanelOpen, syncCloudAnalyticsState]);
 
-  // Load persisted cloud state and run initial live Blogger sync (strictly monotonic — never resets or decreases)
+  const handleSyncBloggerRef = useRef<
+    ((scrollToArticles?: boolean, forceRefresh?: boolean, targetWebsiteDomain?: string) => Promise<void>) | null
+  >(null);
+
+  // Load persisted cloud state, open Server-Sent Events (/api/live/events), and run 15s live Blogger sync
   useEffect(() => {
     const initHub = async () => {
       await syncCloudAnalyticsState(true);
-      await handleSyncBlogger(false, false);
+      await handleSyncBloggerRef.current?.(false, false);
     };
-    initHub();
+    void initHub();
 
-    // Real-Time Auto-Sync Daemon + Anti-Cold-Start Keep-Alive Heartbeat (/api/health every 45s)
     const intervalId = window.setInterval(() => {
       void syncCloudAnalyticsState(false);
-      handleSyncBlogger(false, false);
-    }, 30000);
+      void handleSyncBloggerRef.current?.(false, false);
+    }, 15000);
 
     const keepAliveId = window.setInterval(() => {
       void fetch('/api/health').catch(() => {});
@@ -2262,16 +2670,58 @@ export default function App() {
 
     const handleWindowFocus = () => {
       void syncCloudAnalyticsState(false);
-      handleSyncBlogger(false, false);
+      void handleSyncBloggerRef.current?.(false, false);
+    };
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        void syncCloudAnalyticsState(false);
+      }
     };
     window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    let liveEvents: EventSource | null = null;
+    try {
+      if (typeof EventSource !== 'undefined') {
+        liveEvents = new EventSource('/api/live/events');
+        liveEvents.addEventListener('blogger-sync', () => {
+          void handleSyncBloggerRef.current?.(false, false);
+          void syncCloudAnalyticsState(false);
+        });
+        liveEvents.addEventListener('analytics-sync', (ev) => {
+          try {
+            const parsed = JSON.parse((ev as MessageEvent).data || '{}');
+            if (parsed && (parsed.networkNodes || parsed.appInteractionTotals)) {
+              applyMonotonicServerAnalyticsSnapshot(parsed, false);
+              if (parsed.payload) {
+                window.dispatchEvent(
+                  new CustomEvent('sciphil:live-analytics-sync', { detail: parsed.payload })
+                );
+              }
+              return;
+            }
+          } catch {
+            // fallback to full pull
+          }
+          void syncCloudAnalyticsState(false);
+        });
+      }
+    } catch {
+      // SSE connection optional; 15s polling remains active
+    }
 
     return () => {
       window.clearInterval(intervalId);
       window.clearInterval(keepAliveId);
       window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      try {
+        liveEvents?.close();
+      } catch {
+        // Ignore close error
+      }
     };
-  }, [syncCloudAnalyticsState]);
+  }, [syncCloudAnalyticsState, applyMonotonicServerAnalyticsSnapshot]);
 
   // Reset pagination to page 1 when filters or search change (preserve initial ?page=N on mount)
   useEffect(() => {
@@ -2341,6 +2791,17 @@ export default function App() {
       let liveEntries: any[] = data?.entries || [];
       if (liveEntries.length === 0) {
         try {
+          const jsonpData = await fetchBloggerFeedViaJsonp(gatewayConfig.bloggerBlogUrl);
+          if (Array.isArray(jsonpData?.entries) && jsonpData.entries.length > 0) {
+            liveEntries = jsonpData.entries;
+            data = jsonpData;
+          }
+        } catch {
+          // JSONP fallback blocked or unreachable; fall through to static snapshot
+        }
+      }
+      if (liveEntries.length === 0) {
+        try {
           const snapRes = await fetch('/data/corpus-snapshot.json');
           if (snapRes.ok) {
             const snapData = await snapRes.json();
@@ -2349,7 +2810,7 @@ export default function App() {
               data = {
                 entries: liveEntries,
                 totalResults: snapData.totalArticles || liveEntries.length,
-                blogTitle: 'Portal de Ciencia y Filosofía • Emre Pelit - Sci-Phil',
+                blogTitle: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi',
               };
             }
           }
@@ -2359,6 +2820,11 @@ export default function App() {
       }
 
       if (liveEntries.length > 0) {
+          try {
+            window.dispatchEvent(new CustomEvent('sciphil:live-sync-ok'));
+          } catch {
+            // Ignore CustomEvent issues
+          }
           let detectedNewTitle: string | null = null;
           const hadPreviousLoad = knownBloggerIdsRef.current.size > 0;
 
@@ -2413,17 +2879,17 @@ export default function App() {
                 readTimeMinutes: entry.readTimeMinutes || 7,
                 author: 'Emre Pelit',
                 affiliation:
-                  'Münhasır Eser Sahibi • emrepelit7337.blogspot.com & 10 Resmi 301 Web Sitesi',
+                  'Münhasır Eser Sahibi • emrepelit-sciphi.ai.studio (Tek Kanonik Ana Hub) & emrepelit7337.blogspot.com',
                 sourceOrigin: 'blogger-live',
                 bloggerUrl: entry.bloggerUrl,
                 canonicalHubUrl: `https://emrepelit-sciphi.ai.studio${localizedArticlePath}`,
                 publishedOnWebsites: OFFICIAL_10_WEBSITES,
                 figureNumber: figNum,
                 figureCaption: {
-                  tr: `Şekil (${figNum}) — Emre Pelit tarafından yazılan, emrepelit7337.blogspot.com (#${postNum}) üzerinden canlı senkronize edilen ve 10 resmi web sitesinin tamamında yayınlanan "${entry.title}" makalesinin görsel ve matematiksel model plakası.`,
-                  en: `Fig. (${figNum}) — Visual and mathematical model plate for "${entry.title}" (#${postNum}) authored exclusively by Emre Pelit and published across all 10 official websites.`,
-                  es: `Fig. (${figNum}) — Placa del modelo visual y matemático para "${entry.title}" (#${postNum}) escrita exclusivamente por Emre Pelit y publicada en los 10 sitios web oficiales.`,
-                  de: `Abb. (${figNum}) — Visuelle und mathematische Modelltafel für "${entry.title}" (#${postNum}), exklusiv verfasst von Emre Pelit und auf allen 10 offiziellen Websites veröffentlicht.`,
+                  tr: `Şekil (${figNum}) — Emre Pelit tarafından yazılan, emrepelit7337.blogspot.com (#${postNum}) üzerinden canlı senkronize edilen ve emrepelit-sciphi.ai.studio Tek Kanonik Ana Hub üzerinde 12 dilde yayınlanan "${entry.title}" makalesinin görsel ve matematiksel model plakası.`,
+                  en: `Fig. (${figNum}) — Visual and mathematical model plate for "${entry.title}" (#${postNum}) authored exclusively by Emre Pelit and published canonically on emrepelit-sciphi.ai.studio.`,
+                  es: `Fig. (${figNum}) — Placa del modelo visual y matemático para "${entry.title}" (#${postNum}) escrita exclusivamente por Emre Pelit y publicada canónicamente en emrepelit-sciphi.ai.studio.`,
+                  de: `Abb. (${figNum}) — Visuelle und mathematische Modelltafel für "${entry.title}" (#${postNum}), exklusiv verfasst von Emre Pelit und kanonisch auf emrepelit-sciphi.ai.studio veröffentlicht.`,
                 },
                 imageUrl:
                   entry.imageUrl ||
@@ -2444,10 +2910,10 @@ export default function App() {
                   ...(existingArt?.title || {}),
                 },
                 subtitle: {
-                  tr: `Emre Pelit Özgün Makalesi #${postNum} • 10 Resmi Web Sitesinde Canlı Senkronize & Yayında (emrepelit7337.blogspot.com)`,
-                  en: `Original Article #${postNum} by Emre Pelit • Live Synced & Published Across All 10 Websites (emrepelit7337.blogspot.com)`,
-                  es: `Artículo Original #${postNum} de Emre Pelit • Sincronizado y Publicado en los 10 Sitios Web (emrepelit7337.blogspot.com)`,
-                  de: `Originalartikel #${postNum} von Emre Pelit • Auf allen 10 Websites synchronisiert & veröffentlicht (emrepelit7337.blogspot.com)`,
+                  tr: `Emre Pelit Özgün Makalesi #${postNum} • Canlı Ana Hub & Blogger Senkronize (HTTP 200 · 12 Dil Kanonik)`,
+                  en: `Original Article #${postNum} by Emre Pelit • Live Synced on Main Hub & Blogger (HTTP 200 · 12 Languages Canonical)`,
+                  es: `Artículo Original #${postNum} de Emre Pelit • Sincronizado en Hub Principal y Blogger (HTTP 200 · 12 Idiomas Canónicos)`,
+                  de: `Originalartikel #${postNum} von Emre Pelit • Synchronisiert auf Haupthub & Blogger (HTTP 200 · 12 Sprachen Kanonisch)`,
                   ...(existingArt?.subtitle || {}),
                 },
                 abstract: {
@@ -2472,7 +2938,7 @@ export default function App() {
                   ...(existingArt?.contentParagraphs || {}),
                 },
                 references: [
-                  `Pelit, E. (${(entry.publishedAt || '2026').slice(0, 4)}). "${entry.title}." Portal de Ciencia y Filosofía — Sci-Phil (#${postNum}, ${entry.bloggerUrl}) & 10 Resmi 301 Web Sitesi.`,
+                  `Pelit, E. (${(entry.publishedAt || '2026').slice(0, 4)}). "${entry.title}." Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (#${postNum}, ${entry.bloggerUrl}) & Tek Kanonik Ana Hub.`,
                   ...templateArt.references.slice(1),
                 ],
                 simulation: templateArt.simulation,
@@ -2513,21 +2979,28 @@ export default function App() {
                   const articleId = entry.id || `blogger-post-${postNum}`;
                   const semanticSlug = buildSemanticArticleSlug(entry.title || '', articleId, postNum);
                   const isMainHubNode = node.domain === 'emrepelit-sciphi.ai.studio';
+                  const entryDetectedLang = detectEntrySourceLanguage(
+                    entry.title || '',
+                    entry.abstract || ''
+                  );
+                  const localizedPath = getLocalizedArticlePath(entryDetectedLang, semanticSlug);
                   const sourceUrl =
                     node.domain === 'emrepelit7337.blogspot.com' && entry.bloggerUrl
                       ? entry.bloggerUrl
-                      : `https://${node.domain}/tr/makale/${semanticSlug}`;
+                      : `https://${node.domain}${localizedPath}`;
                   return {
                     id: `pub-${node.rank}-blg-${postNum}`,
                     title: `${entry.title} (Emre Pelit • #${postNum})`,
                     publishedDate: entry.publishedAt || '2026-11-14',
                     sourceUrl,
-                    hubBacklinkUrl: `https://emrepelit-sciphi.ai.studio/tr/makale/${semanticSlug}`,
+                    hubBacklinkUrl: `https://emrepelit-sciphi.ai.studio${localizedPath}`,
                     hubAnchorText: isMainHubNode
-                      ? `Bu Web Sitesi (HTTP 200 OK Kanonik Ana Hub · Otorite Puanı %100 Burada Toplanır) • Semantik URL Yayında (#${postNum})`
-                      : `${node.domain} → Yalnızca emrepelit-sciphi.ai.studio 1:1 Semantik URL Kalıcı 301 & Kanonik Köprü (%100 Otorite Ana Hub'a Aktarılır • #${postNum})`,
+                      ? `Canlı Ana Hub (HTTP 200 OK · %100 Otorite Merkezi) • Kanonik URL Yayında (#${postNum})`
+                      : node.domain === 'emrepelit7337.blogspot.com'
+                        ? `Canlı Blogger CMS (HTTP 200 OK) → Kanonik Otorite emrepelit-sciphi.ai.studio (#${postNum})`
+                        : `${node.domain} (Yayından Kaldırıldı · HTTP 301 → Ana Hub #${postNum})`,
                     relatedArticleId: articleId,
-                    httpStatus: isMainHubNode ? 200 : 301,
+                    httpStatus: node.isLiveWebsite ? 200 : 301,
                     monthlyReferralsToHub: Math.round(
                       node.stats.netReads / Math.max(1, liveEntries.length)
                     ),
@@ -2545,8 +3018,10 @@ export default function App() {
                 articlesCount: Math.max(316, liveEntries.length),
                 bloggerSyncedCount: Math.max(316, liveEntries.length),
                 lastBloggerSyncAt: syncedTimeStr,
-                allBloggerArticlesPublished: true,
-                stats: mergeMonotonicNodeStats(canonicalNode.stats, node.stats),
+                allBloggerArticlesPublished: Boolean(node.isLiveWebsite),
+                stats: node.isLiveWebsite
+                  ? mergeMonotonicNodeStats(canonicalNode.stats, node.stats)
+                  : canonicalNode.stats,
                 publications: bloggerPubsForThisSite,
               };
             });
@@ -2559,14 +3034,14 @@ export default function App() {
             lastSyncedAt: syncedTimeStr,
             liveCount: Math.max(316, liveEntries.length),
             totalBloggerCount: Math.max(316, data?.totalResults || liveEntries.length),
-            blogTitle: data?.blogTitle || 'Portal de Ciencia y Filosofía • Emre Pelit - Sci-Phil',
+            blogTitle: data?.blogTitle || 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi',
             latestDetectedTitle: liveEntries[0]?.title || prev.latestDetectedTitle,
             newPostAlert: targetWebsiteDomain
-              ? `✓ ${targetWebsiteDomain} web sitesinde tüm ${Math.max(316, liveEntries.length)} makale canlı senkronize edildi ve yayınlandı (Otorite Puanı %100 emrepelit-sciphi.ai.studio üzerinde toplandı — Son Makale: "${liveEntries[0]?.title || ''}").`
+              ? `✓ ${targetWebsiteDomain} üzerinde tüm ${Math.max(316, liveEntries.length)} makale canlı senkronize edildi ve doğrulandı — Son Makale: "${liveEntries[0]?.title || ''}".`
               : forceRefresh
-              ? `✓ 301 Ağındaki Tüm 10 Resmi Web Sitenizde (10/10) tüm ${Math.max(316, liveEntries.length)} makale canlı senkronize edildi ve yayınlandı (Otorite Puanı %100 bu websitede toplandı — Son Makale: "${liveEntries[0]?.title || ''}").`
+              ? `✓ emrepelit7337.blogspot.com ve emrepelit-sciphi.ai.studio Ana Hub üzerinde tüm ${Math.max(316, liveEntries.length)} makale canlı senkronize edildi (8 eski alan adı HTTP 301 → Ana Hub — Son Makale: "${liveEntries[0]?.title || ''}").`
               : detectedNewTitle
-              ? `Yeni Makale Algılandı ve 301 Ağındaki Tüm 10 Resmi Web Sitesinde Anında Yayınlandı (Otorite Puanı %100 Bu Websitede): "${detectedNewTitle}"`
+              ? `Yeni Blogger Makalesi Algılandı ve Ana Hub ile Canlı Senkronize Edildi (HTTP 200 · 12 Dil Kanonik): "${detectedNewTitle}"`
               : prev.newPostAlert,
           }));
         } else {
@@ -2588,6 +3063,7 @@ export default function App() {
       document.getElementById('blogger-bridge')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
+  handleSyncBloggerRef.current = handleSyncBlogger;
 
   const toggleExpandArticle = (id: string) => {
     const isOpening = !expandedArticleIds[id];
@@ -2619,7 +3095,7 @@ export default function App() {
     const targetArt = articles.find((a) => a.id === articleId);
     const readMins = Math.max(1, targetArt?.readTimeMinutes || 6);
     const domainToCredit =
-      sourceDomain && OFFICIAL_10_WEBSITES.includes(sourceDomain as any)
+      sourceDomain && LIVE_WEBSITES_SET.has(sourceDomain)
         ? sourceDomain
         : 'emrepelit-sciphi.ai.studio';
 
@@ -2648,9 +3124,9 @@ export default function App() {
           getLocalizedText(matched.title, 'tr'),
           getLocalizedText(matched.abstract, 'tr')
         );
-      setLanguage(artLang);
+      const targetUrlLang = language || artLang;
       try {
-        window.history.replaceState(null, '', getLocalizedArticlePath(artLang, matched.slug));
+        window.history.replaceState(null, '', getLocalizedArticlePath(targetUrlLang, matched.slug));
       } catch {
         // Ignore history errors in sandboxed frames
       }
@@ -2752,7 +3228,7 @@ export default function App() {
     const bib = `@article{Pelit_${article.id.replace(/[^a-zA-Z0-9]/g, '_')},
   author = {Emre Pelit},
   title = {{${getLocalizedText(article.title, language)}}},
-  journal = {Emre Pelit Sci-Phil Central 301 Hub & Portal de Ciencia y Filosofía},
+  journal = {Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (emrepelit-sciphi.ai.studio)},
   year = {${article.publishedAt.slice(0, 4)}},
   note = {Exclusive Authorship and Copyright: Emre Pelit},
   url = {${article.canonicalHubUrl}}
@@ -2784,7 +3260,7 @@ export default function App() {
       sourceLang: detectedNewLang,
       author: 'Emre Pelit',
       affiliation:
-        'Münhasır Eser Sahibi • emrepelit-sciphi.ai.studio & 301 Akademik Ağı (10 Resmi Web Sitesi)',
+        'Münhasır Eser Sahibi • emrepelit-sciphi.ai.studio (Tek Kanonik Ana Hub) & emrepelit7337.blogspot.com',
       canonicalHubUrl: `https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(
         detectedNewLang,
         cleanSlug
@@ -2805,21 +3281,24 @@ export default function App() {
       networkNodes,
       networkNodes.map((node) => {
         const isMainHubNode = node.domain === 'emrepelit-sciphi.ai.studio';
+        const localizedNewPath = getLocalizedArticlePath(detectedNewLang, cleanSlug);
         const sourceUrl =
           node.domain === 'emrepelit7337.blogspot.com' && enrichedArt.bloggerUrl
             ? enrichedArt.bloggerUrl
-            : `https://${node.domain}/tr/makale/${cleanSlug}`;
+            : `https://${node.domain}${localizedNewPath}`;
         const newPub: NetworkPublication = {
           id: `pub-${node.rank}-blg-${nextArticleNum}`,
           title: `${rawTitleStr} (Emre Pelit • #${nextArticleNum})`,
           publishedDate: enrichedArt.publishedAt,
           sourceUrl,
-          hubBacklinkUrl: `https://emrepelit-sciphi.ai.studio/tr/makale/${cleanSlug}`,
+          hubBacklinkUrl: `https://emrepelit-sciphi.ai.studio${localizedNewPath}`,
           hubAnchorText: isMainHubNode
-            ? `Bu Web Sitesi (HTTP 200 OK Kanonik Ana Hub · Otorite Puanı %100 Burada Toplanır) • Yeni Makale Yayında (#${nextArticleNum})`
-            : `${node.domain} → Yalnızca emrepelit-sciphi.ai.studio 1:1 Kalıcı 301 & Kanonik Köprü (%100 Otorite Ana Hub'a Aktarılır • #${nextArticleNum})`,
+            ? `Canlı Ana Hub (HTTP 200 OK · %100 Otorite Merkezi) • Yeni Makale Yayında (#${nextArticleNum})`
+            : node.domain === 'emrepelit7337.blogspot.com'
+              ? `Canlı Blogger CMS (HTTP 200 OK) → Kanonik Otorite emrepelit-sciphi.ai.studio (#${nextArticleNum})`
+              : `${node.domain} (Yayından Kaldırıldı · HTTP 301 → Ana Hub #${nextArticleNum})`,
           relatedArticleId: enrichedArt.id,
-          httpStatus: isMainHubNode ? 200 : 301,
+          httpStatus: node.isLiveWebsite ? 200 : 301,
           monthlyReferralsToHub: 0,
           citationVelocity: 0,
           verifiedBacklink: true,
@@ -2833,7 +3312,7 @@ export default function App() {
           articlesCount: Math.max(nextArticleNum, nextArticles.length, updatedPubs.length),
           bloggerSyncedCount: Math.max(nextArticleNum, nextArticles.length, updatedPubs.length),
           lastBloggerSyncAt: syncedTimeStr,
-          allBloggerArticlesPublished: true,
+          allBloggerArticlesPublished: Boolean(node.isLiveWebsite),
           publications: updatedPubs,
         };
       })
@@ -2846,11 +3325,11 @@ export default function App() {
       liveCount: Math.max(nextArticleNum, nextArticles.length),
       totalBloggerCount: Math.max(nextArticleNum, nextArticles.length),
       latestDetectedTitle: rawTitleStr,
-      newPostAlert: `✓ Yeni Yazı ("${rawTitleStr}") Bu Websitede ve 301 Ağındaki Tüm 10 Resmi Web Sitesinde Eşzamanlı Yayınlandı! (Toplam: ${Math.max(nextArticleNum, nextArticles.length)} Makale · Otorite Puanı %100 emrepelit-sciphi.ai.studio Ana Hub'da Toplanır)`,
+      newPostAlert: `✓ Yeni Yazı ("${rawTitleStr}") Canlı Ana Hub ve Blogger ile Eşzamanlı Yayınlandı! (Toplam: ${Math.max(nextArticleNum, nextArticles.length)} Makale · 12 Dil Kanonik)`,
     }));
 
     setPublishAll301Banner(
-      `✓ "${rawTitleStr}" başlıklı yeni makale (#${nextArticleNum}) bu websitede ve 301 ağındaki tüm 10 resmi web sitesinde otomatik olarak yayınlandı (0 Yayın Hatası · Otorite Puanı %100 Bu Websitede [emrepelit-sciphi.ai.studio] Toplanır).`
+      `✓ "${rawTitleStr}" başlıklı yeni makale (#${nextArticleNum}) canlı Ana Hub (emrepelit-sciphi.ai.studio) üzerinde 12 dünya dilinde kanonik HTTP 200 olarak yayınlandı; 8 eski alan adı HTTP 301 ile bu adrese yönlendirilir.`
     );
 
     handleRecordAnalyticsMeasurement(
@@ -2864,7 +3343,7 @@ export default function App() {
         targetArticleId: enrichedArt.id,
       },
       'AI_ANALYSIS_LAB',
-      `Yeni Makale Yayını & 301 Ağı Otomatik Dağıtımı (10 Resmi Sitede Eşzamanlı #${enrichedArt.id}): +1 Görüntülenme, +1 Okunma`
+      `Yeni Makale Yayını & Canlı Ana Hub Senkronizasyonu (#${enrichedArt.id}): +1 Görüntülenme, +1 Okunma`
     );
 
     void fetch('/api/articles/publish-all-301', {
@@ -2896,11 +3375,11 @@ export default function App() {
         const data = await res.json();
         const count = Math.max(totalPublished, Number(data.totalArticlesPublishedPerSite) || 316);
         setPublishAll301Banner(
-          `✓ Sitedeki tüm ${count} makale 301 ağındaki 10 resmi web sitesinin tamamında (${count} × 10 = ${(count * 10).toLocaleString('tr-TR')} tekil makale yayını) sıfır yayın hatasıyla yayınlandı! Bundan sonra eklenen her yeni yazı otomatik olarak tüm 301 sitelerinde yayınlanır. Tüm 301 ve canonical sinyalleri münhasıran bu ana hub'da (emrepelit-sciphi.ai.studio) toplanmaktadır (${nowStr}).`
+          `✓ Tüm ${count} makale yalnızca canlı Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) ve canlı Blogger kaynağı (emrepelit7337.blogspot.com) üzerinde 12 dilde HTTP 200 OK olarak yayında ve senkronize! 8 eski alan adı yayından kaldırılarak kalıcı HTTP 301 ile bu ana hub'a yönlendirilmiştir (${nowStr}).`
         );
       } else {
         setPublishAll301Banner(
-          `✓ Sitedeki tüm ${totalPublished} makale 301 ağındaki tüm 10 web sitesinde yayınlandı ve tüm yayın hataları giderildi (Otorite Puanı %100 Bu Websitede — ${nowStr}).`
+          `✓ Tüm ${totalPublished} makale canlı Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) ve emrepelit7337.blogspot.com üzerinde 12 dilde yayında; 8 eski alan adı HTTP 301 → Ana Hub yönlendirmeli (${nowStr}).`
         );
       }
       setIndexingTriggerCount((c) => c + 1);
@@ -2908,7 +3387,7 @@ export default function App() {
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
       const totalPublished = Math.max(316, articles.length);
       setPublishAll301Banner(
-        `✓ Sitedeki tüm ${totalPublished} makale 301 ağındaki tüm 10 web sitesinde yayınlandı ve tüm yayın hataları giderildi (Otorite Puanı %100 Bu Websitede — ${nowStr}).`
+        `✓ Tüm ${totalPublished} makale canlı Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) ve emrepelit7337.blogspot.com üzerinde 12 dilde yayında; 8 eski alan adı HTTP 301 → Ana Hub yönlendirmeli (${nowStr}).`
       );
     } finally {
       setIsPublishingAll301(false);
@@ -2930,10 +3409,12 @@ export default function App() {
         ? bodyParagraphs
         : [
             quickAbstract.trim() ||
-              `${quickTitle.trim()} — Emre Pelit tarafından kaleme alınan ve 301 ağındaki tüm 10 web sitesinde eşzamanlı yayınlanan özgün bilimsel ve felsefi çalışma.`,
+              `${quickTitle.trim()} — Emre Pelit tarafından kaleme alınan ve emrepelit-sciphi.ai.studio Tek Kanonik Ana Hub üzerinde 12 dilde yayınlanan özgün bilimsel ve felsefi çalışma.`,
           ];
     const effectiveAbstract =
       quickAbstract.trim() || effectiveParagraphs[0].slice(0, 420);
+    const quickSourceLang = detectEntrySourceLanguage(quickTitle.trim(), effectiveAbstract);
+    const quickCanonicalPath = getLocalizedArticlePath(quickSourceLang, cleanSlug);
     const quickSimMap: Record<string, Article['simulation']['type']> = {
       'Yazılım & Uygulama Projeleri': 'software',
       'Kuantum Fiziği & Epistemoloji': 'quantum',
@@ -2951,19 +3432,20 @@ export default function App() {
     const newArticleObj: Article = {
       id: cleanId,
       slug: cleanSlug,
+      sourceLang: quickSourceLang,
       category: quickCategory as Article['category'],
       publishedAt: new Date().toISOString().slice(0, 10),
       readTimeMinutes: Math.max(1, Math.ceil(effectiveParagraphs.join(' ').split(/\s+/).length / 160)),
       author: 'Emre Pelit',
       affiliation:
-        'Münhasır Eser Sahibi • emrepelit-sciphi.ai.studio & 301 Akademik Ağı (10 Resmi Web Sitesi)',
+        'Münhasır Eser Sahibi • emrepelit-sciphi.ai.studio (Tek Kanonik Ana Hub) & emrepelit7337.blogspot.com',
       sourceOrigin: 'ai-laboratory',
       bloggerUrl: `https://emrepelit7337.blogspot.com/2026/11/${cleanSlug}.html`,
-      canonicalHubUrl: `https://emrepelit-sciphi.ai.studio/tr/makale/${cleanSlug}`,
+      canonicalHubUrl: `https://emrepelit-sciphi.ai.studio${quickCanonicalPath}`,
       publishedOnWebsites: OFFICIAL_10_WEBSITES,
       figureNumber: `FIG. BLG.${nextNum}`,
       figureCaption: {
-        tr: `Şekil (FIG. BLG.${nextNum}) — Emre Pelit tarafından yazılan ve 301 ağındaki tüm 10 resmi web sitesinde otomatik yayınlanan "${quickTitle.trim()}" makalesinin bilimsel model plakası.`,
+        tr: `Şekil (FIG. BLG.${nextNum}) — Emre Pelit tarafından yazılan ve emrepelit-sciphi.ai.studio Tek Kanonik Ana Hub üzerinde 12 dilde yayınlanan "${quickTitle.trim()}" makalesinin bilimsel model plakası.`,
         en: `Fig. (FIG. BLG.${nextNum}) — Scientific model plate for "${quickTitle.trim()}" (#${nextNum}) authored exclusively by Emre Pelit.`,
       },
       imageUrl: buildScientificPlateDataUri(
@@ -2980,8 +3462,8 @@ export default function App() {
         en: quickTitle.trim(),
       },
       subtitle: {
-        tr: `Emre Pelit Özgün Makalesi #${nextNum} • 301 Ağındaki Tüm 10 Web Sitesinde Otomatik Yayında (Otorite Puanı %100 emrepelit-sciphi.ai.studio Ana Hub'da Toplanır)`,
-        en: `Original Article #${nextNum} by Emre Pelit • Auto-Published Across All 10 Websites in the 301 Network (100% Authority Consolidated on emrepelit-sciphi.ai.studio)`,
+        tr: `Emre Pelit Özgün Makalesi #${nextNum} • Tek Kanonik Ana Hub (HTTP 200 · 12 Dil) & Canlı Blogger Senkronize`,
+        en: `Original Article #${nextNum} by Emre Pelit • Sole Canonical Main Hub (HTTP 200 · 12 Languages) & Live Blogger Synced`,
       },
       abstract: {
         tr: effectiveAbstract,
@@ -2989,12 +3471,12 @@ export default function App() {
       },
       keyFindings: {
         tr: [
-          `Emre Pelit tarafından kaleme alınan "${quickTitle.trim()}" başlıklı bu çalışma, eklendiği anda 301 ağındaki tüm 10 web sitesinde eşzamanlı olarak yayına alınmıştır.`,
-          `Tüm 301 ağ düğümlerinden gelen kanonik ve HTTP 301 otorite puanı %100 oranında yalnızca bu websitede (emrepelit-sciphi.ai.studio) toplanmaktadır.`,
+          `Emre Pelit tarafından kaleme alınan "${quickTitle.trim()}" başlıklı bu çalışma, eklendiği anda Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) üzerinde 12 dilde yayına alınmıştır.`,
+          `Yayından kaldırılan 8 eski alan adından gelen tüm HTTP 301 ve canonical otorite sinyalleri %100 oranında yalnızca bu websitede (emrepelit-sciphi.ai.studio) toplanmaktadır.`,
           effectiveParagraphs[0].slice(0, 200),
         ],
         en: [
-          `Authored exclusively by Emre Pelit and automatically syndicated across all 10 websites in the 301 network with 100% authority consolidated on emrepelit-sciphi.ai.studio.`,
+          `Authored exclusively by Emre Pelit and published canonically across all 12 languages on emrepelit-sciphi.ai.studio with 100% authority consolidated from the 8 retired HTTP 301 domains.`,
         ],
       },
       contentParagraphs: {
@@ -3002,7 +3484,7 @@ export default function App() {
         en: effectiveParagraphs,
       },
       references: [
-        `Pelit, E. (2026). "${quickTitle.trim()}." Emre Pelit — Sci-Phil Ana Hub (#${nextNum}, https://emrepelit-sciphi.ai.studio/tr/makale/${cleanSlug}) & 10 Resmi 301 Web Sitesi.`,
+        `Pelit, E. (2026). "${quickTitle.trim()}." Emre Pelit — Sci-Phil Ana Hub (#${nextNum}, https://emrepelit-sciphi.ai.studio${quickCanonicalPath}) & emrepelit7337.blogspot.com.`,
         ...templateArt.references.slice(1),
       ],
       simulation: templateArt.simulation,
@@ -3200,11 +3682,16 @@ export default function App() {
       ? 'text-[16px]'
       : 'text-base';
 
+  const isKvkkBannerVisible = kvkkConsent.status === 'pending' || kvkkManageOpen;
+
   return (
     <div
       id="top"
+      data-active-tab={activeTab}
       dir={currentLangMeta.dir}
-      className={`min-h-screen ${surfaceThemeClass} ${typographyScaleClass} flex flex-col transition-colors duration-200`}
+      className={`min-h-screen ${surfaceThemeClass} ${typographyScaleClass} flex flex-col transition-colors duration-200 ${
+        isKvkkBannerVisible ? 'pb-24' : 'pb-6'
+      }`}
     >
       {/* Top Viewport Live Reading Progress Bar (0% - 100%) */}
       <div
@@ -3226,17 +3713,17 @@ export default function App() {
         {language === 'tr' ? 'Ana İçeriğe Atla' : 'Skip to Main Content'}
       </a>
 
-      {/* Strict 3-Zone Top Bar Contract with Interactive CV Dropdown Menu */}
+      {/* Strict 3-Zone Top Bar Contract with Responsive Wrapping & Interactive CV Dropdown Menu */}
       <header
         role="banner"
         aria-label="Emre Pelit Sci-Phil Ana Üst Menü"
-        className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-xs border-b border-stone-300 px-6 py-4 flex items-center justify-between gap-8"
+        className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-xs border-b border-stone-300 px-4 sm:px-6 py-3 flex flex-wrap xl:flex-nowrap items-center justify-between gap-x-5 gap-y-2.5"
       >
         {/* Zone 1: Custom Sci-Phil Application Icon + Wordmark */}
         <a
           href="#top"
           aria-label="Emre Pelit Sci-Phil Ana Sayfa Başa Dön"
-          className="inline-flex items-center gap-3 text-xl font-editorial font-bold tracking-tight text-stone-900 whitespace-nowrap shrink-0 group"
+          className="inline-flex items-center gap-3 text-lg sm:text-xl font-editorial font-bold tracking-tight text-stone-900 whitespace-nowrap shrink-0 group"
         >
           <img
             src="/sciphil-app-icon.jpg"
@@ -3250,15 +3737,15 @@ export default function App() {
           <div className="flex flex-col leading-none">
             <span>Emre Pelit · Sci-Phil Hub</span>
             <span className="text-[10px] font-mono font-normal text-[#1E3A8A] tracking-wider mt-0.5">
-              {corpusArticlesCount} Makale · 10 Site 301 Ağı · Dış Müdahaleye %100 Kapalı
+              {distinctWorksCount} Özgün · {corpusArticlesCount} Metin · {totalDirectoryCount} Dizin
             </span>
           </div>
         </a>
 
-        {/* Zone 2: 5 concise single-line navigation links (including the interactive CV Dropdown Menu) */}
+        {/* Zone 2: Responsive wrapping/scrollable navigation bar (prevents clipping on narrow viewports) */}
         <nav
           aria-label="Ana Bölümler Navigasyonu"
-          className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-700"
+          className="hidden md:flex flex-1 min-w-0 max-w-full flex-wrap items-center gap-x-4 gap-y-1.5 overflow-x-auto text-sm font-medium text-stone-700"
         >
           <a
             href="#corpus"
@@ -3294,7 +3781,7 @@ export default function App() {
                 id="nav-cv-dropdown-panel"
                 role="region"
                 aria-label="Emre Pelit Özgeçmiş ve Telif Özeti"
-                className="absolute left-0 mt-3 w-[440px] bg-white border border-stone-300 shadow-lg p-4 z-50 space-y-3 text-xs text-stone-800"
+                className="absolute left-0 mt-3 w-[min(440px,90vw)] bg-white border border-stone-300 shadow-lg p-4 z-50 space-y-3 text-xs text-stone-800"
               >
                 <div className="flex items-center justify-between pb-2 border-b border-stone-200">
                   <div>
@@ -3314,18 +3801,29 @@ export default function App() {
                 </div>
 
                 {/* Embedded New Official PDF CV Preview */}
-                <div className="border border-stone-200 bg-stone-100 overflow-hidden h-56">
+                <div className="border border-stone-200 bg-stone-100 overflow-hidden h-56 flex flex-col">
                   <object
-                    data="/assets/aistudio/Emre_Pelit_-__zge_mi___CV__0cc7cce7.pdf#toolbar=0&navpanes=0&view=FitH"
+                    data="/assets/emre-pelit-cv.pdf#toolbar=0&navpanes=0&view=FitH"
                     type="application/pdf"
-                    className="w-full h-full"
+                    className="w-full flex-1 min-h-0"
                     aria-label="Emre Pelit Güncel Özgeçmiş PDF Önizleme"
                   >
                     <iframe
-                      src="/assets/aistudio/Emre_Pelit_-__zge_mi___CV__0cc7cce7.pdf#toolbar=0&navpanes=0&view=FitH"
+                      src="/assets/emre-pelit-cv.pdf#toolbar=0&navpanes=0&view=FitH"
                       title="Emre Pelit Güncel Özgeçmiş PDF Önizleme"
                       className="w-full h-full border-0"
-                    />
+                    >
+                      <div className="p-4 text-center text-[11px] font-mono">
+                        <a
+                          href="/assets/emre-pelit-cv.pdf"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#1E3A8A] underline font-semibold"
+                        >
+                          PDF İndir / Yeni Sekmede Aç ↗
+                        </a>
+                      </div>
+                    </iframe>
                   </object>
                 </div>
 
@@ -3378,7 +3876,7 @@ export default function App() {
                     Tam Boyut CV Bölümüne Git
                   </button>
                   <a
-                    href="/assets/aistudio/Emre_Pelit_-__zge_mi___CV__0cc7cce7.pdf"
+                    href="/assets/emre-pelit-cv.pdf"
                     download="Emre_Pelit_Ozgecmis_CV.pdf"
                     className="px-3 py-2 text-xs font-mono text-stone-800 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-sm"
                   >
@@ -3416,7 +3914,7 @@ export default function App() {
                 id="nav-about-dropdown-panel"
                 role="region"
                 aria-label="Hakkında — Emre Pelit"
-                className="absolute left-0 mt-3 w-[420px] bg-white border border-stone-300 shadow-lg p-5 z-50 space-y-3.5 text-sm text-stone-800"
+                className="absolute left-0 mt-3 w-[min(420px,90vw)] bg-white border border-stone-300 shadow-lg p-5 z-50 space-y-3.5 text-sm text-stone-800"
               >
                 <div className="flex items-center justify-between pb-2.5 border-b border-stone-200">
                   <div>
@@ -3478,20 +3976,20 @@ export default function App() {
           </button>
           <a
             href="#ai-studio"
-            className="hover:text-[#1E3A8A] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            className="hover:text-[#1E3A8A] hover:underline underline-offset-4 transition-colors shrink-0"
           >
             {t.nav.aiStudio}
           </a>
           <a
             href="#control-cloud"
-            className="hover:text-[#1E3A8A] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            className="hover:text-[#1E3A8A] hover:underline underline-offset-4 transition-colors shrink-0"
           >
             {t.nav.controlCloud}
           </a>
         </nav>
 
-        {/* Zone 3: Primary actions (including prominent PWA Download Button) */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Zone 3: Primary actions (wrapping cleanly on narrow screens so Kontrol & Bulut / buttons never clip) */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
           <PWAInstallButton
             totalArticlesCount={corpusArticlesCount}
             onDownloadInteraction={({ action, summary }) => {
@@ -3528,6 +4026,12 @@ export default function App() {
             <BarChart3 className="w-3.5 h-3.5" />
             <span>{APP_CHROME_I18N[language].analyticsShort}</span>
           </button>
+          <a
+            href="#control-cloud"
+            className="md:hidden inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-stone-800 bg-white border border-stone-300 hover:bg-stone-100 rounded-sm"
+          >
+            {t.nav.controlCloud}
+          </a>
           <button
             type="button"
             onClick={() => handleSyncBlogger(true)}
@@ -3692,7 +4196,7 @@ export default function App() {
               🔒 TÜM DIŞ MÜDAHALELERE %100 KAPALI · SADECE EMRE PELİT (emrepelit39@gmail.com) AYAR YAPABİLİR
             </span>
             <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold rounded-xs">
-              ✓ 10 SİTE × {corpusArticlesCount} MAKALE · 0 YAYIN HATASI · AÇIK ARŞİV İNDEKSLERİ AKTİF
+              ✓ 2 CANLI SİTE (ANA HUB + BLOGGER) · {corpusArticlesCount} MAKALE × 12 DİL · 8 ESKİ ALAN ADI HTTP 301
             </span>
             <span className="text-slate-300">
               Scholar · OpenAlex · PhilPapers · BASE · CORE · Chrome · Edge · Firefox · Safari · Brave
@@ -3700,12 +4204,12 @@ export default function App() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <a
-              href="/sitemap.xml"
+              href="/sitemap_index.xml"
               target="_blank"
               rel="noopener noreferrer"
               className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded-xs"
             >
-              Sitemap.xml (12 Dil · {corpusArticlesCount} Makale · 10 Site) ↗
+              Sitemap Index (12 Dil · {corpusArticlesCount} Makale · 2 Canlı Site) ↗
             </a>
             <a
               href="/opensearch.xml"
@@ -3735,8 +4239,8 @@ export default function App() {
         </section>
 
         {/* Institutional Hero Section */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pb-10 border-b border-stone-300">
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pb-10 border-b border-stone-300">
+          <div className="lg:col-span-7 flex flex-col gap-6">
             <div className="space-y-4">
               <div className="text-xs font-mono uppercase tracking-widest text-stone-500">
                 {t.hero.kicker}
@@ -3898,9 +4402,9 @@ export default function App() {
                 </a>
               </div>
 
-              <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center gap-3 text-xs text-stone-600">
+              <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-stone-600">
                 <span>Tekil Eser Sahibi: Emre Pelit</span>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" className="inline-block mx-1">·</span>
                 <a
                   href="https://www.youtube.com/@science_only"
                   target="_blank"
@@ -3910,51 +4414,51 @@ export default function App() {
                   <span>Resmi İlişkili YouTube (Tüm Tarayıcılarda Kayıtlı): @science_only (youtube.com/@science_only)</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" className="inline-block mx-1">·</span>
                 <span>
-                  Kalıcı 301 Ağı (10 Resmi Düğüm Açılıştan Beri Kümülatif Toplam):{' '}
+                  2 Canlı Site + 8 Emekli 301 (Açılıştan Beri Kümülatif Toplam):{' '}
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {liveCumulativeStats.netReads.toLocaleString('tr-TR')} Net Okunma
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {liveCumulativeStats.totalViews.toLocaleString('tr-TR')} Toplam Görüntülenme
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {articles.reduce((acc, a) => acc + (a.citationsCount || 0), 0).toLocaleString('tr-TR')}{' '}
                     Akademik Atıf
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {liveCumulativeStats.readingHours.toLocaleString('tr-TR')} sa {liveCumulativeStats.readingMins} dk Okuma
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {liveCumulativeStats.audioHours.toLocaleString('tr-TR')} sa {liveCumulativeStats.audioMins} dk Sesli Dinleme
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {liveCumulativeStats.uniqueReaders.toLocaleString('tr-TR')} Tekil Okur
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {liveCumulativeStats.simulatorRuns.toLocaleString('tr-TR')} Simülatör
-                  </strong>{' '}
-                  ·{' '}
+                  </strong>
+                  <span aria-hidden="true" className="inline-block mx-1">·</span>
                   <strong className="text-stone-900 font-mono tabular-nums">
                     {appInteractionTotals.totalInteractionsSinceLaunch.toLocaleString('tr-TR')} Uygulama Etkileşimi
                   </strong>{' '}
                   (Sıfırlanmaz/Azalmaz Monotonik Kilit)
                 </span>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" className="inline-block mx-1">·</span>
                 <span>Aktif Dil: {currentLangMeta.nativeName} ({currentLangMeta.shortLabel})</span>
               </div>
             </div>
           </div>
 
           {/* Right Hero Featured Plate */}
-          <div className="lg:col-span-5 flex flex-col justify-between bg-white border border-stone-300 p-4 space-y-3">
+          <div className="lg:col-span-5 flex flex-col gap-5 bg-white border border-stone-300 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-stone-500">
               <span>EMRE PELİT BAŞYAZISI &amp; SİMÜLASYON PLAKASI</span>
               <span className="px-2 py-0.5 bg-amber-100 text-amber-950 border border-amber-400 font-bold rounded-xs inline-flex items-center gap-1">
@@ -4066,7 +4570,14 @@ export default function App() {
                   try {
                     window.history.replaceState(null, '', '/?tab=simulators');
                   } catch {}
-                  document.getElementById('corpus')?.scrollIntoView({ behavior: 'smooth' });
+                  setActiveTab('simulators');
+                  const firstArtId = articles[0]?.id;
+                  if (firstArtId) {
+                    setExpandedArticleIds((prev) => ({ ...prev, [firstArtId]: true }));
+                  }
+                  setTimeout(() => {
+                    document.getElementById('featured-simulator-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 120);
                 }}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 rounded-xs cursor-pointer transition-colors text-[11px]"
               >
@@ -4078,6 +4589,7 @@ export default function App() {
                   try {
                     window.history.replaceState(null, '', '/?tab=stats');
                   } catch {}
+                  setActiveTab('stats');
                   setAnalyticsPanelOpen(true);
                 }}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-emerald-500/60 text-emerald-300 rounded-xs cursor-pointer transition-colors text-[11px]"
@@ -4090,6 +4602,7 @@ export default function App() {
                   try {
                     window.history.replaceState(null, '', '/?tab=automation');
                   } catch {}
+                  setActiveTab('automation');
                   document.getElementById('ai-studio')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-amber-500/60 text-amber-300 rounded-xs cursor-pointer transition-colors text-[11px]"
@@ -4107,7 +4620,17 @@ export default function App() {
                 }}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-purple-500/60 text-purple-300 rounded-xs cursor-pointer transition-colors text-[11px]"
               >
-                /archive ({corpusArticlesCount}+3={corpusArticlesCount + 3} Tam Külliyat Dizini)
+                /archive ({distinctWorksCount} Özgün · {corpusArticlesCount} Metin · {totalDirectoryCount} Toplam Dizin)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('apps');
+                  document.getElementById('interactive-apps')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-400/70 text-emerald-200 rounded-xs cursor-pointer transition-colors text-[11px] font-bold"
+              >
+                İnteraktif Uygulamalar (4 Modül) ↓
               </button>
             </div>
           </div>
@@ -4117,27 +4640,27 @@ export default function App() {
             data-nosnippet
             className="bg-emerald-950 text-emerald-50 border-2 border-emerald-400 p-4 sm:p-5 rounded-sm space-y-3.5 shadow-sm"
           >
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-center gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
                   <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-extrabold uppercase rounded-xs">
-                    ✓ {corpusArticlesCount} MAKALENİN TAMAMI 301 AĞINDAKİ TÜM 10 WEB SİTESİNDE YAYINDA ({corpusArticlesCount} × 10 = {(corpusArticlesCount * 10).toLocaleString('tr-TR')} AKTİF YAYIN)
+                    ✓ {corpusArticlesCount} MAKALENİN TAMAMI CANLI ANA HUB + BLOGGER ÜZERİNDE YAYINDA ({(corpusArticlesCount * 12).toLocaleString('tr-TR')} KANONİK URL)
                   </span>
                   <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-200 border border-emerald-400/60 font-bold rounded-xs">
-                    ✓ OTOMATİK 301 YAYIN KANCASI AKTİF (EKLENEN HER YENİ YAZI TÜM 301 SİTELERİNDE ANINDA YAYINLANIR)
+                    ✓ 15 SN + SSE CANLI BLOGGER SENKRONU AKTİF (emrepelit7337.blogspot.com → Ana Hub)
                   </span>
                   <span className="px-2.5 py-0.5 bg-sky-500/20 text-sky-200 border border-sky-400/60 font-bold rounded-xs">
-                    ★ TEKİL KANONİK ANA HUB (HTTP 200) SADECE BU WEBSİTEDİR (emrepelit-sciphi.ai.studio)
+                    ★ 8 ESKİ ALAN ADI YAYINDAN KALDIRILDI (TEK-ADIM HTTP 301 → emrepelit-sciphi.ai.studio)
                   </span>
                   <span className="px-2.5 py-0.5 bg-emerald-400 text-slate-950 font-extrabold rounded-xs">
                     0 YAYIN HATASI
                   </span>
                 </div>
                 <h4 className="text-base sm:text-lg font-editorial font-bold text-white">
-                  301 Ağı Tam Külliyat Yayın Motoru: {corpusArticlesCount} Makale 10 Sitenin Tamamında Yayında · Yeni Yazı Otomatik Dağıtımı Aktif · Tekil Otorite Merkezi: emrepelit-sciphi.ai.studio
+                  Tek Kanonik Ana Hub &amp; Canlı Blogger Senkronizasyonu: {distinctWorksCount} Özgün Makale · {corpusArticlesCount} Çok Dilli Metin × 12 Dil (emrepelit-sciphi.ai.studio + emrepelit7337.blogspot.com)
                 </h4>
                 <p className="text-xs text-emerald-200/95 leading-relaxed max-w-4xl">
-                  Bu sitede yer alan <strong>{corpusArticlesCount} özgün makalenin tamamı</strong> (#316 <em>&ldquo;The Conventional Monotony of Human Comprehension...&rdquo;</em> ve #315 <em>&ldquo;İnsan Kavrayışının Genelgeçer Tekdüzeliği...&rdquo;</em> dahil) 301 ağındaki tüm 10 resmi web sitesinde eşzamanlı olarak yayınlanmıştır. Bundan sonra bu websiteye eklenen her yeni yazı, eklendiği saniyede otomatik olarak 301 ağındaki tüm sitelerde yayınlanır; ancak tüm <code>HTTP 301</code> ve <code>rel=&quot;canonical&quot;</code> otorite puanı (<strong>%100 Domain &amp; SEO Otoritesi</strong>) yalnızca bu websitede (<strong>emrepelit-sciphi.ai.studio</strong>) toplanmaya devam eder.
+                  Ekosistem yalnızca <strong>2 canlı web sitesine</strong> (<strong>emrepelit-sciphi.ai.studio</strong> Ana Hub + <strong>emrepelit7337.blogspot.com</strong> Blogger kaynağı) konsolide edilmiştir; ağdaki diğer 8 eski alan adı yayından kaldırılarak tek-adım <code>HTTP 301</code> ile bu Ana Hub&apos;a yönlendirilmiştir. Blogger&apos;a eklenen her yeni makale 15 saniyelik senkron ve SSE kanalıyla anında Ana Hub&apos;a aktarılır ve 12 dünya dilinin tamamında <code>HTTP 200 OK</code> kanonik olarak indekslenir.
                 </p>
               </div>
 
@@ -4151,8 +4674,8 @@ export default function App() {
                   <RefreshCw className={`w-3.5 h-3.5 ${isPublishingAll301 ? 'animate-spin' : ''}`} />
                   <span>
                     {isPublishingAll301
-                      ? `Tüm ${corpusArticlesCount} Makale 10 Sitede Yayınlanıyor...`
-                      : `Tüm ${corpusArticlesCount} Makaleyi 301 Ağındaki Tüm Sitelerde Yayınla & Hataları Gider`}
+                      ? `Ana Hub & 12 Dil Kuyruğu Yenileniyor...`
+                      : `Tüm ${corpusArticlesCount} Makaleyi 12 Dilde Doğrula & 301 Hatalarını Gider`}
                   </span>
                 </button>
 
@@ -4165,7 +4688,7 @@ export default function App() {
                   <span>
                     {quickPublishOpen
                       ? 'Yeni Yazı Ekleme Formunu Kapat'
-                      : '+ Yeni Yazı Ekle (Anında 301 Ağındaki Tüm Sitelerde Yayınla)'}
+                      : '+ Yeni Yazı Ekle (Ana Hub & Blogger Senkron)'}
                   </span>
                 </button>
               </div>
@@ -4254,14 +4777,14 @@ export default function App() {
                     required
                     value={quickBody}
                     onChange={(e) => setQuickBody(e.target.value)}
-                    placeholder="Makale metnini buraya yazın. Yayınla butonuna bastığınız anda bu websitede ve 301 ağındaki tüm 10 web sitesinde eşzamanlı olarak yayınlanır..."
+                    placeholder="Makale metnini buraya yazın. Yayınla butonuna bastığınız anda bu Tek Kanonik Ana Hub üzerinde 12 dilde yayına alınır ve canlı Blogger ile senkronize edilir..."
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xs text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                   <span className="text-[11px] font-mono text-emerald-300">
-                    ✓ Yayın Hedefi: 10/10 Resmi 301 Web Sitesi · Kanonik Otorite Puanı: %100 emrepelit-sciphi.ai.studio
+                    ✓ Yayın Hedefi: Tek Kanonik Ana Hub (HTTP 200 · 12 Dil) + Canlı Blogger (8 eski domain HTTP 301 → Hub)
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -4275,7 +4798,7 @@ export default function App() {
                       type="submit"
                       className="px-4 py-1.5 text-xs font-mono font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xs cursor-pointer"
                     >
-                      Şimdi Bu Sitede ve 301 Ağındaki Tüm 10 Sitede Yayınla
+                      Şimdi Tek Kanonik Ana Hub’da (12 Dil) Yayınla
                     </button>
                   </div>
                 </div>
@@ -4283,22 +4806,22 @@ export default function App() {
             )}
           </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone-200">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-center gap-4 pb-4 border-b border-stone-200">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#1E3A8A]">
-                <span>10 RESMİ URL DÜĞÜMÜ BİRLEŞİK MİMARİ · HEADLESS CMS &amp; KANONİK / 1:1 HTTP 301 OTORİTE KONSOLİDASYONU</span>
+                <span>2 CANLI WEB SİTESİ (ANA HUB + BLOGGER) · 8 ESKİ ALAN ADI HTTP 301 KONSOLİDASYONU · JSONP/PROXY CANLI SENKRON</span>
                 <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 font-semibold rounded-sm">
-                  {corpusArticlesCount} BLOGGER &amp; ANA HUB MAKALESİ + 3 GROK.ME MONOGRAFİ = {corpusArticlesCount + 3} TAM MUTABAKAT
+                  {distinctWorksCount} ÖZGÜN MAKALE · {corpusArticlesCount} ÇOK DİLLİ METİN · {totalDirectoryCount} TOPLAM DİZİN
                 </span>
                 <span className="px-2 py-0.5 bg-blue-50 text-[#1E3A8A] border border-blue-200 rounded-sm">
                   OTORİTE PUANI %100 BU WEBSİTEDE TOPLANIR
                 </span>
               </div>
               <h3 className="text-xl lg:text-2xl font-editorial font-semibold text-stone-900">
-                {bloggerSyncState.blogTitle} — 1 Merkezi Ana Hub (`HTTP 200 OK`) + 9 Kanonik/301 Düğümü (Toplam 10 Resmi Web Sitesi · {corpusArticlesCount} Makale Yayında)
+                {bloggerSyncState.blogTitle} — 2 Canlı Web Sitesi (Ana Hub <code className="text-xs font-mono bg-stone-100 px-1.5 py-0.5 border border-stone-300 rounded-xs">HTTP 200</code> + Blogger <code className="text-xs font-mono bg-stone-100 px-1.5 py-0.5 border border-stone-300 rounded-xs">HTTP 200</code>) + 8 Emekli 301 Alan Adı ({corpusArticlesCount} Makale · 12 Dil Kanonik)
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed">
-                Bu sitedeki <strong>{corpusArticlesCount} makalenin tamamı</strong> ve yeni eklenen her yazı 301 ağındaki <strong>10 resmi web sitesinin tamamıyla</strong> koordine edilmektedir. <code>rel=&quot;canonical&quot;</code> ve <code>1:1 HTTP 301</code> yönlendirme protokolleri sayesinde tüm ağın kanonik odak noktası yalnızca bu ana hub (<strong>#8 emrepelit-sciphi.ai.studio</strong>) olarak yapılandırılmıştır.
+                Bu sitedeki <strong>{corpusArticlesCount} makalenin tamamı</strong> ve Blogger&apos;a (<strong>emrepelit7337.blogspot.com</strong>) eklenen her yeni yazı gerçek zamanlı SSE ve 15 saniyelik senkronla otomatik olarak Ana Hub&apos;a aktarılır. Eski 8 alan adı yayından kaldırılarak tek-adım <code>HTTP 301</code> ve <code>rel=&quot;canonical&quot;</code> ile yalnızca <strong>emrepelit-sciphi.ai.studio</strong> merkezine bağlanmıştır.
               </p>
             </div>
 
@@ -4312,8 +4835,8 @@ export default function App() {
                 <RefreshCw className={`w-3.5 h-3.5 ${bloggerSyncState.syncing ? 'animate-spin' : ''}`} />
                 <span>
                   {bloggerSyncState.syncing
-                    ? '10 Düğümde Senkronize Ediliyor...'
-                    : `10 Düğümün Tamamında (${corpusArticlesCount} Makale) Canlı Senkronize Et & Yayınla`}
+                    ? 'Blogger & Ana Hub Senkronize Ediliyor...'
+                    : `Blogger & Ana Hub'ı (${corpusArticlesCount} Makale) Şimdi Canlı Senkronize Et`}
                 </span>
               </button>
               <button
@@ -4345,7 +4868,7 @@ export default function App() {
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono border-b border-slate-800 pb-2.5">
               <div className="space-y-1">
                 <div className="font-bold text-emerald-400">
-                  10 DÜĞÜMLÜ 301 YAYIN TOPOLOJİSİ VE AÇILIŞTAN BERİ TÜM İSTATİSTİKLER (HER SİTEDE {corpusArticlesCount} MAKALE · OTORİTE %100 ANA HUB)
+                  2 CANLI WEB SİTESİ + 8 EMEKLİ HTTP 301 TOPOLOJİSİ VE AÇILIŞTAN BERİ İSTATİSTİKLER ({corpusArticlesCount} MAKALE · OTORİTE %100 ANA HUB)
                 </div>
                 <div className="text-[11px] text-amber-200 tabular-nums">
                   Σ {liveCumulativeStats.totalViews.toLocaleString('tr-TR')} Görüntülenme ·{' '}
@@ -4367,15 +4890,14 @@ export default function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 font-mono text-xs tabular-nums">
               {networkNodes.map((node) => {
                 const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
-                const isCanonicalBridge =
-                  node.domain === 'emrepelit7337.blogspot.com' ||
-                  node.domain === 'science-philosophy.grok.me' ||
-                  node.domain === 'emrepelit.github.io/science-philosophy';
+                const isBloggerLive = node.domain === 'emrepelit7337.blogspot.com';
+                const isLiveNode =
+                  LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
                 const badgeLabel = isMainHub
-                  ? 'HTTP 200 OK · %100 OTORİTE MERKEZİ'
-                  : isCanonicalBridge
-                    ? 'YAYINDA · OTORİTE → ANA HUB'
-                    : 'YAYINDA · 1:1 301 → ANA HUB';
+                  ? 'CANLI ANA HUB · HTTP 200'
+                  : isBloggerLive
+                    ? 'CANLI BLOGGER · HTTP 200'
+                    : 'YAYINDAN KALDIRILDI · 301 → HUB';
                 const nodeViews = node.stats.totalViews ?? node.stats.netReads;
                 const sharePct = (
                   (node.stats.netReads / Math.max(1, liveCumulativeStats.netReads)) *
@@ -4388,7 +4910,9 @@ export default function App() {
                     className={`p-3 rounded-xs flex flex-col justify-between gap-2 border ${
                       isMainHub
                         ? 'bg-emerald-950/50 border-emerald-400'
-                        : 'bg-slate-900/90 border-slate-700/90'
+                        : isBloggerLive
+                          ? 'bg-amber-950/35 border-amber-400/70'
+                          : 'bg-slate-950/80 border-slate-800 opacity-75'
                     }`}
                   >
                     <div className="space-y-1.5">
@@ -4398,20 +4922,20 @@ export default function App() {
                           className={`px-1.5 py-0.5 text-[9px] font-bold rounded-xs border ${
                             isMainHub
                               ? 'bg-emerald-400 text-slate-950 border-emerald-300'
-                              : isCanonicalBridge
+                              : isBloggerLive
                                 ? 'bg-amber-500/20 text-amber-300 border-amber-400/50'
-                                : 'bg-sky-500/20 text-sky-300 border-sky-400/50'
+                                : 'bg-slate-900 text-slate-400 border-slate-700'
                           }`}
                         >
                           {badgeLabel}
                         </span>
                       </div>
-                      <div className="font-bold text-white truncate text-xs" title={node.domain}>
+                      <div className="font-bold text-white break-all text-[11px] leading-snug" title={node.domain}>
                         {node.domain}
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-amber-200 border-b border-slate-800 pb-1">
-                        <span>Açılış: {node.launchDate}</span>
-                        <span className="text-emerald-300 font-bold">Pay %{sharePct}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-amber-200 border-b border-slate-800 pb-1">
+                        <span className="leading-snug">Açılış: {node.launchDate}</span>
+                        <span className="text-emerald-300 font-bold shrink-0">Pay %{sharePct}</span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-1 text-[10px] bg-slate-950/90 border border-slate-800 p-1.5 rounded-xs">
@@ -4455,24 +4979,33 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="text-[10px] text-emerald-300 font-semibold">
-                        ✓{' '}
-                        {node.domain === 'science-philosophy.grok.me'
-                          ? `${corpusArticlesCount} Makale + 3 Monografi = ${corpusArticlesCount + 3} Yayında`
-                          : `${Math.max(corpusArticlesCount, node.articlesCount)} Makale Yayında`}
+                      <div
+                        className={`text-[10px] font-semibold ${
+                          isLiveNode ? 'text-emerald-300' : 'text-slate-400'
+                        }`}
+                      >
+                        {isLiveNode
+                          ? `✓ ${Math.max(corpusArticlesCount, node.articlesCount)} Makale Canlı Yayında`
+                          : `301 → Ana Hub · İstatistikler Donduruldu`}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleSyncBlogger(false, true, node.domain)}
-                      disabled={bloggerSyncState.syncing}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono font-semibold text-emerald-200 bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 rounded-xs cursor-pointer transition-colors disabled:opacity-60"
-                    >
-                      <RefreshCw
-                        className={`w-3 h-3 ${bloggerSyncState.syncing ? 'animate-spin' : ''}`}
-                      />
-                      <span>{isMainHub ? 'Ana Hub Senkronla' : 'Tüm Makaleleri Yayınla & 301 Doğrula'}</span>
-                    </button>
+                    {isLiveNode ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSyncBlogger(false, true, node.domain)}
+                        disabled={bloggerSyncState.syncing}
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono font-semibold text-emerald-200 bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 rounded-xs cursor-pointer transition-colors disabled:opacity-60"
+                      >
+                        <RefreshCw
+                          className={`w-3 h-3 ${bloggerSyncState.syncing ? 'animate-spin' : ''}`}
+                        />
+                        <span>{isMainHub ? 'Ana Hub Senkronla' : 'Blogger Kaynağını Senkronla'}</span>
+                      </button>
+                    ) : (
+                      <div className="w-full text-center px-2.5 py-1.5 text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800 rounded-xs">
+                        HTTP 301 → emrepelit-sciphi.ai.studio
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -5249,12 +5782,8 @@ export default function App() {
                           <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                             {(article.publishedOnWebsites || OFFICIAL_10_WEBSITES).map(
                               (domain, dIdx) => {
-                                const artSourceLang =
-                                  article.sourceLang ||
-                                  detectEntrySourceLanguage(
-                                    getLocalizedText(article.title, 'tr'),
-                                    getLocalizedText(article.abstract, 'tr')
-                                  );
+                                const isLiveDomain = LIVE_WEBSITES_SET.has(domain);
+                                const isMainHub = domain === 'emrepelit-sciphi.ai.studio';
                                 return (
                                   <a
                                     key={domain}
@@ -5262,15 +5791,19 @@ export default function App() {
                                       domain === 'emrepelit7337.blogspot.com' && article.bloggerUrl
                                         ? article.bloggerUrl
                                         : `https://${domain}${getLocalizedArticlePath(
-                                            artSourceLang,
+                                            language,
                                             article.slug
                                           )}`
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="px-1.5 py-0.5 bg-white border border-emerald-300 text-emerald-900 hover:border-[#1E3A8A] hover:text-[#1E3A8A] rounded-xs transition-colors"
+                                    className={`px-1.5 py-0.5 rounded-xs transition-colors border ${
+                                      isLiveDomain
+                                        ? 'bg-white border-emerald-400 text-emerald-950 font-semibold hover:border-[#1E3A8A] hover:text-[#1E3A8A]'
+                                        : 'bg-stone-100 border-stone-300 text-stone-500 hover:text-stone-700'
+                                    }`}
                                   >
-                                    #{dIdx + 1} {domain} ({domain === 'emrepelit-sciphi.ai.studio' ? 'HTTP 200 Ana Hub' : '301 → Ana Hub'}) ↗
+                                    #{dIdx + 1} {domain} ({isMainHub ? 'CANLI ANA HUB · HTTP 200' : isLiveDomain ? 'CANLI BLOGGER · HTTP 200' : '301 → Hub'}) ↗
                                   </a>
                                 );
                               }
@@ -5278,13 +5811,14 @@ export default function App() {
                           </div>
                           <div className="mt-2 pt-2 border-t border-emerald-300/80 text-[11px] font-sans text-emerald-950 flex flex-wrap items-center justify-between gap-2">
                             <span>
-                              <strong>Ana Otorite Merkezi &amp; Kanonik Bağlantı:</strong> Bu makalenin ana merkez kopyası <a href={`https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(article.sourceLang || 'tr', article.slug)}`} className="text-[#1E3A8A] font-bold underline">emrepelit-sciphi.ai.studio</a> üzerindedir.
+                              <strong>{APP_CHROME_I18N[language].mainAuthorityCenterLabel}</strong>{' '}
+                              <a href={`https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(article.sourceLang || 'tr', article.slug)}`} className="text-[#1E3A8A] font-bold underline">emrepelit-sciphi.ai.studio</a>
                             </span>
                             <a
                               href={`https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(article.sourceLang || 'tr', article.slug)}`}
                               className="px-2 py-0.5 bg-[#1E3A8A] text-white font-mono text-[10px] rounded-xs no-underline hover:bg-[#172E6E]"
                             >
-                              Ana Hub Karşılığı ↗
+                              {APP_CHROME_I18N[language].canonicalCounterpartBtn}
                             </a>
                           </div>
                         </div>
@@ -5367,6 +5901,24 @@ export default function App() {
                           {abstractText}
                         </p>
                       </div>
+                      {/* Article-Specific HTML5 Explainer Video (Royalty-free & Respecting Freedom of Thought) */}
+                      <ArticleExplainerVideo
+                        article={article}
+                        language={language}
+                        onVideoMeasured={(artId) =>
+                          handleRecordAnalyticsMeasurement(
+                            'emrepelit-sciphi.ai.studio',
+                            {
+                              viewsDelta: 1,
+                              readsDelta: 1,
+                              readingMinutesDelta: 1,
+                              targetArticleId: artId,
+                            },
+                            'ARTICLE_READER',
+                            `HTML5 Açıklayıcı Video (60 sn) İzleme (#${artId}): +1 Görüntülenme, +1 Okunma`
+                          )
+                        }
+                      />
                     </div>
 
                     {/* Right 5 Cols: Prominent Side-by-Side Question/Objection Box + Visual Plate & Key Findings */}
@@ -5411,18 +5963,41 @@ export default function App() {
                   </div>
 
                   {/* Article-Specific Interactive Simulation (Always paired specifically with this article) */}
-                  <ArticleSimulation
+                  <div
+                    id={index === 0 ? 'featured-simulator-container' : `simulator-${article.id}`}
+                    className="scroll-mt-24"
+                  >
+                    <ArticleSimulation
+                      article={article}
+                      language={language}
+                      onOpenFullAnalysisModal={(art) => handleOpenAnalysisModal(art)}
+                      onSimulationMeasured={(artId, simType) =>
+                        handleRecordAnalyticsMeasurement(
+                          'emrepelit-sciphi.ai.studio',
+                          {
+                            simulatorRunsDelta: 1,
+                          },
+                          'SIMULATION_LAB',
+                          `Analitik Ölçüm (İnteraktif Simülasyon [${simType}] #${artId}): +1 Simülatör Çalıştırması`
+                        )
+                      }
+                    />
+                  </div>
+
+                  {/* Article-Specific Interactive Test Questions (Comprehension Check & Freedom of Thought) */}
+                  <ArticleQuizModule
                     article={article}
                     language={language}
-                    onOpenFullAnalysisModal={(art) => handleOpenAnalysisModal(art)}
-                    onSimulationMeasured={(artId, simType) =>
+                    onQuizCompletedMeasured={(artId, correctCount, totalCount) =>
                       handleRecordAnalyticsMeasurement(
                         'emrepelit-sciphi.ai.studio',
                         {
-                          simulatorRunsDelta: 1,
+                          viewsDelta: 1,
+                          readsDelta: 1,
+                          targetArticleId: artId,
                         },
-                        'SIMULATION_LAB',
-                        `Analitik Ölçüm (İnteraktif Simülasyon [${simType}] #${artId}): +1 Simülatör Çalıştırması`
+                        'ARTICLE_READER',
+                        `Etkileşimli Makale Testi Tamamlandı (#${artId} · ${correctCount}/${totalCount} Doğru): +1 Okunma`
                       )
                     }
                   />
@@ -5573,11 +6148,13 @@ export default function App() {
 
                         <div className="bg-[#FBF9F5] border border-stone-200 p-4 space-y-2.5">
                           <div className="font-mono uppercase tracking-wider text-[#1E3A8A] font-semibold">
-                            301 Ağındaki Tüm 10 Resmi Web Sitesi Yayın &amp; Kanonik Kayıtları (
-                            {incomingBacklinks.length > 0 ? incomingBacklinks.length : OFFICIAL_10_WEBSITES.length}/{OFFICIAL_10_WEBSITES.length} Site Yayında)
+                            {APP_CHROME_I18N[language].publishedOn10SitesHeading(
+                              incomingBacklinks.length > 0 ? incomingBacklinks.length : OFFICIAL_10_WEBSITES.length,
+                              OFFICIAL_10_WEBSITES.length
+                            )}
                           </div>
                           <p className="text-[11px] text-stone-600">
-                            Bu makalenin eşzamanlı olarak yayınlandığı 301 ağındaki 10 resmi web sitesi (Otorite Puanı %100 oranında yalnızca <strong>emrepelit-sciphi.ai.studio</strong> üzerinde toplanır):
+                            {APP_CHROME_I18N[language].publishedOn10SitesDesc}
                           </p>
                           <div className="divide-y divide-stone-200">
                             {(incomingBacklinks.length >= OFFICIAL_10_WEBSITES.length
@@ -5607,17 +6184,25 @@ export default function App() {
                               <div key={bl.id} className="py-2 space-y-0.5">
                                 <div className="font-mono text-[11px] font-semibold text-stone-800 flex items-center justify-between">
                                   <span>
-                                    #{bl.rank} {bl.domain} (HTTP {bl.httpStatus})
+                                    #{bl.rank} {bl.domain} (HTTP {LIVE_WEBSITES_SET.has(bl.domain) ? 200 : 301})
                                   </span>
-                                  <span className="text-[10px] text-emerald-700">
+                                  <span
+                                    className={`text-[10px] ${
+                                      LIVE_WEBSITES_SET.has(bl.domain)
+                                        ? 'text-emerald-700 font-semibold'
+                                        : 'text-stone-500'
+                                    }`}
+                                  >
                                     {bl.domain === 'emrepelit-sciphi.ai.studio'
-                                      ? '✓ YAYINDA (%100 OTORİTE MERKEZİ)'
-                                      : '✓ YAYINDA (301 → ANA HUB)'}
+                                      ? APP_CHROME_I18N[language].liveMainHubBadge
+                                      : bl.domain === 'emrepelit7337.blogspot.com'
+                                        ? '✓ CANLI BLOGGER CMS (HTTP 200)'
+                                        : APP_CHROME_I18N[language].liveRedirectBadge}
                                   </span>
                                 </div>
                                 <div className="text-stone-700">{bl.title}</div>
                                 <div className="text-[11px] font-mono text-[#1E3A8A] truncate">
-                                  → Yayın URL: {bl.sourceUrl}
+                                  → {APP_CHROME_I18N[language].publicationUrlLabel} {bl.sourceUrl}
                                 </div>
                               </div>
                             ))}
@@ -5769,10 +6354,28 @@ export default function App() {
           onToggleAnalyticsPanel={(open) =>
             setAnalyticsPanelOpen(typeof open === 'boolean' ? open : !analyticsPanelOpen)
           }
+          onForceLiveSync={() => syncCloudAnalyticsState(false)}
           articleStatsBoosts={articleStatsBoosts}
         />
 
-        {/* SECTION 02B: Simultaneous 12-Language Browser & Academic Indexing + Social Media Promotion Hub */}
+        {/* SECTION 02B: Interactive Science, Physics & Philosophy Applications Suite */}
+        <InteractiveAppsSuite
+          articles={articles}
+          language={language}
+          onJumpToArticle={(artId) => handleJumpToArticle(artId)}
+          onAppInteractionMeasured={(appId, summary) =>
+            handleRecordAnalyticsMeasurement(
+              'emrepelit-sciphi.ai.studio',
+              {
+                simulatorRunsDelta: 1,
+              },
+              'SIMULATION_LAB',
+              `İnteraktif Web Uygulaması (${appId}): ${summary}`
+            )
+          }
+        />
+
+        {/* SECTION 02C: Simultaneous 12-Language Browser & Academic Indexing + Social Media Promotion Hub */}
         <div id="indexing-social" className="scroll-mt-24 pt-6 border-t border-stone-300">
           <GlobalIndexingAndSocialHub
             articles={articles}
@@ -5869,7 +6472,8 @@ export default function App() {
               {APP_CHROME_I18N[language].footerArchiveTitle}
             </div>
             <div>
-              Kalıcı 301 &amp; Kanonik Ağı (10 Resmi Düğüm): science-philosophy.grok.me · emrepelit7337.blogspot.com · sci-phi.ai.studio · sci-phil.ai.studio · science-philosophy.ai.studio · science-philosophy-emre-pelit.ai.studio · emre-pelit-sci-phil.ai.studio · emrepelit-sciphi.ai.studio (Ana Hub) · emrepelit.github.io/science-philosophy · emrepelit-sci-phi.ai.studio
+              {APP_CHROME_I18N[language].network301FooterLabel}{' '}
+              emrepelit-sciphi.ai.studio (Canlı Ana Hub · HTTP 200) · emrepelit7337.blogspot.com (Canlı Blogger CMS · HTTP 200) · Emekli 301 → Hub: science-philosophy.grok.me · sci-phi.ai.studio · sci-phil.ai.studio · science-philosophy.ai.studio · science-philosophy-emre-pelit.ai.studio · emre-pelit-sci-phil.ai.studio · emrepelit.github.io/science-philosophy · emrepelit-sci-phi.ai.studio
             </div>
             <div className="font-mono text-[11px] text-stone-700 pt-0.5 flex flex-wrap items-center gap-2">
               <span>YouTube:</span>
@@ -5904,12 +6508,14 @@ export default function App() {
               {(
                 [
                   { id: 'privacy', label: APP_CHROME_I18N[language].privacy },
+                  { id: 'terms', label: APP_CHROME_I18N[language].terms },
+                  { id: 'imprint', label: APP_CHROME_I18N[language].imprint },
                   { id: 'kvkk', label: APP_CHROME_I18N[language].kvkk },
                   { id: 'disclaimer', label: APP_CHROME_I18N[language].disclaimer },
                   { id: 'methodology', label: APP_CHROME_I18N[language].methodology },
                 ] as const
               ).map((gov, idx) => {
-                const govPrefix = ['tr', 'en', 'es', 'de', 'fr'].includes(language) ? language : 'tr';
+                const govPrefix = language;
                 return (
                   <React.Fragment key={gov.id}>
                     {idx > 0 && <span>·</span>}
@@ -5933,26 +6539,32 @@ export default function App() {
                 onClick={() => setKvkkManageOpen(true)}
                 className="font-bold text-amber-900 hover:text-stone-950 underline cursor-pointer"
               >
-                Çerez &amp; KVKK Tercihleri ({kvkkConsent.status === 'accepted' ? 'Açık Rıza Aktif' : kvkkConsent.status === 'rejected' ? 'Reddedildi' : 'Bekliyor'})
+                {APP_CHROME_I18N[language].cookiePrefsLabel} (
+                {kvkkConsent.status === 'accepted'
+                  ? APP_CHROME_I18N[language].consentActive
+                  : kvkkConsent.status === 'rejected'
+                    ? APP_CHROME_I18N[language].consentRejected
+                    : APP_CHROME_I18N[language].consentPending}
+                )
               </button>
             </div>
-            <nav aria-label="Yerel Dil Dizinleri" className="font-mono text-[11px] text-stone-600 pt-1 flex flex-wrap items-center gap-2">
-              <span>Dil Dizinleri:</span>
-              {(['tr', 'en', 'es', 'de', 'fr'] as const).map((lc) => (
+            <nav aria-label={APP_CHROME_I18N[language].langDirsLabel} className="font-mono text-[11px] text-stone-600 pt-1 flex flex-wrap items-center gap-2">
+              <span>{APP_CHROME_I18N[language].langDirsLabel}</span>
+              {WORLD_LANGUAGES.map((wl) => (
                 <a
-                  key={lc}
-                  href={lc === 'tr' ? '/' : `/${lc}/`}
+                  key={wl.code}
+                  href={wl.code === 'tr' ? '/' : `/${wl.code}/`}
                   onClick={(e) => {
                     e.preventDefault();
-                    setLanguage(lc);
+                    setLanguage(wl.code);
                   }}
                   className={`px-1.5 py-0.5 border rounded-xs ${
-                    language === lc
+                    language === wl.code
                       ? 'bg-[#1E3A8A] text-white border-[#1E3A8A] font-bold'
                       : 'bg-white text-stone-700 border-stone-300 hover:border-[#1E3A8A]'
                   }`}
                 >
-                  {lc.toUpperCase()}
+                  {wl.code.toUpperCase()}
                 </a>
               ))}
               <a
@@ -5964,7 +6576,7 @@ export default function App() {
                 }}
                 className="px-1.5 py-0.5 bg-white text-[#1E3A8A] border border-stone-300 hover:border-[#1E3A8A] rounded-xs font-semibold"
               >
-                Tam Arşiv
+                {APP_CHROME_I18N[language].fullArchiveLabel}
               </a>
             </nav>
           </div>
@@ -6020,7 +6632,11 @@ export default function App() {
       </footer>
 
       {/* Floating Quick-Action & Back-to-Top UX Dock */}
-      <div className="fixed bottom-4 right-4 z-40 flex items-center gap-1.5 bg-[#0F172A]/95 backdrop-blur-xs text-white border border-slate-700 px-3 py-2 rounded-xs shadow-lg text-xs font-mono">
+      <div
+        className={`fixed ${
+          isKvkkBannerVisible ? 'bottom-[88px]' : 'bottom-6'
+        } right-4 z-40 flex items-center gap-1.5 bg-[#0F172A]/95 backdrop-blur-xs text-white border border-slate-700 px-3 py-2 rounded-xs shadow-lg text-xs font-mono transition-all`}
+      >
         <button
           type="button"
           onClick={() => setAnalyticsPanelOpen(true)}
@@ -6191,7 +6807,10 @@ export default function App() {
       />
 
       {/* PWA Offline Network Status Pill */}
-      <OfflineIndicator />
+      <OfflineIndicator
+        kvkkBannerVisible={isKvkkBannerVisible}
+        hasCachedArticles={articles.length > 0}
+      />
     </div>
   );
 }

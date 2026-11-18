@@ -18,6 +18,7 @@ import {
   Network301Node,
 } from '../types';
 import { UI_TEXT } from '../i18n/translations';
+import { computeCorpusCountMetrics } from '../utils/articleLocale';
 
 interface ControlAndCloudPanelProps {
   config: DynamicGatewayConfig;
@@ -41,6 +42,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
   onTriggerBloggerSync,
 }) => {
   const t = UI_TEXT[language].control;
+  const corpusMetrics = computeCorpusCountMetrics(articles);
   const [draft, setDraft] = useState<DynamicGatewayConfig>({
     ...config,
     googleSiteVerificationToken:
@@ -874,7 +876,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                   <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-stone-500">
                     <span>{snap.timestamp}</span>
                     <span>
-                      {Math.max(316, snap.articlesCount)} Makale · {snap.nodesCount} Düğüm
+                      {Math.max(corpusMetrics.multilingualTextsCount, snap.articlesCount)} Makale · {snap.nodesCount} Düğüm
                     </span>
                   </div>
                   <div className="text-[10px] font-mono text-stone-400 truncate">
@@ -884,28 +886,39 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
               ))}
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="bg-white border-2 border-emerald-700 p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-stone-900">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-700" />
-                <h3 className="text-lg font-editorial font-bold">{t.securitySection}</h3>
-              </div>
-              <span className="px-2.5 py-1 text-[10px] font-mono font-extrabold bg-emerald-800 text-white rounded-xs inline-flex items-center gap-1">
-                <Lock className="w-3 h-3" />
-                <span>10/10 SİTE TAM KORUMALI · SADECE EMRE PELİT AYAR YAPABİLİR</span>
-              </span>
+      {/* Full-Width Balanced Security Audit & 10-Node Protection Row (eliminates empty left-column space above footer) */}
+      <div className="bg-white border-2 border-emerald-700 p-5 sm:p-6 space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-stone-900 border-b border-stone-200 pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
+            <div>
+              <h3 className="text-lg font-editorial font-bold">{t.securitySection}</h3>
+              <p className="text-xs text-stone-600">
+                {corpusMetrics.distinctOriginalCount} Özgün Makale · {corpusMetrics.multilingualTextsCount} Çok Dilli Metin · {corpusMetrics.totalDirectoryCount} Toplam Dizin — Tam Kriptografik Müdahale Koruması
+              </p>
             </div>
+          </div>
+          <span className="px-2.5 py-1 text-[10px] font-mono font-extrabold bg-emerald-800 text-white rounded-xs inline-flex items-center gap-1">
+            <Lock className="w-3 h-3 shrink-0" />
+            <span>2 CANLI + 8 EMEKLİ 301 DÜĞÜMÜ TAM KORUMALI · SADECE EMRE PELİT AYAR YAPABİLİR</span>
+          </span>
+        </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Left Column: Summary Declaration, Cryptographic Metrics & 9 Security Protocols */}
+          <div className="space-y-4">
             <p className="text-xs text-stone-700 leading-relaxed">
-              Ana Hub (<strong>emrepelit-sciphi.ai.studio</strong>) ve 301/kanonik köprü ile bağlı diğer 9 resmi web sitesinin tamamı (toplam 10 resmi URL düğümü), <strong>TLS 1.3 HSTS Preload</strong>, <strong>Content-Security-Policy (CSP Level 3)</strong>, <strong>Zero-Trust WAF</strong>, <strong>Strict Origin/CSRF Durum-Mutasyon Kilidi</strong>, <strong>SHA-256 Merkle Root Bütünlük Mührü</strong> ve <strong>Münhasır Kurucu Ayar Kilidi (Sadece Emre Pelit — emrepelit39@gmail.com)</strong> ile dış müdahalelere karşı %100 kilitlenmiştir.
+              Tek Kanonik Ana Hub (<strong>emrepelit-sciphi.ai.studio</strong>), canlı kaynak <strong>emrepelit7337.blogspot.com</strong> ve sunucu taraflı <strong>HTTP 301</strong> ile Ana Hub&apos;a yönlendirilen yayından kaldırılmış 8 eski uydu alan adı (toplam 10 resmi kayıt düğümü), <strong>TLS 1.3 HSTS Preload</strong>, <strong>Content-Security-Policy (CSP Level 3)</strong>, <strong>Zero-Trust WAF</strong>, <strong>Strict Origin/CSRF Durum-Mutasyon Kilidi</strong>, <strong>SHA-256 Merkle Root Bütünlük Mührü</strong> ve <strong>Münhasır Kurucu Ayar Kilidi (Sadece Emre Pelit — emrepelit39@gmail.com)</strong> ile dış müdahalelere karşı %100 kilitlenmiştir.
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-xs font-mono">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
               <div className="p-2.5 bg-emerald-50/70 border border-emerald-300">
                 <div className="text-[10px] text-stone-600">KRİPTOGRAFİK BÜTÜNLÜK</div>
                 <div className="font-bold text-emerald-900 mt-0.5">
-                  {Math.max(316, articles.length)}/{Math.max(316, articles.length)} Makale SHA-256
+                  {corpusMetrics.multilingualTextsCount}/{corpusMetrics.multilingualTextsCount} Makale SHA-256
                 </div>
               </div>
               <div className="p-2.5 bg-emerald-50/70 border border-emerald-300">
@@ -937,7 +950,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                     '2. Content-Security-Policy (CSP Level 3) & Frame-Ancestors Clickjacking Kalkanı',
                     '3. Zero-Trust WAF: XSS, SQLi, SSRF, Null-Byte, Path Traversal & Prototype Pollution Engelleme',
                     '4. Strict Origin, Referer & Sec-Fetch-Site CSRF Durum-Mutasyon Kilidi',
-                    `5. SHA-256 Merkle Root ${Math.max(316, articles.length)} Makale, Telif ve 301 Yönlendirme Bütünlük Mührü`,
+                    `5. SHA-256 Merkle Root ${corpusMetrics.multilingualTextsCount} Makale, Telif ve 301 Yönlendirme Bütünlük Mührü`,
                     '6. Monotonik İstatistik Kilidi (Görüntülenme, Okunma ve Atıflar Asla Düşürülemez / Sıfırlanamaz)',
                     '7. İstemci Tarafı DOM MutationObserver & Object.freeze Dış Müdahale Kalkanı',
                     '8. RFC 9116 /.well-known/security.txt & /security-policy.json 10 Düğüm Kriptografik Tasdik',
@@ -951,27 +964,33 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                 ))}
               </ul>
               {securityAudit?.merkleRoot && (
-                <div className="pt-1 border-t border-stone-200 text-[9px] text-stone-500 truncate">
+                <div className="pt-1 border-t border-stone-200 text-[9px] text-stone-500 break-all">
                   10-Düğüm SHA-256 Merkle Kök Mührü: {securityAudit.merkleRoot}
                 </div>
               )}
             </div>
+          </div>
 
-            {/* All 10 Official 301 Websites Security Status */}
-            <div className="bg-[#FBF9F5] border border-stone-300 p-3 space-y-1.5 text-[11px] font-mono">
+          {/* Right Column: All 10 Official 301 Websites Security Status & Verification Controls */}
+          <div className="space-y-4">
+            <div className="bg-[#FBF9F5] border border-stone-300 p-3 space-y-2 text-[11px] font-mono">
               <div className="text-stone-900 font-bold uppercase text-[10px] border-b border-stone-200 pb-1">
-                Tam Güvenlik ve Dış Müdahale Kilidi Uygulanan 10 Resmi Web Sitesi:
+                Tam Güvenlik ve Dış Müdahale Kilidi Uygulanan 2 Canlı Site &amp; 8 Konsolide HTTP 301 Alan Adı:
               </div>
               <div className="grid grid-cols-1 gap-1.5 text-stone-800">
                 {nodes.map((n) => {
                   const auditSite = securityAudit?.sites?.find((s) => s.domain === n.domain);
+                  const isLive = n.isLiveWebsite ?? (n.domain === 'emrepelit-sciphi.ai.studio' || n.domain === 'emrepelit7337.blogspot.com');
                   return (
                     <div
                       key={n.id}
-                      className="flex flex-wrap items-center justify-between gap-1 bg-white px-2.5 py-1.5 border border-stone-200 rounded-xs"
+                      className="flex flex-wrap items-center justify-between gap-1.5 bg-white px-2.5 py-1.5 border border-stone-200 rounded-xs"
                     >
-                      <span className="truncate font-semibold">
-                        <strong>#{n.rank}</strong> {n.domain}
+                      <span className="break-all font-semibold text-[11px]">
+                        <strong>#{n.rank}</strong> {n.domain}{' '}
+                        <span className={isLive ? 'text-emerald-700 text-[10px]' : 'text-stone-500 text-[10px]'}>
+                          ({isLive ? 'Canlı 200 OK' : 'HTTP 301 → Ana Hub'})
+                        </span>
                       </span>
                       <span className="text-emerald-800 font-bold text-[10px] shrink-0">
                         ✓ TLS 1.3 · CSP · WAF · Kurucu Kilitli{' '}
@@ -993,8 +1012,8 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>
                   {verifyingSecurity
-                    ? '10 Site Güvenlik Kilidi Doğrulanıyor...'
-                    : '10 Site Güvenlik & Dış Müdahale Kilidini Şimdi Doğrula'}
+                    ? '2 Canlı + 8 Konsolide 301 Güvenlik Kilidi Doğrulanıyor...'
+                    : '2 Canlı + 8 Emekli 301 Güvenlik & Dış Müdahale Kilidini Şimdi Doğrula'}
                 </span>
               </button>
 

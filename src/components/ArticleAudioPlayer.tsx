@@ -589,7 +589,7 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
               htmlFor={`audio-lang-${article.id}-${compact ? 'c' : 'f'}`}
               className="text-[11px] font-mono text-stone-600 whitespace-nowrap"
             >
-              {t.selectAudioLang}:
+              {t.selectAudioLang}
             </label>
             <select
               id={`audio-lang-${article.id}-${compact ? 'c' : 'f'}`}

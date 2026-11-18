@@ -27,6 +27,7 @@ import {
   getLocalizedArray,
 } from '../i18n/translations';
 import { buildScientificPlateDataUri, INITIAL_ARTICLES } from '../data/initialData';
+import { getLocalizedArticlePath } from '../utils/articleLocale';
 import { computeArticleScientificAnalysis } from '../utils/articleAnalysisEngine';
 
 interface AIContentLabProps {
@@ -330,16 +331,19 @@ export const AIContentLab: React.FC<AIContentLabProps> = ({
 
       const templateSim = getTemplateSimSpec(simType);
       const figNum = `FIG. 0${articles.length + 1}.AI`;
+      const generatedStamp = Date.now();
+      const generatedSlug = `sciphil-ai-${generatedStamp}`;
       const newArt: Article = {
-        id: `art-ai-${Date.now()}`,
-        slug: `sciphil-ai-${Date.now()}`,
+        id: `art-ai-${generatedStamp}`,
+        slug: generatedSlug,
+        sourceLang: language,
         category,
         publishedAt: new Date().toISOString().slice(0, 10),
         readTimeMinutes: 9,
         author: 'Emre Pelit',
         affiliation: 'Münhasır Yazar & Kurucu • Sci-Phil Bilim ve Felsefe Araştırma Merkezi',
         sourceOrigin: 'ai-laboratory',
-        canonicalHubUrl: `https://emrepelit-sciphi.ai.studio/tr/makale/sciphil-ai-${Date.now()}`,
+        canonicalHubUrl: `https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(language, generatedSlug)}`,
         figureNumber: figNum,
         figureCaption: {
           tr: payload.figureCaption,
@@ -411,16 +415,19 @@ export const AIContentLab: React.FC<AIContentLabProps> = ({
     } catch {
       const templateSim = getTemplateSimSpec(simType);
       const figNum = `FIG. 0${articles.length + 1}.AI`;
+      const fallbackStamp = Date.now();
+      const fallbackSlug = `sciphil-ai-${fallbackStamp}`;
       const fallbackArt: Article = {
-        id: `art-ai-${Date.now()}`,
-        slug: `sciphil-ai-${Date.now()}`,
+        id: `art-ai-${fallbackStamp}`,
+        slug: fallbackSlug,
+        sourceLang: language,
         category,
         publishedAt: new Date().toISOString().slice(0, 10),
         readTimeMinutes: 9,
         author: 'Emre Pelit',
         affiliation: 'Münhasır Yazar & Kurucu • Sci-Phil Bilim ve Felsefe Araştırma Merkezi',
         sourceOrigin: 'ai-laboratory',
-        canonicalHubUrl: `https://emrepelit-sciphi.ai.studio/tr/makale/sciphil-ai-${Date.now()}`,
+        canonicalHubUrl: `https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(language, fallbackSlug)}`,
         figureNumber: figNum,
         figureCaption: {
           tr: `Şekil — ${topicPrompt.trim()} için faz uzayı ve parametrik dağılım plakası.`,
@@ -531,7 +538,7 @@ export const AIContentLab: React.FC<AIContentLabProps> = ({
         });
       }
       onAnalyticsMeasured?.(
-        `306 Makale Özel AI Analiz & Simülasyon Motoru (${calibratedReport?.articleNumberLabel || '#1'})`,
+        `${articles.length} Makale Özel AI Analiz & Simülasyon Motoru (${calibratedReport?.articleNumberLabel || '#1'})`,
         1,
         1
       );
@@ -612,7 +619,7 @@ export const AIContentLab: React.FC<AIContentLabProps> = ({
                   {articles.length} MAKALE ÖZEL ANALİZ &amp; KALİBRASYON SEÇİCİ
                 </span>
                 <span className="text-[11px] font-mono text-emerald-800 font-semibold">
-                  Aktif: {articles.length} Makale (10 Site)
+                  Aktif: {articles.length} Makale (Ana Hub + Blogger · 8 Eski 301 → Ana Hub)
                 </span>
               </div>
 
@@ -1039,7 +1046,7 @@ export const AIContentLab: React.FC<AIContentLabProps> = ({
                   type="search"
                   value={articleFilterQuery}
                   onChange={(e) => setArticleFilterQuery(e.target.value)}
-                  placeholder="306 makale içinde başlık veya kavram ara..."
+                  placeholder={`${articles.length} makale içinde başlık veya kavram ara...`}
                   className="pl-8 pr-3 py-1.5 text-xs bg-[#FBF9F5] border border-stone-300 focus:outline-none focus:border-[#1E3A8A] w-64"
                 />
               </div>
@@ -1194,7 +1201,7 @@ export const AIContentLab: React.FC<AIContentLabProps> = ({
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-emerald-800 hover:bg-emerald-900 rounded-sm cursor-pointer transition-colors"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Bu Sitede ve 301 Ağındaki Tüm 10 Sitede Yayınla (%100 Otorite Bu Sitede)</span>
+                    <span>Ana Hub (emrepelit-sciphi.ai.studio) Üzerinde Yayınla &amp; 12 Dilde İndeksle</span>
                   </button>
                 </div>
 

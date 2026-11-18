@@ -106,7 +106,9 @@ export interface Network301Node {
   addedTo301Badge?: boolean;
   redirectTargetUrl: string;
   httpCode: 301 | 200;
-  status: 'PERMANENT_301_ACTIVE';
+  status: 'LIVE_MAIN_HUB' | 'LIVE_BLOGGER_SOURCE' | 'DECOMMISSIONED_REDIRECTED_301' | 'PERMANENT_301_ACTIVE';
+  isLiveWebsite?: boolean;
+  decommissionedNote?: string;
   tlsProtocol: 'TLS 1.3 / SHA-256';
   stats: {
     baseReads: number;
