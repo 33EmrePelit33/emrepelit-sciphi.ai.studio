@@ -326,10 +326,10 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
                 <div><strong>{isTurkish ? 'Yayın Adı:' : 'Archive Name:'}</strong> Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi</div>
                 <div><strong>{isTurkish ? 'Münhasır Yazar & Editör:' : 'Sole Author & Maintainer:'}</strong> Emre Pelit (Mersin Üniversitesi &amp; Anadolu Üniversitesi AÖF)</div>
                 <div><strong>{isTurkish ? 'Konum:' : 'Location:'}</strong> Mersin, Türkiye</div>
-                <div><strong>{isTurkish ? 'E-Posta:' : 'Email:'}</strong> emrepelit39@gmail.com</div>
+                <div><strong>{isTurkish ? 'İletişim Kanalı:' : 'Contact Channel:'}</strong> {isTurkish ? 'Site içi korumalı Soru & İletişim Formu' : 'Protected In-Site Inquiry & Contact Form'}</div>
                 <div><strong>{isTurkish ? 'Kanonik Ana Hub (HTTP 200):' : 'Canonical Main Hub (HTTP 200):'}</strong> https://emrepelit-sciphi.ai.studio</div>
                 <div><strong>{isTurkish ? 'Kaynak Blog Arşivi:' : 'Source CMS Archive:'}</strong> https://emrepelit7337.blogspot.com ({totalArticlesCount} Makale)</div>
-                <div><strong>GitHub:</strong> https://github.com/emrepelit109 &amp; https://emrepelit.github.io/science-philosophy</div>
+                <div><strong>GitHub:</strong> https://github.com/emrepelit109 (Pasif Arşiv: emrepelit.github.io/science-philosophy)</div>
                 <div><strong>YouTube &amp; LinkedIn:</strong> https://www.youtube.com/@science_only · https://www.linkedin.com/in/emrepelit109</div>
               </div>
               <p className="text-xs text-stone-600">
@@ -349,8 +349,8 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
               </h3>
               <p className="text-xs font-mono bg-stone-100 border border-stone-300 p-3">
                 {isTurkish
-                  ? 'Veri Sorumlusu: Emre Pelit | E-posta: emrepelit39@gmail.com | Adres: Toroslar / Mersin, Türkiye | Resmi Alan Adı: https://emrepelit-sciphi.ai.studio'
-                  : 'Data Controller: Emre Pelit | Email: emrepelit39@gmail.com | Location: Mersin, Türkiye | Canonical Domain: https://emrepelit-sciphi.ai.studio'}
+                  ? 'Veri Sorumlusu: Emre Pelit | İletişim: Site İçi Korumalı Form | Konum: Mersin, Türkiye | Resmi Alan Adı: https://emrepelit-sciphi.ai.studio'
+                  : 'Data Controller: Emre Pelit | Contact: Protected In-Site Form | Location: Mersin, Türkiye | Canonical Domain: https://emrepelit-sciphi.ai.studio'}
               </p>
               <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
                 <li>
@@ -416,8 +416,8 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
                 <li>
                   <strong>{isTurkish ? 'Sunucu Tarafı Yapay Zeka (API İzolasyonu):' : 'Server-Side AI Execution:'}</strong>{' '}
                   {isTurkish
-                    ? 'İçerik analizi, çeviri ve 12 dil seslendirme uç noktaları (gemini-4-hydrogen / gemini-3.8-flash-lite-tts yönlendirmesi ve kararlı yedek modeller) yalnızca Node.js/Express sunucu tarafındaki /api/* rotalarında çalışır. GEMINI_API_KEY hiçbir zaman istemci tarayıcıya gönderilmez.'
-                    : 'AI analysis, translation, and 12-language TTS run strictly behind backend /api/* proxy endpoints. GEMINI_API_KEY is never exposed to the browser.'}
+                    ? 'İçerik analizi, çeviri ve 12 dil seslendirme uç noktaları yalnızca Node.js/Express sunucu tarafındaki korumalı /api/* rotalarında hız sınırlandırması (rate-limiting) ile çalışır. API anahtarları hiçbir zaman istemci tarayıcıya gönderilmez.'
+                    : 'AI analysis, translation, and 12-language TTS run strictly behind rate-limited backend /api/* proxy endpoints. API keys are never exposed to the browser.'}
                 </li>
                 <li>
                   <strong>{isTurkish ? 'Ölçüm ve Aritmetik Mutabakat Şeffaflığı:' : 'Telemetry & Arithmetic Reconciliation:'}</strong>{' '}

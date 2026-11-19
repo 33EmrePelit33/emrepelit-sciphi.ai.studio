@@ -45,84 +45,84 @@ const LANG_HUB_META = {
   tr: {
     path: '/',
     title: 'Emre Pelit Sci-Phil — Bilim, Felsefe, Video, Test ve Simülasyon Arşivi',
-    desc: 'Emre Pelit tarafından kaleme alınan 316+ özgün bilim ve felsefe makalesi, her makaleye özel 60 sn HTML5 açıklayıcı videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonları.',
+    desc: 'Emre Pelit tarafından kaleme alınan 316+ özgün bilim ve felsefe makalesi, her makaleye özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonları.',
     h1: 'Emre Pelit — Bilim, Felsefe ve Simülasyon Arşivi',
     archiveLabel: 'Tüm Makale Arşivi',
   },
   en: {
     path: '/en/',
     title: 'Emre Pelit Sci-Phil — Science, Philosophy, Videos, Quizzes & Simulation Archive',
-    desc: 'Independent author archive by Emre Pelit with 316+ essays, per-article 60s HTML5 explainer videos, multiple-choice quizzes, and interactive scientific models.',
+    desc: 'Independent author archive by Emre Pelit with 316+ essays, per-article 10-minute animated-entity HTML5 explainer videos, multiple-choice quizzes, and interactive scientific models.',
     h1: 'Emre Pelit — Science, Philosophy & Simulation Archive',
     archiveLabel: 'Complete Article Archive',
   },
   es: {
     path: '/es/',
     title: 'Emre Pelit Sci-Phil — Archivo de Ciencia, Filosofía, Videos y Cuestionarios',
-    desc: 'Archivo independiente de Emre Pelit con videos explicativos HTML5 de 60s por artículo, cuestionarios de opción múltiple, física cuántica, cosmología y simulaciones.',
+    desc: 'Archivo independiente de Emre Pelit con videos explicativos HTML5 de 10 minutos con entidades animadas por artículo, cuestionarios de opción múltiple, física cuántica, cosmología y simulaciones.',
     h1: 'Emre Pelit — Archivo de Ciencia, Filosofía y Simulación',
     archiveLabel: 'Archivo Completo de Artículos',
   },
   de: {
     path: '/de/',
     title: 'Emre Pelit Sci-Phil — Archiv für Wissenschaft, Videos, Tests & Simulation',
-    desc: 'Unabhängiges Autorenarchiv von Emre Pelit mit 60s-HTML5-Erklärvideos und Multiple-Choice-Tests zu jedem Artikel, Quantenphysik, Kosmologie und Simulationen.',
+    desc: 'Unabhängiges Autorenarchiv von Emre Pelit mit 10-Minuten-HTML5-Erklärvideos mit bewegten Akteuren und Multiple-Choice-Tests zu jedem Artikel, Quantenphysik, Kosmologie und Simulationen.',
     h1: 'Emre Pelit — Archiv für Wissenschaft, Philosophie & Simulation',
     archiveLabel: 'Vollständiges Artikelarchiv',
   },
   fr: {
     path: '/fr/',
     title: 'Emre Pelit Sci-Phil — Archives de Science, Vidéos, Quiz et Simulation',
-    desc: 'Archives indépendantes d’Emre Pelit avec vidéos explicatives HTML5 de 60s par article, quiz à choix multiples, physique quantique, cosmologie et simulation.',
+    desc: 'Archives indépendantes d’Emre Pelit avec vidéos explicatives HTML5 de 10 minutes à entités animées par article, quiz à choix multiples, physique quantique, cosmologie et simulation.',
     h1: 'Emre Pelit — Archives de Science, Philosophie et Simulation',
     archiveLabel: 'Archives Complètes des Articles',
   },
   ru: {
     path: '/ru/',
     title: 'Emre Pelit Sci-Phil — Архив Науки, Философии, Видео и Тестов',
-    desc: 'Независимый архив Эмре Пелита: квантовая физика, космология, 60-секундные HTML5-видеопояснения и интерактивные тесты с выбором ответа для каждой статьи.',
+    desc: 'Независимый архив Эмре Пелита: квантовая физика, космология, 10-минутные HTML5-видеопояснения с движущимися объектами и интерактивные тесты с выбором ответа для каждой статьи.',
     h1: 'Emre Pelit — Архив Науки, Философии и Симуляции',
     archiveLabel: 'Полный Архив Статей',
   },
   ar: {
     path: '/ar/',
     title: 'Emre Pelit Sci-Phil — أرشيف العلوم والفلسفة والفيديو والاختبارات',
-    desc: 'أرشيف إمره بيليت المستقل: مقالات فيزياء الكم وعلم الكونيات مع فيديو توضيحي HTML5 مدته 60 ثانية واختبارات اختيار من متعدد لكل مقال.',
+    desc: 'أرشيف إمره بيليت المستقل: مقالات فيزياء الكم وعلم الكونيات مع فيديو توضيحي HTML5 مدته 10 دقائق بكيانات متحركة متفاعلة واختبارات اختيار من متعدد لكل مقال.',
     h1: 'Emre Pelit — أرشيف العلوم والفلسفة والمحاكاة',
     archiveLabel: 'الأرشيف الكامل للمقالات',
   },
   zh: {
     path: '/zh/',
     title: 'Emre Pelit Sci-Phil — 科学、哲学、视频、测验与模拟档案',
-    desc: '独立作者 Emre Pelit 档案库：涵盖量子物理与宇宙学论文，每篇文章均配有 60 秒 HTML5 科普视频、专业多项选择测验与交互式科学模拟。',
+    desc: '独立作者 Emre Pelit 档案库：涵盖量子物理与宇宙学论文，每篇文章均配有 10 分钟动态实体交互 HTML5 科普视频、专业多项选择测验与交互式科学模拟。',
     h1: 'Emre Pelit — 科学、哲学与数学模拟档案',
     archiveLabel: '完整文章档案库',
   },
   ja: {
     path: '/ja/',
     title: 'Emre Pelit Sci-Phil — 科学・哲学・解説動画・理解度テストアーカイブ',
-    desc: '量子物理学・宇宙論・心の哲学を扱う Emre Pelit の独立アーカイブ。各記事に60秒HTML5解説動画、多肢選択クイズ、対話型シミュレーションを搭載。',
+    desc: '量子物理学・宇宙論・心の哲学を扱う Emre Pelit の独立アーカイブ。各記事に10分間の動くエンティティHTML5解説動画、多肢選択クイズ、対話型シミュレーションを搭載。',
     h1: 'Emre Pelit — 科学・哲学・シミュレーションアーカイブ',
     archiveLabel: '全論文アーカイブ',
   },
   pt: {
     path: '/pt/',
     title: 'Emre Pelit Sci-Phil — Arquivo de Ciência, Vídeos, Quizzes e Simulação',
-    desc: 'Arquivo independente de Emre Pelit com vídeos explicativos HTML5 de 60s e quizzes de múltipla escolha por artigo, física quântica, cosmologia e simulações.',
+    desc: 'Arquivo independente de Emre Pelit com vídeos explicativos HTML5 de 10 minutos com entidades animadas e quizzes de múltipla escolha por artigo, física quântica, cosmologia e simulações.',
     h1: 'Emre Pelit — Arquivo de Ciência, Filosofia e Simulação',
     archiveLabel: 'Arquivo Completo de Artigos',
   },
   it: {
     path: '/it/',
     title: 'Emre Pelit Sci-Phil — Archivio di Scienza, Video, Quiz e Simulazione',
-    desc: 'Archivio indipendente di Emre Pelit con video esplicativi HTML5 da 60s e quiz a scelta multipla per ogni articolo, fisica quantistica, cosmologia e simulazioni.',
+    desc: 'Archivio indipendente di Emre Pelit con video esplicativi HTML5 da 10 minuti con entità animate e quiz a scelta multipla per ogni articolo, fisica quantistica, cosmologia e simulazioni.',
     h1: 'Emre Pelit — Archivio di Scienza, Filosofia e Simulazione',
     archiveLabel: 'Archivio Completo degli Articoli',
   },
   ko: {
     path: '/ko/',
     title: 'Emre Pelit Sci-Phil — 과학·철학·해설 영상·퀴즈·시뮬레이션 아카이브',
-    desc: '양자 물리학과 우주론을 다루는 Emre Pelit 독립 아카이브: 각 논문별 60초 HTML5 해설 영상, 객관식 이해도 퀴즈 및 대화형 시뮬레이션 제공.',
+    desc: '양자 물리학과 우주론을 다루는 Emre Pelit 독립 아카이브: 각 논문별 10분 움직이는 개체 상호작용 HTML5 해설 영상, 객관식 이해도 퀴즈 및 대화형 시뮬레이션 제공.',
     h1: 'Emre Pelit — 과학·철학·시뮬레이션 아카이브',
     archiveLabel: '전체 논문 아카이브',
   },
@@ -678,11 +678,11 @@ async function run() {
           {
             '@type': 'VideoObject',
             '@id': `${routeCanonicalUrl}#explainer-video`,
-            name: `${item.title} — HTML5 Explainer Video (60s)`,
+            name: `${item.title} — 10-Minute Animated-Entity HTML5 Explainer Video`,
             description: desc,
             thumbnailUrl: `${CANONICAL_ORIGIN}/og-card.jpg`,
             uploadDate: item.publishedAt,
-            duration: 'PT60S',
+            duration: 'PT10M',
             embedUrl: `${routeCanonicalUrl}#video`,
             contentUrl: `${routeCanonicalUrl}#video`,
             inLanguage: targetLang,
@@ -719,8 +719,8 @@ async function run() {
     </div>
     ${findingsHtml}
     <section aria-label="HTML5 Açıklayıcı Video ve Çoktan Seçmeli Test">
-      <h2>60 Saniyelik HTML5 Açıklayıcı Video &amp; Çoktan Seçmeli Kavrama Soruları</h2>
-      <p>Bu makale; 6 sahneli 60 saniyelik telifsiz HTML5 Canvas açıklayıcı video, makalenin genel sonucuyla uyumlu 4 soruluk profesyonel çoktan seçmeli test ve interaktif fizik/felsefe simülasyonu ile birlikte sunulmaktadır.</p>
+      <h2>10 Dakikalık Hareketli Varlık Etkileşimli HTML5 Açıklayıcı Video &amp; Çoktan Seçmeli Kavrama Soruları</h2>
+      <p>Bu makale; 10 bölümlü 10 dakikalık (600 sn) hareketli varlık etkileşimli ve sıfır kanuni yükümlülüklü HTML5 Canvas açıklayıcı video, makalenin genel sonucuyla uyumlu 4 soruluk profesyonel çoktan seçmeli test ve interaktif fizik/felsefe simülasyonu ile birlikte sunulmaktadır.</p>
     </section>
     <footer>
       <p>Kanonik Adres (${targetLang.toUpperCase()}): <a href="${escapeHtml(routeCanonicalUrl)}">${escapeHtml(routeCanonicalUrl)}</a></p>

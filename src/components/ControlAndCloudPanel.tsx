@@ -9,6 +9,9 @@ import {
   SearchCheck,
   ExternalLink,
   Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   Article,
@@ -20,6 +23,8 @@ import {
 import { UI_TEXT } from '../i18n/translations';
 import { computeCorpusCountMetrics } from '../utils/articleLocale';
 
+const OWNER_SESSION_TOKEN_KEY = 'sciphil_owner_session_token_v1';
+
 interface ControlAndCloudPanelProps {
   config: DynamicGatewayConfig;
   snapshots: CloudSnapshot[];
@@ -29,6 +34,7 @@ interface ControlAndCloudPanelProps {
   onUpdateConfig: (next: DynamicGatewayConfig) => void;
   onCreateSnapshot: (label: string) => Promise<void>;
   onTriggerBloggerSync: () => Promise<void>;
+  onOwnerUnlockChange?: (unlocked: boolean, sessionToken?: string) => void;
 }
 
 export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
@@ -40,6 +46,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
   onUpdateConfig,
   onCreateSnapshot,
   onTriggerBloggerSync,
+  onOwnerUnlockChange,
 }) => {
   const t = UI_TEXT[language].control;
   const corpusMetrics = computeCorpusCountMetrics(articles);
@@ -80,9 +87,19 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
 
   const [verifyingSecurity, setVerifyingSecurity] = useState<boolean>(false);
   const [isOwnerUnlocked, setIsOwnerUnlocked] = useState<boolean>(false);
+  const [ownerSessionToken, setOwnerSessionToken] = useState<string>('');
+  const [ownerPasswordConfigured, setOwnerPasswordConfigured] = useState<boolean | null>(null);
   const [ownerEmailInput, setOwnerEmailInput] = useState<string>('');
+  const [ownerPasswordInput, setOwnerPasswordInput] = useState<string>('');
+  const [ownerPasswordConfirmInput, setOwnerPasswordConfirmInput] = useState<string>('');
+  const [showOwnerPassword, setShowOwnerPassword] = useState<boolean>(false);
   const [ownerAuthError, setOwnerAuthError] = useState<string | null>(null);
   const [verifyingOwner, setVerifyingOwner] = useState<boolean>(false);
+  const [showChangePasswordForm, setShowChangePasswordForm] = useState<boolean>(false);
+  const [currentPassChange, setCurrentPassChange] = useState<string>('');
+  const [newPassChange, setNewPassChange] = useState<string>('');
+  const [confirmPassChange, setConfirmPassChange] = useState<string>('');
+  const [changingPassword, setChangingPassword] = useState<boolean>(false);
 
   const [securityAudit, setSecurityAudit] = useState<{
     verified: boolean;
@@ -116,7 +133,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
         setSecurityAudit(data);
         if (showNotice) {
           setSavedNotice(
-            `✓ 10 Resmi Web Sitesi ve 301 Ağı için Zero-Trust Güvenlik Protokolleri (${data.batchToken}) doğrulandı. Dış müdahale tamamen engellendi; yalnızca Emre Pelit (emrepelit39@gmail.com) ayar yapabilir.`
+            `✓ 10 Resmi Web Sitesi ve 301 Ağı için Zero-Trust Güvenlik Protokolleri (${data.batchToken}) doğrulandı. Dış müdahale tamamen engellendi; yalnızca Emre Pelit (emrepelit39@gmail.com + Şifre) ayar yapabilir.`
           );
           setTimeout(() => setSavedNotice(null), 5000);
         }
@@ -130,6 +147,43 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
 
   useEffect(() => {
     void runFullSecurityAudit(false);
+    const checkOwnerStatus = async () => {
+      let existingToken = '';
+      try {
+        existingToken = window.sessionStorage.getItem(OWNER_SESSION_TOKEN_KEY) || '';
+      } catch {
+        existingToken = '';
+      }
+      try {
+        const res = await fetch('/api/security/owner-status', {
+          headers: existingToken
+            ? {
+                'X-Owner-Email': 'emrepelit39@gmail.com',
+                'X-Owner-Token': existingToken,
+              }
+            : undefined,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setOwnerPasswordConfigured(Boolean(data.passwordConfigured));
+          if (data.ownerVerifiedForRequest && existingToken) {
+            setOwnerSessionToken(existingToken);
+            setIsOwnerUnlocked(true);
+            onOwnerUnlockChange?.(true, existingToken);
+          } else {
+            try {
+              window.sessionStorage.removeItem(OWNER_SESSION_TOKEN_KEY);
+            } catch {}
+            setOwnerSessionToken('');
+            setIsOwnerUnlocked(false);
+            onOwnerUnlockChange?.(false, '');
+          }
+        }
+      } catch {
+        setOwnerPasswordConfigured(true);
+      }
+    };
+    void checkOwnerStatus();
   }, []);
 
   const handleVerifyOwnerIdentity = async (e: React.FormEvent) => {
@@ -138,45 +192,156 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
     const candidate = ownerEmailInput.trim().toLowerCase();
     if (candidate !== 'emrepelit39@gmail.com') {
       setIsOwnerUnlocked(false);
+      onOwnerUnlockChange?.(false, '');
       setOwnerAuthError(
-        'Yetkisiz Erişim Engellendi: Bu web sitesinde yalnızca kurucu ve münhasır eser sahibi Emre Pelit (emrepelit39@gmail.com) ayar yapabilir. Tüm dış müdahaleler %100 kapalıdır.'
+        'Yetkisiz Erişim Engellendi: Yalnızca kurucu Emre Pelit (emrepelit39@gmail.com) e-posta ve yönetici şifresiyle kilidi açabilir.'
       );
       return;
     }
 
+    if (!ownerPasswordInput.trim()) {
+      setOwnerAuthError(
+        'Güvenlik Gereksinimi: E-posta adresinin yanında yönetici şifrenizi de girmeniz zorunludur.'
+      );
+      return;
+    }
+
+    if (ownerPasswordConfigured === false) {
+      if (ownerPasswordInput.length < 8) {
+        setOwnerAuthError('Yönetici kilit şifresi en az 8 karakter uzunluğunda olmalıdır.');
+        return;
+      }
+      if (ownerPasswordInput !== ownerPasswordConfirmInput) {
+        setOwnerAuthError('Girilen şifreler eşleşmiyor. Lütfen şifrenizi tekrar kontrol edin.');
+        return;
+      }
+    }
+
     setVerifyingOwner(true);
     try {
-      const res = await fetch('/api/security/verify-owner', {
+      const endpoint =
+        ownerPasswordConfigured === false
+          ? '/api/security/setup-owner-password'
+          : '/api/security/verify-owner';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Owner-Email': 'emrepelit39@gmail.com',
         },
-        body: JSON.stringify({ email: 'emrepelit39@gmail.com' }),
+        body: JSON.stringify({
+          email: candidate,
+          password: ownerPasswordInput,
+          ...(ownerPasswordConfigured === false
+            ? { confirmPassword: ownerPasswordConfirmInput }
+            : {}),
+        }),
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.verified && data?.ownerSessionToken) {
+        const token = String(data.ownerSessionToken);
+        try {
+          window.sessionStorage.setItem(OWNER_SESSION_TOKEN_KEY, token);
+        } catch {}
+        setOwnerSessionToken(token);
+        setOwnerPasswordConfigured(true);
         setIsOwnerUnlocked(true);
+        setOwnerPasswordInput('');
+        setOwnerPasswordConfirmInput('');
+        onOwnerUnlockChange?.(true, token);
         setSavedNotice(
-          '✓ Kurucu Kimliği Doğrulandı (Emre Pelit — emrepelit39@gmail.com). Ayar düzenleme yetkisi yalnızca sizin oturumunuz için açıldı; diğer tüm dış erişimlere %100 kapalıdır.'
+          endpoint.includes('setup')
+            ? '✓ Yönetici Kilit Şifresi Sunucuda Scrypt Özetiyle Kaydedildi & Kurucu Oturumu Açıldı (Emre Pelit).'
+            : '✓ E-Posta ve Şifre Doğrulandı (Emre Pelit). Yönetici yetkisi yalnızca bu oturum için açıldı; diğer tüm dış erişimlere %100 kapalıdır.'
         );
-        setTimeout(() => setSavedNotice(null), 5000);
+        setTimeout(() => setSavedNotice(null), 6000);
       } else {
         setIsOwnerUnlocked(false);
-        setOwnerAuthError('Yetkisiz erişim reddedildi.');
+        setOwnerSessionToken('');
+        onOwnerUnlockChange?.(false, '');
+        if (data?.passwordConfigured === false) {
+          setOwnerPasswordConfigured(false);
+        }
+        setOwnerAuthError(
+          data?.error || 'E-posta veya şifre doğrulanamadı. Yetkisiz erişim reddedildi.'
+        );
       }
     } catch {
-      setIsOwnerUnlocked(true);
+      setIsOwnerUnlocked(false);
+      setOwnerSessionToken('');
+      onOwnerUnlockChange?.(false, '');
+      setOwnerAuthError(
+        'Sunucu kimlik doğrulama yanıtı alınamadı. Zero-Trust gereği yönetici kilidi kapalı tutulmaktadır.'
+      );
     } finally {
       setVerifyingOwner(false);
     }
   };
 
+  const handleChangeOwnerPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOwnerAuthError(null);
+    if (!isOwnerUnlocked || !ownerSessionToken) return;
+    if (newPassChange.length < 8) {
+      setOwnerAuthError('Yeni şifre en az 8 karakter olmalıdır.');
+      return;
+    }
+    if (newPassChange !== confirmPassChange) {
+      setOwnerAuthError('Yeni şifre ve tekrar alanı birbiriyle eşleşmiyor.');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const res = await fetch('/api/security/change-owner-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Owner-Email': 'emrepelit39@gmail.com',
+          'X-Owner-Token': ownerSessionToken,
+        },
+        body: JSON.stringify({
+          currentPassword: currentPassChange,
+          newPassword: newPassChange,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.changed && data?.ownerSessionToken) {
+        const nextToken = String(data.ownerSessionToken);
+        try {
+          window.sessionStorage.setItem(OWNER_SESSION_TOKEN_KEY, nextToken);
+        } catch {}
+        setOwnerSessionToken(nextToken);
+        onOwnerUnlockChange?.(true, nextToken);
+        setCurrentPassChange('');
+        setNewPassChange('');
+        setConfirmPassChange('');
+        setShowChangePasswordForm(false);
+        setSavedNotice('✓ Yönetici kilit şifresi güvenli scrypt özetiyle güncellendi.');
+        setTimeout(() => setSavedNotice(null), 5000);
+      } else {
+        setOwnerAuthError(data?.error || 'Şifre güncellenemedi.');
+      }
+    } catch {
+      setOwnerAuthError('Şifre güncelleme sırasında bağlantı hatası oluştu.');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleLockSettings = () => {
+    try {
+      window.sessionStorage.removeItem(OWNER_SESSION_TOKEN_KEY);
+    } catch {}
     setIsOwnerUnlocked(false);
+    setOwnerSessionToken('');
+    onOwnerUnlockChange?.(false, '');
     setOwnerEmailInput('');
+    setOwnerPasswordInput('');
+    setOwnerPasswordConfirmInput('');
+    setShowChangePasswordForm(false);
     setOwnerAuthError(null);
     setSavedNotice(
-      '🔒 Tüm site ayarları tekrar kilitlendi ve dış müdahalelere %100 kapatıldı. Emre Pelit (emrepelit39@gmail.com) dışında hiç kimse ayar yapamaz.'
+      '🔒 Tüm site ayarları ve yönetici tetikleyicileri tekrar kilitlendi; dış müdahalelere %100 kapatıldı.'
     );
     setTimeout(() => setSavedNotice(null), 5000);
   };
@@ -189,9 +354,9 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
 
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOwnerUnlocked) {
+    if (!isOwnerUnlocked || !ownerSessionToken) {
       setOwnerAuthError(
-        'Ayarlar Kilitli: Yalnızca Emre Pelit (emrepelit39@gmail.com) ayar değişikliği yapabilir.'
+        'Ayarlar Kilitli: Yalnızca Emre Pelit (emrepelit39@gmail.com + Şifre) ayar değişikliği yapabilir.'
       );
       return;
     }
@@ -208,6 +373,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
         headers: {
           'Content-Type': 'application/json',
           'X-Owner-Email': 'emrepelit39@gmail.com',
+          'X-Owner-Token': ownerSessionToken,
         },
         body: JSON.stringify({
           metaToken: updatedDraft.googleSiteVerificationToken,
@@ -239,7 +405,12 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(isOwnerUnlocked ? { 'X-Owner-Email': 'emrepelit39@gmail.com' } : {}),
+          ...(isOwnerUnlocked && ownerSessionToken
+            ? {
+                'X-Owner-Email': 'emrepelit39@gmail.com',
+                'X-Owner-Token': ownerSessionToken,
+              }
+            : {}),
         },
         body: JSON.stringify({
           metaToken: updatedDraft.googleSiteVerificationToken,
@@ -363,48 +534,165 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
             </p>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 w-full lg:w-auto">
             {isOwnerUnlocked ? (
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-emerald-950/90 border border-emerald-400 p-3 rounded-xs font-mono text-xs">
-                <div>
-                  <div className="text-[10px] text-emerald-300 font-bold uppercase">
-                    ✓ KURUCU OTURUMU DOĞRULANDI
+              <div className="space-y-2 bg-emerald-950/90 border border-emerald-400 p-3 rounded-xs font-mono text-xs">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[10px] text-emerald-300 font-bold uppercase">
+                      ✓ KURUCU OTURUMU DOĞRULANDI (E-POSTA + ŞİFRE + HMAC)
+                    </div>
+                    <div className="text-white font-bold">Emre Pelit (emrepelit39@gmail.com)</div>
                   </div>
-                  <div className="text-white font-bold">Emre Pelit (emrepelit39@gmail.com)</div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowChangePasswordForm((v) => !v)}
+                      className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-emerald-400/60 text-emerald-200 font-bold rounded-xs cursor-pointer"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>Şifre Değiştir</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLockSettings}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xs cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Ayarları Kilitle</span>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleLockSettings}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xs cursor-pointer"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Ayarları Kilitle</span>
-                </button>
+
+                {showChangePasswordForm && (
+                  <form
+                    onSubmit={handleChangeOwnerPassword}
+                    className="pt-2 border-t border-emerald-700/60 grid grid-cols-1 sm:grid-cols-3 gap-2"
+                  >
+                    <input
+                      type="password"
+                      value={currentPassChange}
+                      onChange={(e) => setCurrentPassChange(e.target.value)}
+                      placeholder="Mevcut şifre..."
+                      autoComplete="current-password"
+                      className="px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                    />
+                    <input
+                      type="password"
+                      value={newPassChange}
+                      onChange={(e) => setNewPassChange(e.target.value)}
+                      placeholder="Yeni şifre (en az 8 krk)..."
+                      autoComplete="new-password"
+                      className="px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        type="password"
+                        value={confirmPassChange}
+                        onChange={(e) => setConfirmPassChange(e.target.value)}
+                        placeholder="Yeni şifre tekrar..."
+                        autoComplete="new-password"
+                        className="flex-1 min-w-0 px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                      />
+                      <button
+                        type="submit"
+                        disabled={changingPassword}
+                        className="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold rounded-xs cursor-pointer shrink-0"
+                      >
+                        {changingPassword ? '...' : 'Kaydet'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             ) : (
               <form
                 onSubmit={handleVerifyOwnerIdentity}
-                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-900 border border-slate-700 p-3 rounded-xs font-mono text-xs"
+                className="bg-slate-900 border border-slate-700 p-3.5 rounded-xs font-mono text-xs space-y-2.5 lg:min-w-[380px]"
               >
-                <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
                   <label className="block text-[10px] text-amber-300 font-bold uppercase">
-                    🔒 AYARLAR KİLİTLİ (SADECE EMRE PELİT AÇABİLİR):
+                    {ownerPasswordConfigured === false
+                      ? '🔐 İLK KURULUM: E-POSTA + YÖNETİCİ ŞİFRESİ BELİRLE'
+                      : '🔒 AYARLAR KİLİTLİ (E-POSTA + ŞİFRE ZORUNLU)'}
                   </label>
+                  <span className="text-[9px] text-emerald-300 bg-emerald-950 border border-emerald-500/40 px-1.5 py-0.5 rounded-xs">
+                    SCRYPT + HMAC
+                  </span>
+                </div>
+
+                <div className="space-y-2">
                   <input
                     type="email"
                     value={ownerEmailInput}
                     onChange={(e) => setOwnerEmailInput(e.target.value)}
                     placeholder="Kurucu e-posta (emrepelit39@gmail.com)..."
-                    className="w-64 px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                    autoComplete="username"
+                    required
+                    className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
                   />
+
+                  <div className="relative">
+                    <input
+                      type={showOwnerPassword ? 'text' : 'password'}
+                      value={ownerPasswordInput}
+                      onChange={(e) => setOwnerPasswordInput(e.target.value)}
+                      placeholder={
+                        ownerPasswordConfigured === false
+                          ? 'Yeni yönetici kilit şifresi (en az 8 karakter)...'
+                          : 'Yönetici / e-posta kilit şifreniz...'
+                      }
+                      autoComplete={
+                        ownerPasswordConfigured === false ? 'new-password' : 'current-password'
+                      }
+                      required
+                      className="w-full pl-2.5 pr-9 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOwnerPassword((v) => !v)}
+                      aria-label={showOwnerPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 cursor-pointer"
+                    >
+                      {showOwnerPassword ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {ownerPasswordConfigured === false && (
+                    <>
+                      <input
+                        type={showOwnerPassword ? 'text' : 'password'}
+                        value={ownerPasswordConfirmInput}
+                        onChange={(e) => setOwnerPasswordConfirmInput(e.target.value)}
+                        placeholder="Yönetici şifresini tekrar girin..."
+                        autoComplete="new-password"
+                        required
+                        className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                      />
+                      <p className="text-[10px] text-slate-400 leading-snug">
+                        Şifreniz sunucuda tek yönlü kriptografik <strong>scrypt</strong> özetiyle saklanır; düz metin tutulmaz. Güvenliğiniz için bu siteye özel güçlü bir şifre belirlemeniz önerilir.
+                      </p>
+                    </>
+                  )}
                 </div>
+
                 <button
                   type="submit"
                   disabled={verifyingOwner}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold rounded-xs cursor-pointer self-end"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold rounded-xs cursor-pointer transition-colors"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{verifyingOwner ? 'Doğrulanıyor...' : 'Kurucu Kilidini Aç'}</span>
+                  <span>
+                    {verifyingOwner
+                      ? 'Doğrulanıyor...'
+                      : ownerPasswordConfigured === false
+                        ? 'Şifreyi Kaydet & Kurucu Kilidini Aç'
+                        : 'E-Posta + Şifre ile Kilidi Aç'}
+                  </span>
                 </button>
               </form>
             )}
@@ -457,11 +745,36 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
               </span>
             </div>
 
+            {!isOwnerUnlocked ? (
+              <div className="bg-[#FBF9F5] border border-stone-300 p-4 rounded-xs space-y-2.5 text-xs">
+                <div className="font-mono font-bold text-stone-900 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                  <span>Güvenlik Maskelemesi Aktif (Salt-Okunur Ziyaretçi Görünümü)</span>
+                </div>
+                <p className="text-stone-700 leading-relaxed">
+                  İç sistem parametreleri (YZ model sürümü, üretim ortamı ad alanı, API hız limitleri ve Search Console doğrulama belirteçleri) güvenlik gereği genel ziyaretçi görünümünde gizlenmiştir. Yapılandırma ve yönetici eşitleme kontrolleri yalnızca kurucu kilidi açıldığında görüntülenir.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px]">
+                  <div className="bg-white border border-stone-200 px-2.5 py-1.5">
+                    <span className="text-stone-500 block text-[10px]">YZ Geçidi</span>
+                    <strong className="text-emerald-800">Sunucu İzole · Aktif</strong>
+                  </div>
+                  <div className="bg-white border border-stone-200 px-2.5 py-1.5">
+                    <span className="text-stone-500 block text-[10px]">Hız Sınırlama</span>
+                    <strong className="text-stone-900">IP Bazlı Korumalı</strong>
+                  </div>
+                  <div className="bg-white border border-stone-200 px-2.5 py-1.5">
+                    <span className="text-stone-500 block text-[10px]">Kanonik &amp; Bütünlük</span>
+                    <strong className="text-[#1E3A8A]">SHA-256 · HTTP 301</strong>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <fieldset disabled={!isOwnerUnlocked} className="space-y-5 disabled:opacity-75">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
                   <label className="block font-medium text-stone-800 mb-1">
-                    Aktif Akademik Üretim &amp; Analiz Modeli
+                    Aktif Akademik Üretim &amp; Analiz Profili
                   </label>
                   <select
                     value={draft.activeTextModel}
@@ -473,8 +786,8 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                     }
                     className="w-full px-3 py-2 border border-stone-300 bg-[#FBF9F5] font-mono disabled:cursor-not-allowed"
                   >
-                    <option value="gemini-4-hydrogen">gemini-4-hydrogen (Yüksek Doğruluk)</option>
-                    <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Düşük Gecikme)</option>
+                    <option value="gemini-4-hydrogen">Yüksek Doğruluk Profili (Birincil)</option>
+                    <option value="gemini-3.1-flash-lite">Düşük Gecikme Profili (Hızlı)</option>
                   </select>
                 </div>
 
@@ -551,7 +864,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
 
                 <div>
                   <label className="block font-medium text-stone-800 mb-1">
-                    Dinamik API İstek Limiti (RPM) &amp; Namespace
+                    Dinamik API İstek Limiti &amp; Çalışma Ad Alanı
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -647,6 +960,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                 </button>
               </div>
             </fieldset>
+            )}
           </form>
 
           {/* Google Search Console Verification & Indexing Center */}
@@ -666,63 +980,58 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
               </span>
             </div>
 
-            <fieldset disabled={!isOwnerUnlocked} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs disabled:opacity-75">
-              <div>
-                <label className="block font-medium text-stone-800 mb-1">
-                  HTML Meta Etiketi (&lt;meta name=&quot;google-site-verification&quot; ...&gt; veya Kod)
-                </label>
-                <input
-                  type="text"
-                  value={draft.googleSiteVerificationToken || ''}
-                  onChange={(e) =>
-                    setDraft({ ...draft, googleSiteVerificationToken: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-stone-300 bg-[#FBF9F5] font-mono text-stone-900 disabled:cursor-not-allowed"
-                  placeholder='<meta name="google-site-verification" content="..." /> veya 5d3436c931b6024c'
-                />
-              </div>
+            {isOwnerUnlocked ? (
+              <fieldset disabled={!isOwnerUnlocked} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs disabled:opacity-75">
+                <div>
+                  <label className="block font-medium text-stone-800 mb-1">
+                    HTML Meta Doğrulama Kodu
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.googleSiteVerificationToken || ''}
+                    onChange={(e) =>
+                      setDraft({ ...draft, googleSiteVerificationToken: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-stone-300 bg-[#FBF9F5] font-mono text-stone-900 disabled:cursor-not-allowed"
+                  />
+                </div>
 
-              <div>
-                <label className="block font-medium text-stone-800 mb-1">
-                  HTML Doğrulama Dosyası Adı (/google*.html)
-                </label>
-                <input
-                  type="text"
-                  value={draft.googleFileVerificationId || ''}
-                  onChange={(e) =>
-                    setDraft({ ...draft, googleFileVerificationId: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-stone-300 bg-[#FBF9F5] font-mono text-stone-900 disabled:cursor-not-allowed"
-                  placeholder="google5d3436c931b6024c.html"
-                />
+                <div>
+                  <label className="block font-medium text-stone-800 mb-1">
+                    HTML Doğrulama Dosyası Adı
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.googleFileVerificationId || ''}
+                    onChange={(e) =>
+                      setDraft({ ...draft, googleFileVerificationId: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-stone-300 bg-[#FBF9F5] font-mono text-stone-900 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </fieldset>
+            ) : (
+              <div className="bg-[#FBF9F5] border border-stone-200 p-3 text-xs font-mono text-stone-700">
+                Search Console mülkiyet doğrulama belirteci ve doğrulama dosyası adı güvenlik nedeniyle yalnızca kurucu oturumunda görüntülenir.
               </div>
-            </fieldset>
+            )}
 
             {gscReport && (
               <div className="bg-[#FBF9F5] border border-stone-200 p-3.5 space-y-2 text-xs font-mono">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-stone-700">
                   <span>
-                    <strong>Aktif Meta Etiketi:</strong>{' '}
-                    <code className="text-[#1E3A8A]">{gscReport.htmlMetaTag}</code>
+                    <strong>Doğrulama Durumu:</strong>{' '}
+                    <span className="text-emerald-800 font-semibold">Sunucu Tarafında Aktif &amp; Korumalı</span>
                   </span>
                   <span className="text-emerald-800 font-semibold">
                     Son Kontrol: {gscReport.timestamp}
                   </span>
                 </div>
                 <div className="text-stone-700">
-                  <strong>HTML Doğrulama Yanıtı:</strong>{' '}
-                  <code className="text-emerald-800">{gscReport.htmlFileBody}</code> (Tüm{' '}
-                  <code>/google*.html</code> istekleri sunucu tarafından otomatik doğrulanır)
-                </div>
-                <div className="text-stone-700">
-                  <strong>Site Haritası (Sitemap) Onarım &amp; Durum:</strong>{' '}
+                  <strong>Site Haritası (Sitemap) Durumu:</strong>{' '}
                   <span className="text-emerald-800 font-semibold">
                     W3C XML + HTTPS Host Eşleşmesi + &lt;lastmod&gt; + Düz Metin (/sitemap.txt) Aktif ({Math.max(316, articles.length)} Makale × 12 Dil · 0 Yayın Hatası)
                   </span>
-                </div>
-                <div className="text-stone-600 text-[11px]">
-                  <strong>GSC İpucu:</strong> Google Search Console &gt; Site Haritaları ekranında{' '}
-                  <code>sitemap.xml</code>, <code>sitemap.txt</code> veya <code>rss.xml</code> adreslerinden herhangi birini doğrudan gönderebilirsiniz.
                 </div>
               </div>
             )}
@@ -981,6 +1290,7 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                 {nodes.map((n) => {
                   const auditSite = securityAudit?.sites?.find((s) => s.domain === n.domain);
                   const isLive = n.isLiveWebsite ?? (n.domain === 'emrepelit-sciphi.ai.studio' || n.domain === 'emrepelit7337.blogspot.com');
+                  const isPassiveGithub = n.domain === 'emrepelit.github.io/science-philosophy';
                   return (
                     <div
                       key={n.id}
@@ -988,13 +1298,22 @@ export const ControlAndCloudPanel: React.FC<ControlAndCloudPanelProps> = ({
                     >
                       <span className="break-all font-semibold text-[11px]">
                         <strong>#{n.rank}</strong> {n.domain}{' '}
-                        <span className={isLive ? 'text-emerald-700 text-[10px]' : 'text-stone-500 text-[10px]'}>
-                          ({isLive ? 'Canlı 200 OK' : 'HTTP 301 → Ana Hub'})
+                        <span
+                          className={
+                            isLive
+                              ? 'text-emerald-700 text-[10px]'
+                              : isPassiveGithub
+                                ? 'text-amber-700 text-[10px]'
+                                : 'text-stone-500 text-[10px]'
+                          }
+                        >
+                          ({isLive ? 'Canlı 200 OK' : isPassiveGithub ? 'Pasif Arşiv · 404' : 'HTTP 301 → Ana Hub'})
                         </span>
                       </span>
                       <span className="text-emerald-800 font-bold text-[10px] shrink-0">
-                        ✓ TLS 1.3 · CSP · WAF · Kurucu Kilitli{' '}
-                        {auditSite?.sha256Seal ? `(${auditSite.sha256Seal.slice(0, 8)})` : ''}
+                        {isPassiveGithub
+                          ? '⏸ Pasif Arşiv (Yeniden Aktifleştirme Bekliyor)'
+                          : `✓ TLS 1.3 · CSP · WAF · Kurucu Kilitli ${auditSite?.sha256Seal ? `(${auditSite.sha256Seal.slice(0, 8)})` : ''}`}
                       </span>
                     </div>
                   );

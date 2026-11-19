@@ -22,12 +22,14 @@ import {
   Languages,
   Clock,
   ArrowDownWideNarrow,
+  Film,
 } from 'lucide-react';
 import {
   AnalyticsMeasurementEvent,
   AppInteractionCategory,
   AppInteractionTotals,
   Article,
+  ArticleStatsBoost,
   LanguageCode,
   Network301Node,
   SiteMeasuredAnalytics,
@@ -134,6 +136,14 @@ interface ArticleCumulativeGeoRow {
   wordCount: number;
   totalReadingMinutes: number;
   totalReadingFormatted: string;
+  videoPlays: number;
+  videoWatchSeconds: number;
+  videoCompletions: number;
+  maxVideoPositionSec: number;
+  avgVideoWatchSeconds: number;
+  videoDurationSec: number;
+  videoWatchPercent: number;
+  videoWatchFormatted: string;
   regions: {
     tr: { reads: number; views: number; sharePct: number };
     eu: { reads: number; views: number; sharePct: number };
@@ -161,6 +171,11 @@ interface Network301HubProps {
       targetArticleId?: string;
       readingMinutesDelta?: number;
       audioMinutesDelta?: number;
+      videoPlaysDelta?: number;
+      videoWatchSecondsDelta?: number;
+      videoCompletedDelta?: number;
+      maxVideoPositionSec?: number;
+      videoDurationSec?: number;
       uniqueReadersDelta?: number;
       simulatorRunsDelta?: number;
     },
@@ -185,9 +200,10 @@ interface Network301HubProps {
   lastBloggerSyncAt?: string;
   analyticsPanelOpen?: boolean;
   onToggleAnalyticsPanel?: (open?: boolean) => void;
-  articleStatsBoosts?: Record<string, { reads: number; views: number; citations: number }>;
+  articleStatsBoosts?: Record<string, ArticleStatsBoost>;
   onIncrementArticleBoost?: (articleId: string) => void;
   onForceLiveSync?: () => Promise<void>;
+  kvkkAnalyticsGranted?: boolean;
 }
 
 const COUNTRY_DEFINITIONS = [
@@ -306,6 +322,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   articleStatsBoosts: externalArticleBoosts,
   onIncrementArticleBoost,
   onForceLiveSync,
+  kvkkAnalyticsGranted = false,
 }) => {
   const [interactionFilter, setInteractionFilter] = useState<
     'ALL' | 'LIVE_ONLY' | 'HISTORICAL_ONLY' | AppInteractionCategory
@@ -332,6 +349,8 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     analysisModals: 0,
     simulationRuns: 0,
     audioListens: 0,
+    videoWatches: 0,
+    videoWatchSeconds: 0,
     qaObjections: 0,
     languageSearchExports: 0,
     pwaDownloads: 0,
@@ -455,6 +474,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     | 'total_read_time_desc'
     | 'reads_desc'
     | 'views_desc'
+    | 'video_watch_desc'
+    | 'video_plays_desc'
+    | 'video_completion_desc'
     | 'citations_desc'
     | 'rank_asc'
     | 'tr_desc'
@@ -466,7 +488,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   const [articleCurrentPage, setArticleCurrentPage] = useState<number>(1);
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
   const [localArticleBoosts, setLocalArticleBoosts] = useState<
-    Record<string, { reads: number; views: number; citations: number }>
+    Record<string, ArticleStatsBoost>
   >(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -485,16 +507,30 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   });
 
   const effectiveArticleBoosts = useMemo(() => {
-    const merged: Record<string, { reads: number; views: number; citations: number }> = {
+    const merged: Record<string, ArticleStatsBoost> = {
       ...localArticleBoosts,
     };
     if (externalArticleBoosts) {
       for (const [artId, extVal] of Object.entries(externalArticleBoosts)) {
-        const cur = merged[artId] || { reads: 0, views: 0, citations: 0 };
+        const cur = merged[artId] || {
+          reads: 0,
+          views: 0,
+          citations: 0,
+          videoPlays: 0,
+          videoWatchSeconds: 0,
+          videoCompletions: 0,
+          maxVideoPositionSec: 0,
+          videoDurationSec: 0,
+        };
         merged[artId] = {
-          reads: Math.max(cur.reads, extVal.reads || 0),
-          views: Math.max(cur.views, extVal.views || 0),
-          citations: Math.max(cur.citations, extVal.citations || 0),
+          reads: Math.max(cur.reads || 0, extVal.reads || 0),
+          views: Math.max(cur.views || 0, extVal.views || 0),
+          citations: Math.max(cur.citations || 0, extVal.citations || 0),
+          videoPlays: Math.max(cur.videoPlays || 0, extVal.videoPlays || 0),
+          videoWatchSeconds: Math.max(cur.videoWatchSeconds || 0, extVal.videoWatchSeconds || 0),
+          videoCompletions: Math.max(cur.videoCompletions || 0, extVal.videoCompletions || 0),
+          maxVideoPositionSec: Math.max(cur.maxVideoPositionSec || 0, extVal.maxVideoPositionSec || 0),
+          videoDurationSec: Math.max(cur.videoDurationSec || 0, extVal.videoDurationSec || 0),
         };
       }
     }
@@ -624,6 +660,8 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
       let audioMinutesTotal = 0;
       let uniqueReaders = 0;
       let simulatorRuns = 0;
+      let videoPlays = 0;
+      let videoWatchSeconds = 0;
       let latencySum = 0;
       let publicationsCount = 0;
       let articlesSum = 0;
@@ -636,10 +674,13 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
         audioMinutesTotal += n.stats.audioListenHours * 60 + n.stats.audioListenMinutes;
         uniqueReaders += n.stats.uniqueReaders;
         simulatorRuns += n.stats.simulatorRuns;
+        videoPlays += n.stats.videoPlays || 0;
+        videoWatchSeconds += n.stats.videoWatchSeconds || 0;
         latencySum += n.stats.syncLatencyMs || 0;
         publicationsCount += n.publications?.length || 0;
         articlesSum += n.articlesCount || 0;
       });
+      const totalVideoMins = Math.floor(videoWatchSeconds / 60);
       return {
         count: group.length,
         totalViews,
@@ -654,6 +695,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
         audioMins: audioMinutesTotal % 60,
         uniqueReaders,
         simulatorRuns,
+        videoPlays,
+        videoWatchSeconds,
+        videoWatchHours: Math.floor(totalVideoMins / 60),
+        videoWatchMins: totalVideoMins % 60,
         avgLatencyMs: group.length > 0 ? Math.round(latencySum / group.length) : 0,
         publicationsCount,
         articlesSum,
@@ -901,6 +946,37 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
       const localizedTitle =
         art.title[language] || art.title.tr || art.title.en || Object.values(art.title)[0] || art.id;
 
+      const formatVideoDuration = (secTotal: number) => {
+        const s = Math.max(0, Math.floor(secTotal));
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const remS = s % 60;
+        if (h > 0) return `${h} sa ${m} dk`;
+        if (m > 0) return `${m} dk ${String(remS).padStart(2, '0')} sn`;
+        return `${remS} sn`;
+      };
+
+      const videoPlays = Math.max(0, Number(boost.videoPlays) || 0);
+      const videoWatchSeconds = Math.max(0, Number(boost.videoWatchSeconds) || 0);
+      const videoCompletions = Math.max(0, Number(boost.videoCompletions) || 0);
+      const estimatedVideoDurationSec = Math.max(
+        90,
+        Number(boost.videoDurationSec) || Math.round(Math.max(120, avgRT.averageReadingSeconds * 0.72))
+      );
+      const maxVideoPositionSec = Math.max(
+        0,
+        Math.min(estimatedVideoDurationSec, Number(boost.maxVideoPositionSec) || 0)
+      );
+      const avgVideoWatchSeconds =
+        videoPlays > 0 ? Math.min(estimatedVideoDurationSec, Math.round(videoWatchSeconds / videoPlays)) : 0;
+      const videoWatchPercent =
+        videoPlays > 0
+          ? Math.min(
+              100,
+              Math.round((Math.max(avgVideoWatchSeconds, maxVideoPositionSec) / estimatedVideoDurationSec) * 100)
+            )
+          : 0;
+
       return {
         rank: idx + 1,
         articleId: art.id,
@@ -919,6 +995,14 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
         wordCount: avgRT.wordCount,
         totalReadingMinutes: articleTotalReadMins,
         totalReadingFormatted: formatHoursMins(articleTotalReadMins),
+        videoPlays,
+        videoWatchSeconds,
+        videoCompletions,
+        maxVideoPositionSec,
+        avgVideoWatchSeconds,
+        videoDurationSec: estimatedVideoDurationSec,
+        videoWatchPercent,
+        videoWatchFormatted: formatVideoDuration(videoWatchSeconds),
         regions: {
           tr: sumRegion('tr'),
           eu: sumRegion('eu'),
@@ -933,6 +1017,15 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     const totalReads = rows.reduce((acc, r) => acc + r.reads, 0);
     const totalViews = rows.reduce((acc, r) => acc + r.views, 0);
     const totalCitations = rows.reduce((acc, r) => acc + r.citations, 0);
+    const totalVideoPlaysAllArticles = Math.max(
+      cumulative.videoPlays || 0,
+      rows.reduce((acc, r) => acc + r.videoPlays, 0)
+    );
+    const totalVideoWatchSecondsAllArticles = Math.max(
+      cumulative.videoWatchSeconds || 0,
+      rows.reduce((acc, r) => acc + r.videoWatchSeconds, 0)
+    );
+    const articlesWithVideoWatches = rows.filter((r) => r.videoPlays > 0 || r.videoWatchSeconds > 0).length;
     const totalReadingMinutesAllArticles = rows.reduce((acc, r) => acc + r.totalReadingMinutes, 0);
     const meanAvgReadingSeconds = Math.round(
       rows.reduce((acc, r) => acc + r.averageReadingSeconds, 0) / Math.max(1, rows.length)
@@ -940,6 +1033,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     const articlesSortedByAvgReadingTimeDesc = [...rows].sort(
       (a, b) => b.averageReadingSeconds - a.averageReadingSeconds || b.wordCount - a.wordCount
     );
+    const topWatchedVideoArticles = [...rows]
+      .filter((r) => r.videoPlays > 0 || r.videoWatchSeconds > 0)
+      .sort((a, b) => b.videoWatchSeconds - a.videoWatchSeconds || b.videoPlays - a.videoPlays)
+      .slice(0, 6);
 
     const regionTotals = {
       tr: {
@@ -980,6 +1077,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
       totalReads,
       totalViews,
       totalCitations,
+      totalVideoPlaysAllArticles,
+      totalVideoWatchSecondsAllArticles,
+      articlesWithVideoWatches,
+      topWatchedVideoArticles,
       totalReadingMinutesAllArticles,
       meanAvgReadingSeconds,
       articlesSortedByAvgReadingTimeDesc,
@@ -992,6 +1093,8 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     cumulative.totalViews,
     cumulative.readingHours,
     cumulative.readingMins,
+    cumulative.videoPlays,
+    cumulative.videoWatchSeconds,
     language,
     effectiveArticleBoosts,
   ]);
@@ -1027,6 +1130,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           return a.averageReadingSeconds - b.averageReadingSeconds || a.wordCount - b.wordCount;
         case 'total_read_time_desc':
           return b.totalReadingMinutes - a.totalReadingMinutes;
+        case 'video_watch_desc':
+          return b.videoWatchSeconds - a.videoWatchSeconds || b.videoPlays - a.videoPlays || b.reads - a.reads;
+        case 'video_plays_desc':
+          return b.videoPlays - a.videoPlays || b.videoWatchSeconds - a.videoWatchSeconds || b.reads - a.reads;
+        case 'video_completion_desc':
+          return b.videoWatchPercent - a.videoWatchPercent || b.videoWatchSeconds - a.videoWatchSeconds;
         case 'reads_desc':
           return b.reads - a.reads;
         case 'views_desc':
@@ -1152,9 +1261,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           </div>
         </div>
 
-        {/* 2. Single Crisp Synchronized 8-KPI Executive Bar (Zero Duplicate Banners) */}
+        {/* 2. Single Crisp Synchronized 9-KPI Executive Bar */}
         <div className="space-y-2.5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 font-mono tabular-nums">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2.5 font-mono tabular-nums">
             <div
               className={`bg-slate-900 border px-3 py-2.5 rounded-xs ${
                 liveSyncPulse ? 'border-cyan-300 ring-1 ring-cyan-400' : 'border-cyan-500/60'
@@ -1201,6 +1310,20 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                 {cumulative.audioHours.toLocaleString('tr-TR')}s {cumulative.audioMins}d
               </div>
               <div className="text-[9px] text-slate-400">{totalAudioMinsAll.toLocaleString('tr-TR')} toplam dk</div>
+            </div>
+
+            <div className="bg-slate-900 border border-teal-400/70 px-3 py-2.5 rounded-xs">
+              <div className="text-[10px] text-teal-300 font-bold uppercase flex items-center gap-1">
+                <Film className="w-3 h-3" />
+                <span>Geniş Özet Video</span>
+              </div>
+              <div className="text-sm sm:text-base font-extrabold text-teal-200 mt-0.5">
+                {articleCumulativeData.totalVideoPlaysAllArticles.toLocaleString('tr-TR')} izlenme
+              </div>
+              <div className="text-[9px] text-slate-400">
+                {Math.floor(articleCumulativeData.totalVideoWatchSecondsAllArticles / 60).toLocaleString('tr-TR')} dk{' '}
+                {String(articleCumulativeData.totalVideoWatchSecondsAllArticles % 60).padStart(2, '0')} sn
+              </div>
             </div>
 
             <div className="bg-slate-900 border border-purple-400/60 px-3 py-2.5 rounded-xs">
@@ -1259,14 +1382,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                 github.com/emrepelit109 ↗
               </a>{' '}
               &amp;{' '}
-              <a
-                href="https://emrepelit.github.io/science-philosophy"
-                target="_blank"
-                rel="me noopener noreferrer"
-                className="text-amber-300 hover:underline"
+              <span
+                title="GitHub Pages düğümü şu an pasif arşiv durumundadır (404 · yeniden aktifleştirme bekliyor)"
+                className="text-slate-400 font-semibold"
               >
-                emrepelit.github.io/science-philosophy (301)
-              </a>
+                emrepelit.github.io/science-philosophy (Pasif Arşiv · 404)
+              </span>
             </span>
             <span className="text-[10px] text-emerald-400 font-bold">
               Ort. Makale Okuma: {Math.floor(articleCumulativeData.meanAvgReadingSeconds / 60)} dk{' '}
@@ -1338,7 +1459,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-300">
-                    Her ziyarette otomatik sunucu senkronizasyonu (<code className="text-cyan-300">POST /api/analytics/record-visit</code> + SSE + BroadcastChannel) devrededir; monotonik kilit nedeniyle hiçbir metrik hiçbir zaman azalmaz.
+                    <span className="text-emerald-300 font-bold">Canlı Sürekli Senkronizasyon Aktif (Çerezsiz &amp; Kişisel Verisiz):</span> Tüm 10 web sitesinin açılış tarihlerinden ({cumulativeBreakdown.networkAgeDays} gün) bugüne elde ettiği kümülatif veriler + canlı okuma, sesli anlatım ve 12 dilli geniş özet video izlenme ölçümleri (<code className="text-cyan-300">POST /api/analytics/record-visit</code> + SSE + BroadcastChannel) anlık eşitlenir ve monotonik kilit nedeniyle hiçbir metrik hiçbir zaman azalmaz.
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] tabular-nums">
@@ -1481,6 +1602,23 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                           Math.max(1, cumulativeBreakdown.total10.uniqueReaders)
                         ).toFixed(2)}{' '}
                         görüntülenme · 5 Kıta / 12 Ülke
+                      </td>
+                    </tr>
+
+                    <tr className="hover:bg-slate-900/50">
+                      <td className="py-2 px-3 font-bold text-teal-300">5B. Geniş Özet Videosu (12 Dil) İzlenme</td>
+                      <td className="py-2 px-3 text-right text-emerald-300 font-bold">
+                        {articleCumulativeData.totalVideoPlaysAllArticles.toLocaleString('tr-TR')} izlenme
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        0 (Süre Sınırsız HTML5 Video)
+                      </td>
+                      <td className="py-2 px-3 text-right text-teal-200 font-extrabold text-xs">
+                        {Math.floor(articleCumulativeData.totalVideoWatchSecondsAllArticles / 60).toLocaleString('tr-TR')} dk{' '}
+                        {String(articleCumulativeData.totalVideoWatchSecondsAllArticles % 60).padStart(2, '0')} sn
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-slate-300">
+                        İzlenen tekil makale videosu: {articleCumulativeData.articlesWithVideoWatches} / {activeArticles.length} · Canlı SSE + Monotonik Kayıt
                       </td>
                     </tr>
 
@@ -1633,6 +1771,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   <tbody className="divide-y divide-slate-900 text-slate-200">
                     {strictNodes.map((node) => {
                       const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
+                      const isPassiveArchive =
+                        node.domain === 'emrepelit.github.io/science-philosophy' ||
+                        node.httpCode === 404;
                       const isLiveNode =
                         LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
                       const nodeViews = node.stats.totalViews ?? node.stats.netReads;
@@ -1668,14 +1809,18 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                   ? 'bg-emerald-950 border-emerald-500/60 text-emerald-300'
                                   : isLiveNode
                                     ? 'bg-amber-950/60 border-amber-400/50 text-amber-300'
-                                    : 'bg-slate-900 border-slate-700 text-slate-400'
+                                    : isPassiveArchive
+                                      ? 'bg-amber-950/40 border-amber-700/60 text-amber-300'
+                                      : 'bg-slate-900 border-slate-700 text-slate-400'
                               }`}
                             >
                               {isMainHub
                                 ? 'CANLI ANA HUB · HTTP 200'
                                 : isLiveNode
                                   ? 'CANLI BLOGGER · HTTP 200'
-                                  : 'YAYINDAN KALDIRILDI · HTTP 301 → Hub'}
+                                  : isPassiveArchive
+                                    ? 'PASİF ARŞİV DÜĞÜMÜ · 404'
+                                    : 'YAYINDAN KALDIRILDI · HTTP 301 → Hub'}
                             </span>
                           </td>
                           <td className="py-2 px-2.5 text-amber-200 whitespace-nowrap">
@@ -1742,7 +1887,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                               </button>
                             ) : (
                               <span className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-slate-400 text-[10px] rounded-xs">
-                                Donduruldu (301 → Hub)
+                                {isPassiveArchive ? 'Pasif Arşiv (404)' : 'Donduruldu (301 → Hub)'}
                               </span>
                             )}
                           </td>
@@ -2472,11 +2617,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-extrabold text-[10px] rounded-xs uppercase">
-                      MAKALE MAKALE KÜMÜLATİF İSTATİSTİKLER TABLOSU ({activeArticles.length} MAKALE · 10 SİTEDE YAYINDA)
+                      MAKALE MAKALE KÜMÜLATİF İSTATİSTİKLER &amp; GENİŞ ÖZET VİDEO (12 DİL) İZLENME TABLOSU ({activeArticles.length} MAKALE · 10 SİTEDE YAYINDA)
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    Tüm {activeArticles.length} makalenin kümülatif görüntülenme (<strong>{articleCumulativeData.totalViews.toLocaleString('tr-TR')}</strong>), okunma (<strong>{articleCumulativeData.totalReads.toLocaleString('tr-TR')}</strong>), okuma süresi (<strong>{cumulative.readingHours.toLocaleString('tr-TR')} sa {cumulative.readingMins} dk</strong>) ve atıf toplamları ana panelle %100 birebir senkrondur.
+                    Tüm {activeArticles.length} makalenin kümülatif görüntülenme (<strong>{articleCumulativeData.totalViews.toLocaleString('tr-TR')}</strong>), okunma (<strong>{articleCumulativeData.totalReads.toLocaleString('tr-TR')}</strong>), geniş özet video izlenme (<strong>{articleCumulativeData.totalVideoPlaysAllArticles.toLocaleString('tr-TR')} oynatma · {Math.floor(articleCumulativeData.totalVideoWatchSecondsAllArticles / 60).toLocaleString('tr-TR')} dk {String(articleCumulativeData.totalVideoWatchSecondsAllArticles % 60).padStart(2, '0')} sn</strong>), okuma süresi (<strong>{cumulative.readingHours.toLocaleString('tr-TR')} sa {cumulative.readingMins} dk</strong>) ve atıf toplamları ana panelle %100 birebir senkrondur.
                   </p>
                 </div>
 
@@ -2491,6 +2636,65 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     ? 'Sayfalı Görünüme Dön (25/Sayfa)'
                     : `Tüm ${activeArticles.length} Makaleyi Göster`}
                 </button>
+              </div>
+
+              {/* Per-Article Comprehensive Summary Video Watch Live Summary Strip */}
+              <div className="bg-slate-900/90 border border-teal-500/50 p-3 rounded-xs space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5 text-teal-300 font-extrabold uppercase">
+                    <Film className="w-3.5 h-3.5" />
+                    <span>Her Makalenin Geniş Özet Video İzlenme Ölçümü (12 Dil · Canlı SSE Senkron)</span>
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] tabular-nums">
+                    <span className="px-2 py-0.5 bg-teal-950 border border-teal-500/50 text-teal-200 rounded-xs font-bold">
+                      Toplam Oynatma: {articleCumulativeData.totalVideoPlaysAllArticles.toLocaleString('tr-TR')}
+                    </span>
+                    <span className="px-2 py-0.5 bg-cyan-950 border border-cyan-500/50 text-cyan-200 rounded-xs font-bold">
+                      Toplam İzlenme Süresi: {Math.floor(articleCumulativeData.totalVideoWatchSecondsAllArticles / 60).toLocaleString('tr-TR')} dk{' '}
+                      {String(articleCumulativeData.totalVideoWatchSecondsAllArticles % 60).padStart(2, '0')} sn
+                    </span>
+                    <span className="px-2 py-0.5 bg-emerald-950 border border-emerald-500/50 text-emerald-300 rounded-xs font-bold">
+                      İzlenen Makale: {articleCumulativeData.articlesWithVideoWatches} / {activeArticles.length}
+                    </span>
+                  </div>
+                </div>
+                {articleCumulativeData.topWatchedVideoArticles.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {articleCumulativeData.topWatchedVideoArticles.map((vRow) => (
+                      <div
+                        key={`top-vid-${vRow.articleId}`}
+                        className="bg-slate-950 border border-teal-500/30 px-2.5 py-2 rounded-xs flex items-center justify-between gap-2 text-[10px]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-white font-bold truncate" title={vRow.title}>
+                            #{vRow.rank} {vRow.title}
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-800 rounded-xs overflow-hidden mt-1">
+                            <div
+                              className="h-full bg-teal-400"
+                              style={{ width: `${Math.max(4, vRow.videoWatchPercent)}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 tabular-nums">
+                          <div className="text-teal-300 font-extrabold">
+                            {vRow.videoPlays} izlenme · {vRow.videoWatchFormatted}
+                          </div>
+                          <div className="text-slate-400">
+                            %{vRow.videoWatchPercent} /{' '}
+                            {`${String(Math.floor((vRow.videoDurationSec || 420) / 60)).padStart(2, '0')}:${String(
+                              Math.floor((vRow.videoDurationSec || 420) % 60)
+                            ).padStart(2, '0')}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400">
+                    Herhangi bir makalenin süre kısıtsız 12 dilli sentetik sesli geniş özet videosu oynatıldığında oynatma sayısı, gerçek izlenme süresi (sn/dk) ve konuşmacı-senkron tamamlama yüzdesi burada ve aşağıdaki tabloda anlık olarak güncellenir.
+                  </p>
+                )}
               </div>
 
               {/* Filter, Search, Sort & Pagination Controls */}
@@ -2542,6 +2746,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   >
                     <option value="reads_desc">En Çok Okunan Makaleler (Azalan)</option>
                     <option value="views_desc">En Çok Görüntülenen Makaleler (Azalan)</option>
+                    <option value="video_watch_desc">Geniş Özet Video İzlenme Süresi (En Fazladan En Aza)</option>
+                    <option value="video_plays_desc">En Çok Video İzlenen Makaleler (Oynatma Sayısı)</option>
+                    <option value="video_completion_desc">Video Tamamlama Oranı (%)</option>
                     <option value="avg_read_time_desc">Ortalama Okuma Süresi (En Fazladan En Aza)</option>
                     <option value="total_read_time_desc">Toplam Okuma Zamanı (Azalan)</option>
                     <option value="avg_read_time_asc">Ortalama Okuma Süresi (En Azdan En Fazlaya)</option>
@@ -2576,11 +2783,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   <thead>
                     <tr className="bg-slate-900 text-slate-300 border-b border-slate-700 uppercase text-[10px]">
                       <th className="py-2.5 px-2.5 font-bold">#</th>
-                      <th className="py-2.5 px-2.5 font-bold min-w-[240px]">Makale Başlığı &amp; Arşiv No</th>
+                      <th className="py-2.5 px-2.5 font-bold min-w-[220px]">Makale Başlığı &amp; Arşiv No</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-amber-300">Kümülatif Okunma</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-cyan-200">Ort. Okuma &amp; Toplam</th>
-                      <th className="py-2.5 px-2.5 font-bold text-right text-cyan-300">Kümülatif Görüntülenme</th>
-                      <th className="py-2.5 px-2.5 font-bold text-right text-emerald-300">Aldığı Atıf</th>
+                      <th className="py-2.5 px-2.5 font-bold text-right text-teal-300 min-w-[130px]">Video İzlenme (12 Dil)</th>
+                      <th className="py-2.5 px-2.5 font-bold text-right text-cyan-300">Görüntülenme</th>
+                      <th className="py-2.5 px-2.5 font-bold text-right text-emerald-300">Atıf</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-emerald-200">Türkiye</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-sky-200">Avrupa</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-amber-200">Amerika</th>
@@ -2619,6 +2827,20 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                 {row.averageReadingFormatted}
                               </div>
                               <div className="text-[9px] text-amber-200">{row.totalReadingFormatted}</div>
+                            </td>
+                            <td className="py-2 px-2.5 text-right whitespace-nowrap">
+                              <div className="font-extrabold text-teal-300 text-xs">
+                                {row.videoPlays.toLocaleString('tr-TR')} izlenme
+                              </div>
+                              <div className="text-[9px] text-cyan-200">
+                                {row.videoWatchFormatted} · %{row.videoWatchPercent}
+                              </div>
+                              <div className="w-full h-1 bg-slate-800 rounded-xs overflow-hidden mt-0.5">
+                                <div
+                                  className="h-full bg-teal-400 transition-all"
+                                  style={{ width: `${row.videoWatchPercent}%` }}
+                                />
+                              </div>
                             </td>
                             <td className="py-2 px-2.5 text-right whitespace-nowrap">
                               <div className="font-extrabold text-cyan-300 text-xs">
@@ -2674,53 +2896,96 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
 
                           {isExpanded && (
                             <tr className="bg-slate-900/95 border-b border-amber-400/50">
-                              <td colSpan={12} className="p-3.5">
+                              <td colSpan={13} className="p-3.5">
                                 <div className="space-y-2.5">
                                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                                     <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
                                       <MapPin className="w-4 h-4 text-emerald-400" />
-                                      <span>MAKALE #{row.rank} 12 ÜLKE COĞRAFİ DAĞILIMI — {row.title}</span>
+                                      <span>MAKALE #{row.rank} 12 ÜLKE COĞRAFİ DAĞILIMI &amp; GENİŞ ÖZET VİDEO ÖLÇÜMÜ — {row.title}</span>
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (onRecordAnalyticsMeasurement) {
-                                          onRecordAnalyticsMeasurement(
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          onRecordAnalyticsMeasurement?.(
                                             'emrepelit-sciphi.ai.studio',
                                             {
                                               viewsDelta: 1,
-                                              readsDelta: 1,
-                                              citationsDelta: 1,
+                                              videoPlaysDelta: 1,
+                                              videoWatchSecondsDelta: 60,
+                                              maxVideoPositionSec: Math.max(60, row.maxVideoPositionSec + 60),
                                               targetArticleId: row.articleId,
-                                              readingMinutesDelta: 6,
-                                              uniqueReadersDelta: 1,
                                             },
-                                            'ANALYTICS_PANEL',
-                                            `Canlı Senkron: Makale #${row.rank} (SCIPHIL-#${row.rank}) +1 Görüntülenme, +1 Okunma, +1 Atıf`
+                                            'VIDEO_PLAYER',
+                                            `Canlı Geniş Özet Video İzlenme Ölçümü (Makale #${row.rank}): +1 Oynatma, +60 sn İzleme`,
+                                            'VIDEO_WATCH'
                                           );
-                                        } else {
-                                          setLocalArticleBoosts((prev) => {
-                                            const cur = prev[row.articleId] || { reads: 0, views: 0, citations: 0 };
-                                            const nextMap = {
-                                              ...prev,
-                                              [row.articleId]: {
-                                                reads: cur.reads + 1,
-                                                views: cur.views + 1,
-                                                citations: cur.citations + 1,
+                                        }}
+                                        className="px-2.5 py-1 bg-teal-400 hover:bg-teal-300 text-slate-950 font-extrabold text-[10px] rounded-xs cursor-pointer"
+                                      >
+                                        +1 Video İzlenme (+60 sn)
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (onRecordAnalyticsMeasurement) {
+                                            onRecordAnalyticsMeasurement(
+                                              'emrepelit-sciphi.ai.studio',
+                                              {
+                                                viewsDelta: 1,
+                                                readsDelta: 1,
+                                                citationsDelta: 1,
+                                                targetArticleId: row.articleId,
+                                                readingMinutesDelta: 6,
+                                                uniqueReadersDelta: 1,
                                               },
-                                            };
-                                            try {
-                                              window.localStorage.setItem('sciphil_article_boosts_v2', JSON.stringify(nextMap));
-                                            } catch {}
-                                            return nextMap;
-                                          });
-                                          onIncrementArticleBoost?.(row.articleId);
-                                        }
-                                      }}
-                                      className="px-2.5 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold text-[10px] rounded-xs cursor-pointer"
-                                    >
-                                      + Bu Makaleye Canlı Görüntülenme/Okunma/Atıf Kaydet
-                                    </button>
+                                              'ANALYTICS_PANEL',
+                                              `Canlı Senkron: Makale #${row.rank} (SCIPHIL-#${row.rank}) +1 Görüntülenme, +1 Okunma, +1 Atıf`
+                                            );
+                                          } else {
+                                            setLocalArticleBoosts((prev) => {
+                                              const cur = prev[row.articleId] || { reads: 0, views: 0, citations: 0 };
+                                              const nextMap = {
+                                                ...prev,
+                                                [row.articleId]: {
+                                                  ...cur,
+                                                  reads: cur.reads + 1,
+                                                  views: cur.views + 1,
+                                                  citations: cur.citations + 1,
+                                                },
+                                              };
+                                              try {
+                                                window.localStorage.setItem('sciphil_article_boosts_v2', JSON.stringify(nextMap));
+                                              } catch {}
+                                              return nextMap;
+                                            });
+                                            onIncrementArticleBoost?.(row.articleId);
+                                          }
+                                        }}
+                                        className="px-2.5 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold text-[10px] rounded-xs cursor-pointer"
+                                      >
+                                        + Okunma/Atıf Kaydet
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-950 border border-teal-500/40 p-2.5 rounded-xs text-[11px] tabular-nums">
+                                    <div>
+                                      <span className="text-[9px] text-slate-400 block uppercase">Video Oynatma</span>
+                                      <strong className="text-teal-300">{row.videoPlays.toLocaleString('tr-TR')}</strong>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-400 block uppercase">Toplam İzlenme Süresi</span>
+                                      <strong className="text-cyan-200">{row.videoWatchFormatted}</strong>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-400 block uppercase">10:00 Tamamlama Oranı</span>
+                                      <strong className="text-emerald-300">%{row.videoWatchPercent}</strong>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-400 block uppercase">Tam Biten İzleme</span>
+                                      <strong className="text-amber-300">{row.videoCompletions.toLocaleString('tr-TR')}</strong>
+                                    </div>
                                   </div>
 
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -2764,6 +3029,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       </td>
                       <td className="py-3 px-2.5 text-right text-cyan-200">
                         Σ {cumulative.readingHours.toLocaleString('tr-TR')}s {cumulative.readingMins}d
+                      </td>
+                      <td className="py-3 px-2.5 text-right text-teal-300">
+                        {articleCumulativeData.totalVideoPlaysAllArticles.toLocaleString('tr-TR')} ·{' '}
+                        {Math.floor(articleCumulativeData.totalVideoWatchSecondsAllArticles / 60)} dk
                       </td>
                       <td className="py-3 px-2.5 text-right text-cyan-300">
                         {articleCumulativeData.totalViews.toLocaleString('tr-TR')}
@@ -2944,6 +3213,16 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     border: 'border-indigo-400/50',
                     accent: 'text-indigo-300',
                     desc: 'Dil geçişi, filtreleme ve akademik atıf',
+                  },
+                  {
+                    key: 'VIDEO_WATCH' as AppInteractionCategory,
+                    label: 'Geniş Özet Video İzleme (12 Dil)',
+                    total: syncedAppInteractions.videoWatches || articleCumulativeData.totalVideoPlaysAllArticles,
+                    session: resolvedSessionInteractions.videoWatches || 0,
+                    icon: Film,
+                    border: 'border-teal-400/60',
+                    accent: 'text-teal-300',
+                    desc: `Hareketli varlık videosu (${Math.floor(articleCumulativeData.totalVideoWatchSecondsAllArticles / 60)} dk ${articleCumulativeData.totalVideoWatchSecondsAllArticles % 60} sn)`,
                   },
                   {
                     key: 'PWA_DOWNLOAD' as AppInteractionCategory,

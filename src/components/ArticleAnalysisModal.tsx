@@ -41,7 +41,8 @@ import {
   ArticleFullAnalysisReport,
 } from '../utils/articleAnalysisEngine';
 import { ArticleQuestionModule } from './ArticleQuestionModule';
-import { ArticleExplainerVideo } from './ArticleExplainerVideo';
+import { ArticleAudioPlayer } from './ArticleAudioPlayer';
+import { ArticleExplainerVideo, VideoWatchProgressPayload } from './ArticleExplainerVideo';
 import { ArticleQuizModule } from './ArticleQuizModule';
 import { MathFormula } from './MathFormula';
 import { CitationExportBox } from './CitationExportBox';
@@ -54,6 +55,14 @@ interface ArticleAnalysisModalProps {
   onClose: () => void;
   onAudioMeasured?: (articleId: string, minutesDelta: number) => void;
   onAnalysisMeasured?: (articleId: string) => void;
+  onVideoWatchProgress?: (articleId: string, payload: VideoWatchProgressPayload) => void;
+  articleVideoStats?: {
+    plays: number;
+    watchSeconds: number;
+    completions?: number;
+    maxPositionSec?: number;
+    videoDurationSec?: number;
+  };
 }
 
 interface TranslatedAnalysisBundle {
@@ -179,6 +188,8 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
   onClose,
   onAudioMeasured,
   onAnalysisMeasured,
+  onVideoWatchProgress,
+  articleVideoStats,
 }) => {
   const [analysisLang, setAnalysisLang] = useState<LanguageCode>(language);
   const [audioStatus, setAudioStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle');
@@ -999,24 +1010,24 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
           {/* 1. LOSSLESS MULTI-LANGUAGE TRANSLATION BAR FOR THIS ANALYSIS */}
           <div className="bg-white border-2 border-[#1E3A8A] p-4 rounded-sm space-y-3">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div className="space-y-1">
+            <div className="flex flex-col gap-3">
+              <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#1E3A8A] font-bold">
-                  <Languages className="w-4 h-4 text-[#1E3A8A]" />
-                  <span>
+                  <Languages className="w-4 h-4 text-[#1E3A8A] shrink-0" />
+                  <span dir="auto">
                     {isTr
                       ? `BU ANALİZİ ANLAMDAN HİÇBİR ŞEY KAYBETMEDEN 12 DÜNYA DİLİNE ÇEVİR (${langMeta.nativeName})`
                       : `TRANSLATE FULL ANALYSIS ACROSS 12 LANGUAGES (${langMeta.nativeName})`}
                   </span>
                 </div>
-                <p className="text-xs text-stone-600">
+                <p className="text-xs text-stone-600 leading-relaxed">
                   {isTr
                     ? 'Aşağıdaki dil tuşlarından birine veya çeviri butonuna bastığınızda; konu hakkında bilgisi olmayanlar için açıklama, profesyoneller için açıklama, temel matematiksel denklem, işlem/değişken açıklamaları ve tüm paragraf analizleri anlam kaybı olmadan seçilen dile çevrilir.'
                     : 'Select any language below to translate the non-expert guide, specialist analysis, mathematical equations, and section-by-section commentary without losing domain terminology.'}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   aria-label={isTr ? 'Analiz Çeviri Dili Seçin' : 'Select Analysis Language'}
                   value={analysisLang}
@@ -1061,14 +1072,16 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                 <button
                   key={wl.code}
                   type="button"
+                  dir={wl.code === 'ar' ? 'rtl' : 'ltr'}
+                  lang={wl.code}
                   onClick={() => handleTranslateAnalysisToLanguage(wl.code)}
-                  className={`px-2.5 py-1 text-[11px] font-mono rounded-xs border transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 text-[11px] font-sans rounded-xs border transition-colors cursor-pointer ${
                     analysisLang === wl.code
                       ? 'bg-[#1E3A8A] text-white border-[#1E3A8A] font-bold'
                       : 'bg-[#FBF9F5] text-stone-700 border-stone-300 hover:bg-stone-100'
                   }`}
                 >
-                  {wl.shortLabel} · {wl.nativeName}
+                  <span className="font-mono">{wl.shortLabel}</span> · <span>{wl.nativeName}</span>
                 </button>
               ))}
             </div>
@@ -1083,17 +1096,17 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
 
           {/* 2. CONTENT-MATCHED ADAPTIVE VOICE & FULL-ARTICLE / FULL-ANALYSIS NARRATION ENGINE */}
           <div className="bg-[#0F172A] text-white border border-slate-800 p-4 sm:p-5 rounded-sm space-y-3">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div className="space-y-1">
+            <div className="flex flex-col gap-3">
+              <div className="space-y-1.5 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-amber-300 font-bold uppercase">
-                  <Volume2 className="w-4 h-4 text-amber-400" />
+                  <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
                     {isTr
                       ? `MAKALENİN İÇERİĞİNE EN UYGUN SESLENDİRME MOTORU: ${voiceProfile.styleTitle}`
                       : `CONTENT-MATCHED NARRATION ENGINE: ${voiceProfile.styleTitle}`}
                   </span>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {voiceProfile.styleDescription}{' '}
                   {isTr
                     ? `Seçiminize göre tüm analizi (${effectiveReport.narrationSegments.length} bölüm) veya makalenin tüm metnini (${fullArticleSegments.length} bölüm) kesintisiz seslendirir.`
@@ -1101,7 +1114,7 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => handleTogglePlayAudio('full-analysis')}
@@ -2861,10 +2874,19 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
             </div>
           )}
 
+          <ArticleAudioPlayer
+            article={article}
+            language={analysisLang}
+            voicePersona={gatewayConfig.defaultVoicePersona}
+            onAudioMeasured={onAudioMeasured}
+          />
+
           <ArticleExplainerVideo
             article={article}
             language={analysisLang}
             onVideoMeasured={(id) => onAnalysisMeasured?.(id)}
+            onVideoWatchProgress={onVideoWatchProgress}
+            articleVideoStats={articleVideoStats}
           />
 
           <ArticleQuizModule

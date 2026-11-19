@@ -11,6 +11,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Sliders,
+  ShieldCheck,
 } from 'lucide-react';
 import { Article, LanguageCode } from '../types';
 import {
@@ -21,6 +23,17 @@ import {
   getLocalizedArray,
 } from '../i18n/translations';
 import { getOptimalVoiceProfileForArticle } from '../utils/articleAnalysisEngine';
+import {
+  INTONATION_PRESETS,
+  DEFAULT_USER_INTONATION,
+  UserIntonationConfig,
+  getCulturalVoiceProfile,
+  getLocalizedIntonationLabels,
+  loadUserIntonationConfig,
+  saveUserIntonationConfig,
+  buildTtsIntonationDirective,
+  selectBestCulturalVoice,
+} from '../utils/culturalVoiceEngine';
 
 interface ArticleAudioPlayerProps {
   article: Article;
@@ -47,6 +60,8 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
   onAudioMeasured,
 }) => {
   const [audioLang, setAudioLang] = useState<LanguageCode>(language);
+  const [culturalPersonaIndex, setCulturalPersonaIndex] = useState<0 | 1>(0);
+  const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle');
   const [scope, setScope] = useState<'full' | 'abstract'>('full');
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1.0);
@@ -54,6 +69,10 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number>(0);
   const [showTranscript, setShowTranscript] = useState<boolean>(!compact);
+  const [showIntonationPanel, setShowIntonationPanel] = useState<boolean>(false);
+  const [userIntonation, setUserIntonation] = useState<UserIntonationConfig>(() =>
+    loadUserIntonationConfig()
+  );
   const [dynamicTranslations, setDynamicTranslations] = useState<
     Partial<
       Record<
@@ -77,18 +96,37 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
   const isPlayingQueueRef = useRef<boolean>(false);
   const currentSegmentIndexRef = useRef<number>(0);
 
+  const updateUserIntonation = useCallback((next: UserIntonationConfig) => {
+    setUserIntonation(next);
+    saveUserIntonationConfig(next);
+  }, []);
+
   const t = UI_TEXT[language].article;
   const audioLangMeta = getLanguageMeta(audioLang);
+  const intonationUi = useMemo(() => getLocalizedIntonationLabels(audioLang), [audioLang]);
 
-  // Content-matched prosody & voice profile tailored specifically to this article's subject matter
+  // Content-matched prosody & purely synthetic cultural acoustic profile tailored to the article & chosen language
   const voiceProfile = useMemo(
     () => getOptimalVoiceProfileForArticle(article, audioLang),
     [article, audioLang]
   );
+  const culturalProfile = useMemo(() => getCulturalVoiceProfile(audioLang), [audioLang]);
+  const activeCulturalPersona =
+    culturalProfile.personas[culturalPersonaIndex] || culturalProfile.personas[0];
 
-  const effectiveVoicePersona = voiceProfile.persona || voicePersona;
-  const effectiveSpeechRate = Number((voiceProfile.recommendedRate * speedMultiplier).toFixed(2));
-  const effectivePitch = voiceProfile.recommendedPitch;
+  const effectiveVoicePersona =
+    activeCulturalPersona.geminiVoiceFallback || voiceProfile.persona || voicePersona;
+  const effectiveSpeechRate = Number(
+    Math.min(
+      2.0,
+      Math.max(
+        0.55,
+        ((voiceProfile.recommendedRate + activeCulturalPersona.rateMultiplier) / 2) *
+          userIntonation.rate *
+          speedMultiplier
+      )
+    ).toFixed(2)
+  );
 
   const stopNarration = useCallback(() => {
     isPlayingQueueRef.current = false;
@@ -114,6 +152,41 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
     stopNarration();
     setAudioLang(language);
   }, [language, stopNarration]);
+
+  // Warm up browser voices & prevent Chrome 15s speechSynthesis freeze during long full-article narration
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const warmVoices = () => {
+      try {
+        const list = window.speechSynthesis.getVoices();
+        if (list && list.length > 0) setBrowserVoices(list);
+      } catch {}
+    };
+    warmVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged', warmVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener?.('voiceschanged', warmVoices);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'playing' || typeof window === 'undefined') return;
+    const keepAliveId = window.setInterval(() => {
+      if ('speechSynthesis' in window && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        try {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        } catch {}
+      }
+    }, 10000);
+    const minuteMeterId = window.setInterval(() => {
+      onAudioMeasured?.(article.id, 1);
+    }, 60000);
+    return () => {
+      window.clearInterval(keepAliveId);
+      window.clearInterval(minuteMeterId);
+    };
+  }, [status, article.id, onAudioMeasured]);
 
   useEffect(() => {
     return () => {
@@ -342,18 +415,27 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
       setProgressPercent(Math.min(99, Math.round((startIdx / totalCount) * 100)));
 
       const currentSeg = segmentsList[startIdx];
-      const meta = getLanguageMeta(targetLangCode);
+      const targetCultural = getCulturalVoiceProfile(targetLangCode);
+      const targetPersona =
+        targetCultural.personas[culturalPersonaIndex] || targetCultural.personas[0];
       const utterance = new SpeechSynthesisUtterance(currentSeg.text);
-      utterance.lang = meta.speechLang;
-      utterance.rate = effectiveSpeechRate;
-      utterance.pitch = effectivePitch;
+      utterance.lang = targetCultural.bcp47;
+      utterance.rate = Number(
+        Math.min(
+          2.0,
+          Math.max(0.55, targetPersona.rateMultiplier * userIntonation.rate * speedMultiplier)
+        ).toFixed(2)
+      );
+      utterance.pitch = Number(
+        Math.min(1.8, Math.max(0.5, targetPersona.pitch * userIntonation.pitch)).toFixed(2)
+      );
+      utterance.volume = Math.min(1.0, Math.max(0.15, userIntonation.volume));
 
-      const voices = window.speechSynthesis.getVoices();
-      const matchedVoice =
-        voices.find((v) => v.lang.toLowerCase() === meta.speechLang.toLowerCase()) ||
-        voices.find((v) => v.lang.toLowerCase().startsWith(targetLangCode.toLowerCase()));
-      if (matchedVoice) {
-        utterance.voice = matchedVoice;
+      const voices =
+        browserVoices.length > 0 ? browserVoices : window.speechSynthesis.getVoices();
+      const culturalPick = selectBestCulturalVoice(voices, targetLangCode, culturalPersonaIndex);
+      if (culturalPick.voice) {
+        utterance.voice = culturalPick.voice;
       }
 
       utterance.onend = () => {
@@ -361,9 +443,13 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
         const nextIdx = startIdx + 1;
         if (nextIdx < segmentsList.length) {
           const nextSeg = segmentsList[nextIdx];
-          const pauseMs = nextSeg.isSectionStart
-            ? voiceProfile.sectionPauseMs
-            : voiceProfile.sentencePauseMs;
+          const pauseMs = Math.max(
+            100,
+            Math.round(
+              (nextSeg.isSectionStart ? voiceProfile.sectionPauseMs : voiceProfile.sentencePauseMs) *
+                userIntonation.pauseScale
+            )
+          );
           queueTimerRef.current = window.setTimeout(() => {
             if (isPlayingQueueRef.current) {
               speakSegmentQueue(segmentsList, nextIdx, targetLangCode);
@@ -392,7 +478,14 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
       setShowTranscript(true);
       window.speechSynthesis.speak(utterance);
     },
-    [effectiveSpeechRate, effectivePitch, voiceProfile.sectionPauseMs, voiceProfile.sentencePauseMs]
+    [
+      browserVoices,
+      culturalPersonaIndex,
+      speedMultiplier,
+      userIntonation,
+      voiceProfile.sectionPauseMs,
+      voiceProfile.sentencePauseMs,
+    ]
   );
 
   const startNarrationFromSegment = async (segmentIndex = 0, forcedLang?: LanguageCode) => {
@@ -425,6 +518,11 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
           text: remainingText,
           voiceName: effectiveVoicePersona,
           languageCode: targetLang,
+          intonationStyle: buildTtsIntonationDirective(
+            userIntonation,
+            targetLang,
+            activeCulturalPersona
+          ),
         }),
       });
       if (response.ok) {
@@ -434,6 +532,7 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
           setWavDataUrl(dataUrl);
           const audio = new Audio(dataUrl);
           audio.playbackRate = effectiveSpeechRate;
+          audio.volume = Math.min(1.0, Math.max(0.2, userIntonation.volume));
           audio.onended = () => {
             setStatus('idle');
             setProgressPercent(100);
@@ -523,18 +622,202 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
 
   return (
     <div className="border border-stone-300 bg-[#F5F1E8] p-3.5 rounded-sm space-y-3">
-      {/* Content-Matched Adaptive Voice & Prosody Banner */}
-      <div className="bg-[#0F172A] text-white px-3 py-2 rounded-xs flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-        <div className="flex flex-wrap items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="text-amber-300 font-bold">
-            MAKALEYE ÖZEL SESLENDİRME BİÇİMİ ({article.category}):
-          </span>
-          <span className="text-slate-100">{voiceProfile.styleTitle}</span>
+      {/* Purely Synthetic Cultural Voice & User-Controlled Intonation Banner */}
+      <div className="bg-[#0F172A] text-white px-3 py-2 rounded-xs space-y-2 text-[11px] font-mono">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="text-amber-300 font-bold">
+              {culturalProfile.stageLabels.narratorPrefix.toUpperCase()} ({audioLangMeta.shortLabel}):
+            </span>
+            <div className="inline-flex items-center bg-slate-900 border border-slate-700 rounded-xs p-0.5">
+              {culturalProfile.personas.map((p, idx) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setCulturalPersonaIndex(idx as 0 | 1);
+                    if (status === 'playing') {
+                      stopNarration();
+                    }
+                  }}
+                  className={`px-1.5 py-0.5 text-[10px] rounded-xs cursor-pointer transition-colors ${
+                    culturalPersonaIndex === idx
+                      ? 'bg-emerald-500 text-slate-950 font-bold'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                  title={`${p.roleTitleNative} — ${p.cadenceNote}`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+            <span className="px-1.5 py-0.5 bg-slate-950 border border-emerald-500/40 text-emerald-300 text-[9px] rounded-xs">
+              {intonationUi.syntheticBadge}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowIntonationPanel((prev) => !prev)}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-xs border cursor-pointer transition-colors ${
+                showIntonationPanel
+                  ? 'bg-sky-500/20 border-sky-400 text-sky-200 font-bold'
+                  : 'bg-slate-950 border-slate-700 text-slate-200 hover:border-sky-400/60'
+              }`}
+            >
+              <Sliders className="w-3 h-3 text-sky-400 shrink-0" />
+              <span>{intonationUi.panelTitle}</span>
+            </button>
+            <span className="text-emerald-300 hidden sm:inline">
+              ({transcriptSegments.length})
+            </span>
+          </div>
         </div>
-        <span className="text-emerald-300">
-          Persona: {effectiveVoicePersona} · Ton: {voiceProfile.acousticToneLabel} · Tam Metin ({transcriptSegments.length} Cümle)
-        </span>
+
+        {/* User-Controlled Intonation Panel */}
+        {showIntonationPanel && (
+          <div
+            dir={audioLangMeta.dir}
+            className="p-2.5 bg-slate-950 border border-sky-500/35 rounded-xs space-y-2.5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-sky-300 font-bold mr-1">
+                  {intonationUi.presetLabel}:
+                </span>
+                {INTONATION_PRESETS.map((preset) => {
+                  const isActive = userIntonation.presetId === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        updateUserIntonation({
+                          presetId: preset.id,
+                          pitch: preset.pitch,
+                          rate: preset.rate,
+                          pauseScale: preset.pauseScale,
+                          volume: preset.volume,
+                        });
+                        if (status === 'playing') stopNarration();
+                      }}
+                      className={`px-2 py-0.5 text-[10px] rounded-xs border transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-sky-500 text-slate-950 border-sky-400 font-bold'
+                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:text-white'
+                      }`}
+                    >
+                      {preset.labels[audioLang] || preset.labels.en}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={() => updateUserIntonation({ ...DEFAULT_USER_INTONATION })}
+                className="px-2 py-0.5 text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-xs cursor-pointer"
+              >
+                {intonationUi.resetBtn}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[10px]">
+              <label className="space-y-1 block">
+                <div className="flex items-center justify-between text-slate-300 tabular-nums">
+                  <span>{intonationUi.pitchLabel}</span>
+                  <span className="text-sky-300 font-bold">{userIntonation.pitch.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.7}
+                  max={1.35}
+                  step={0.02}
+                  value={userIntonation.pitch}
+                  onChange={(e) =>
+                    updateUserIntonation({
+                      ...userIntonation,
+                      presetId: 'custom',
+                      pitch: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-sky-400 cursor-pointer h-1.5 bg-slate-800 rounded-xs"
+                />
+              </label>
+
+              <label className="space-y-1 block">
+                <div className="flex items-center justify-between text-slate-300 tabular-nums">
+                  <span>{intonationUi.rateLabel}</span>
+                  <span className="text-emerald-300 font-bold">{userIntonation.rate.toFixed(2)}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.7}
+                  max={1.75}
+                  step={0.05}
+                  value={userIntonation.rate}
+                  onChange={(e) =>
+                    updateUserIntonation({
+                      ...userIntonation,
+                      presetId: 'custom',
+                      rate: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-emerald-400 cursor-pointer h-1.5 bg-slate-800 rounded-xs"
+                />
+              </label>
+
+              <label className="space-y-1 block">
+                <div className="flex items-center justify-between text-slate-300 tabular-nums">
+                  <span>{intonationUi.pauseLabel}</span>
+                  <span className="text-amber-300 font-bold">
+                    {userIntonation.pauseScale.toFixed(2)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={1.8}
+                  step={0.05}
+                  value={userIntonation.pauseScale}
+                  onChange={(e) =>
+                    updateUserIntonation({
+                      ...userIntonation,
+                      presetId: 'custom',
+                      pauseScale: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-800 rounded-xs"
+                />
+              </label>
+
+              <label className="space-y-1 block">
+                <div className="flex items-center justify-between text-slate-300 tabular-nums">
+                  <span>{intonationUi.volumeLabel}</span>
+                  <span className="text-cyan-300 font-bold">
+                    {Math.round(userIntonation.volume * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0.2}
+                  max={1.0}
+                  step={0.05}
+                  value={userIntonation.volume}
+                  onChange={(e) =>
+                    updateUserIntonation({
+                      ...userIntonation,
+                      presetId: 'custom',
+                      volume: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-xs"
+                />
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -692,6 +975,16 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
         </div>
       </div>
 
+      {/* Live Visual Narration Progress Bar */}
+      <div className="space-y-1">
+        <div className="w-full h-1.5 bg-stone-200 rounded-xs overflow-hidden">
+          <div
+            className="h-full bg-[#1E3A8A] transition-all duration-300"
+            style={{ width: `${Math.max(status === 'playing' ? 4 : 0, progressPercent)}%` }}
+          />
+        </div>
+      </div>
+
       {/* Live Synchronized Audio Transcript Panel */}
       {showTranscript && (
         <div
@@ -753,31 +1046,37 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
       )}
 
       {!compact && (
-        <div className="pt-1 border-t border-stone-300/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600">
-          <span>
-            {voiceProfile.styleDescription} · {t.selectAudioLang}{' '}
-            <strong className="font-mono text-stone-900">
-              {audioLangMeta.nativeName} ({audioLangMeta.shortLabel})
-            </strong>{' '}
-            · Persona: <strong className="font-mono text-stone-800">{effectiveVoicePersona}</strong>
-          </span>
-          <span className="font-mono tabular-nums text-stone-500">
-            {({
-              tr: 'Emre Pelit Telifi · Tam Makale İlerlemesi',
-              en: '© Emre Pelit · Full Article Progress',
-              es: '© Emre Pelit · Progreso Completo',
-              de: '© Emre Pelit · Gesamtfortschritt',
-              fr: '© Emre Pelit · Progression Complète',
-              ru: '© Emre Pelit · Прогресс статьи',
-              ar: '© إمري بيليت · التقدم الكامل',
-              zh: '© Emre Pelit · 全文进度',
-              ja: '© Emre Pelit · 全文進捗',
-              pt: '© Emre Pelit · Progresso Completo',
-              it: '© Emre Pelit · Avanzamento Completo',
-              ko: '© Emre Pelit · 전체 진행률',
-            }[language] || '© Emre Pelit · Full Article Progress')}
-            : {progressPercent}%
-          </span>
+        <div className="pt-1.5 border-t border-stone-300/60 space-y-1.5 text-[11px] text-stone-600">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {activeCulturalPersona.name} · {t.selectAudioLang}{' '}
+              <strong className="font-mono text-stone-900">
+                {audioLangMeta.nativeName} ({audioLangMeta.shortLabel})
+              </strong>{' '}
+              · {intonationUi.syntheticBadge}
+            </span>
+            <span className="font-mono tabular-nums text-stone-500">
+              {({
+                tr: 'Emre Pelit Telifi · Tam Makale İlerlemesi',
+                en: '© Emre Pelit · Full Article Progress',
+                es: '© Emre Pelit · Progreso Completo',
+                de: '© Emre Pelit · Gesamtfortschritt',
+                fr: '© Emre Pelit · Progression Complète',
+                ru: '© Emre Pelit · Прогресс статьи',
+                ar: '© إمري بيليت · التقدم الكامل',
+                zh: '© Emre Pelit · 全文进度',
+                ja: '© Emre Pelit · 全文進捗',
+                pt: '© Emre Pelit · Progresso Completo',
+                it: '© Emre Pelit · Avanzamento Completo',
+                ko: '© Emre Pelit · 전체 진행률',
+              }[language] || '© Emre Pelit · Full Article Progress')}
+              : {progressPercent}%
+            </span>
+          </div>
+          <div className="flex items-start gap-1.5 text-[10px] text-stone-500 leading-snug">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+            <span>{intonationUi.zeroLiabilityVoiceDisclaimer}</span>
+          </div>
         </div>
       )}
     </div>

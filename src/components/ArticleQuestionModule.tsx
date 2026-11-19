@@ -17,6 +17,7 @@ import {
   Lock,
   AlertTriangle,
   Scale,
+  RefreshCw,
 } from 'lucide-react';
 import { Article, LanguageCode } from '../types';
 import { getLocalizedArray, getLocalizedText, getLanguageMeta } from '../i18n/translations';
@@ -75,7 +76,38 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
   const [ownerViewActive, setOwnerViewActive] = useState<boolean>(false);
   const [speakingAnswerId, setSpeakingAnswerId] = useState<string | null>(null);
 
+  // Anti-Bot & Anti-Spam Hardening (Honeypot + Human Math Challenge + 15s Cooldown)
+  const [honeypotValue, setHoneypotValue] = useState<string>('');
+  const [humanChallenge, setHumanChallenge] = useState<{ a: number; b: number }>(() => ({
+    a: Math.floor(Math.random() * 7) + 2,
+    b: Math.floor(Math.random() * 8) + 1,
+  }));
+  const [humanAnswerInput, setHumanAnswerInput] = useState<string>('');
+  const [humanChallengeError, setHumanChallengeError] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+
   const pendingEmailInputRef = useRef<HTMLInputElement | null>(null);
+  const humanAnswerInputRef = useRef<HTMLInputElement | null>(null);
+
+  const regenerateHumanChallenge = () => {
+    setHumanChallenge({
+      a: Math.floor(Math.random() * 7) + 2,
+      b: Math.floor(Math.random() * 8) + 1,
+    });
+    setHumanAnswerInput('');
+  };
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
+
+  const isHumanChallengeSolved =
+    humanAnswerInput.trim() !== '' &&
+    Number(humanAnswerInput.trim()) === humanChallenge.a + humanChallenge.b;
 
   const corpusList = Array.isArray(allArticles) && allArticles.length > 0 ? allArticles : [article];
   const corpusTotalCount = Math.max(316, corpusList.length);
@@ -164,7 +196,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
     const candidateEmail = (providedEmail ?? pendingEscalationEmail ?? askerEmail).trim();
     if (!candidateEmail || !candidateEmail.includes('@') || !candidateEmail.includes('.')) {
       setEmailPromptError(
-        'Lütfen geçerli bir e-posta adresi giriniz. E-posta adresiniz gizli tutulacak ve yalnızca emrepelit39@gmail.com tarafından görülebilecektir.'
+        'Lütfen geçerli bir e-posta adresi giriniz. E-posta adresiniz gizli tutulacak ve yalnızca yazar tarafından görülebilecektir.'
       );
       pendingEmailInputRef.current?.focus();
       return;
@@ -185,6 +217,8 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
           question: qaItem.question,
           askerName: askerName.trim() || 'Okur',
           askerEmail: candidateEmail,
+          _hp: honeypotValue,
+          humanVerified: true,
         }),
       });
 
@@ -271,10 +305,36 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
     const qText = (customQuestionText ?? questionInput).trim();
     if (!qText) return;
 
+    // 0. Honeypot Bot Trap: silently discard automated bot submissions
+    if (honeypotValue.trim().length > 0) {
+      setQuestionInput('');
+      return;
+    }
+
+    // 0b. Client-Side Cooldown Guard against rapid spam / API quota flood
+    if (cooldownSeconds > 0) {
+      setHumanChallengeError(
+        `Spam & Kota Koruması: Yeni bir soru veya itiraz göndermeden önce lütfen ${cooldownSeconds} saniye bekleyiniz.`
+      );
+      return;
+    }
+
+    // 0c. Interactive Human Math Verification Challenge
+    if (!isHumanChallengeSolved) {
+      setHumanChallengeError(
+        `Bot Koruması: Lütfen gönderimden önce insan doğrulamasını yanıtlayınız (${humanChallenge.a} + ${humanChallenge.b} = ?).`
+      );
+      humanAnswerInputRef.current?.focus();
+      return;
+    }
+
     const effectiveInquiryType = overrideInquiryType ?? inquiryType;
     setIsProcessing(true);
     setIsOpen(true);
     setEmailPromptError(null);
+    setHumanChallengeError(null);
+    setCooldownSeconds(15);
+    regenerateHumanChallenge();
 
     if (onQuestionAskedMeasured) {
       onQuestionAskedMeasured(activeArticle.id);
@@ -321,8 +381,18 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
           askerName: askerName.trim(),
           askerEmail: hasValidEmail ? cleanEmail : '',
           forceEmailEscalation: shouldForceServerEmail,
+          _hp: honeypotValue,
+          humanVerified: true,
         }),
       });
+
+      if (res.status === 429) {
+        setHumanChallengeError(
+          'Sunucu Hız Sınırı (Rate Limit): Kısa sürede çok fazla istek algılandı. Lütfen 1 dakika sonra tekrar deneyiniz.'
+        );
+        setIsProcessing(false);
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -483,8 +553,8 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
           </span>
           <span className="text-[11px] font-mono text-amber-300 font-semibold">
             {isHomepage
-              ? `Tüm ${corpusTotalCount} Makaleyi İnceler · Cevap Üretemezse Gizli E-Posta İle 7/24 emrepelit39@gmail.com’a İletir`
-              : `${corpusTotalCount} Makale Külliyatını İnceler · Cevap Yoksa 7/24 emrepelit39@gmail.com’a Yönlendirir`}
+              ? `Tüm ${corpusTotalCount} Makaleyi İnceler · Cevap Üretemezse Gizli Zarf İle Yazarın Korumalı E-Posta Kuyruğuna İletir`
+              : `${corpusTotalCount} Makale Külliyatını İnceler · Cevap Yoksa Yazarın Korumalı E-Posta Kuyruğuna Yönlendirir`}
           </span>
         </div>
 
@@ -551,7 +621,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
                 <strong className={isHomepage ? 'text-amber-300' : 'text-rose-800'}>
                   Eğer {corpusTotalCount} makale incelendiğinde gerekli cevap üretilemezse:
                 </strong>{' '}
-                sistem <strong>sadece emrepelit39@gmail.com adresinin görebileceği şekilde</strong> e-posta adresinizi ister ve sorunuzu/itirazınızı <strong>7/24 doğrudan emrepelit39@gmail.com</strong> adresine yönlendirir.
+                sistem <strong>yalnızca kurucu yazar Emre Pelit’in görebileceği korumalı zarf içinde</strong> e-posta adresinizi ister ve sorunuzu/itirazınızı <strong>7/24 korumalı yazar kuyruğuna</strong> yönlendirir. Spam ve bot koruması (Honeypot + İnsan Doğrulaması + Hız Sınırı) aktiftir.
               </p>
             </div>
 
@@ -652,7 +722,14 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
                   onClick={() => {
                     setInquiryType(sq.inquiryType);
                     setQuestionInput(sq.question);
-                    void handleAskQuestion(sq.question, false, sq.inquiryType);
+                    if (isHumanChallengeSolved && cooldownSeconds === 0) {
+                      void handleAskQuestion(sq.question, false, sq.inquiryType);
+                    } else {
+                      setHumanChallengeError(
+                        `Örnek soru forma aktarıldı. Bot koruması gereği göndermek için aşağıda ${humanChallenge.a} + ${humanChallenge.b} = ? doğrulamasını tamamlayın.`
+                      );
+                      humanAnswerInputRef.current?.focus();
+                    }
                   }}
                   className={`text-left px-2.5 py-1.5 text-[11px] font-mono rounded-xs border transition-colors cursor-pointer ${
                     sq.isOutOfScopeDemo
@@ -718,6 +795,22 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
               />
             </div>
 
+            {/* Visually Hidden Honeypot Trap Against Automated Spam Bots */}
+            <div className="sr-only" aria-hidden="true">
+              <label htmlFor={`qa-hp-${activeArticle.id}-${variant}`}>
+                Web Sitesi (Bu alanı boş bırakınız)
+              </label>
+              <input
+                id={`qa-hp-${activeArticle.id}-${variant}`}
+                type="text"
+                name="company_website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypotValue}
+                onChange={(e) => setHoneypotValue(e.target.value)}
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <label
@@ -747,14 +840,14 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
                 >
                   <Lock className="w-3 h-3 shrink-0" />
                   <span>
-                    E-Posta Adresiniz (Sadece emrepelit39@gmail.com Görebilir — Gizli Tutulur)
+                    E-Posta Adresiniz (Yalnızca Yazar Görebilir — Üçüncü Kişilere Gizlidir)
                   </span>
                 </label>
                 <input
                   type="email"
                   value={askerEmail}
                   onChange={(e) => setAskerEmail(e.target.value)}
-                  placeholder="ornek@eposta.com (Yalnızca emrepelit39@gmail.com görebilir)"
+                  placeholder="ornek@eposta.com (Gizli zarf korumalı)"
                   className={`w-full px-2.5 py-1.5 text-xs border rounded-xs ${
                     isHomepage
                       ? 'bg-slate-950 border-emerald-500/50 text-white'
@@ -764,11 +857,90 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
               </div>
             </div>
 
+            {/* Interactive Anti-Bot Human Verification Challenge & Rate-Limit Guard */}
+            <div
+              className={`p-2.5 rounded-xs border flex flex-wrap items-center justify-between gap-2.5 text-xs font-mono ${
+                isHomepage
+                  ? 'bg-slate-950 border-amber-500/40 text-slate-200'
+                  : 'bg-[#FBF9F5] border-stone-300 text-stone-800'
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                <label
+                  htmlFor={`qa-human-check-${activeArticle.id}-${variant}`}
+                  className="text-[11px] font-bold"
+                >
+                  Spam &amp; Bot Koruması: {humanChallenge.a} + {humanChallenge.b} = ?
+                </label>
+                <input
+                  ref={humanAnswerInputRef}
+                  id={`qa-human-check-${activeArticle.id}-${variant}`}
+                  type="text"
+                  inputMode="numeric"
+                  value={humanAnswerInput}
+                  onChange={(e) => {
+                    setHumanAnswerInput(e.target.value.replace(/[^\d]/g, '').slice(0, 3));
+                    setHumanChallengeError(null);
+                  }}
+                  placeholder="Sonuç"
+                  className={`w-20 px-2 py-1 text-xs font-mono font-bold border rounded-xs focus:outline-none ${
+                    isHumanChallengeSolved
+                      ? 'border-emerald-500 bg-emerald-950/20 text-emerald-600'
+                      : isHomepage
+                        ? 'bg-slate-900 border-slate-600 text-white focus:border-amber-400'
+                        : 'bg-white border-stone-400 text-stone-900 focus:border-[#1E3A8A]'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    regenerateHumanChallenge();
+                    setHumanChallengeError(null);
+                  }}
+                  title="Doğrulama sorusunu yenile"
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] rounded-xs border cursor-pointer ${
+                    isHomepage
+                      ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                      : 'bg-white hover:bg-stone-100 border-stone-300 text-stone-700'
+                  }`}
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Yenile</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-2 text-[10px]">
+                {cooldownSeconds > 0 ? (
+                  <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/60 text-amber-400 font-bold rounded-xs">
+                    Bekleme Süresi: {cooldownSeconds} sn
+                  </span>
+                ) : isHumanChallengeSolved ? (
+                  <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/60 text-emerald-500 font-bold rounded-xs">
+                    ✓ İnsan Doğrulaması Hazır
+                  </span>
+                ) : (
+                  <span className={isHomepage ? 'text-slate-400' : 'text-stone-500'}>
+                    Honeypot + IP Hız Sınırı Aktif
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {humanChallengeError && (
+              <div
+                role="alert"
+                className="px-3 py-2 text-[11px] font-mono font-semibold bg-rose-950/90 border border-rose-500/70 text-rose-200 rounded-xs flex items-center gap-2"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>{humanChallengeError}</span>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="submit"
-                  disabled={isProcessing || !questionInput.trim()}
+                  disabled={isProcessing || !questionInput.trim() || cooldownSeconds > 0}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold rounded-xs transition-colors cursor-pointer disabled:opacity-50 ${
                     inquiryType === 'OBJECTION'
                       ? 'bg-amber-400 hover:bg-amber-300 text-slate-950'
@@ -794,12 +966,12 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
 
                 <button
                   type="button"
-                  disabled={isProcessing || !questionInput.trim()}
+                  disabled={isProcessing || !questionInput.trim() || cooldownSeconds > 0}
                   onClick={() => void handleAskQuestion(undefined, true)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-[11px] font-mono font-bold text-amber-950 bg-amber-300 hover:bg-amber-200 border border-amber-500 rounded-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>7/24 emrepelit39@gmail.com’a Yönlendir</span>
+                  <span>7/24 Korumalı Yazar Kuyruğuna İlet</span>
                 </button>
               </div>
 
@@ -809,7 +981,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
                 }`}
               >
                 <Lock className="w-3 h-3" />
-                <span>Gizli İletim: Sadece emrepelit39@gmail.com görebilir</span>
+                <span>Gizli Zarf + Spam Koruması Aktif</span>
               </span>
             </div>
           </form>

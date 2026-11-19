@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "2026.11.ZERO-TRUST-10-NODES",
+  "status": "ACTIVE_PRIVACY_HARDENED",
+  "canonicalMainHub": "https://emrepelit-sciphi.ai.studio",
+  "sourceCms": "https://emrepelit7337.blogspot.com",
+  "owner": {
+    "name": "Emre Pelit",
+    "contactChannel": "https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine",
+    "researchgate": "https://www.researchgate.net/profile/Emre-Pelit",
+    "github": "https://github.com/emrepelit109",
+    "youtube": "https://www.youtube.com/@science_only",
+    "linkedin": "https://www.linkedin.com/in/emrepelit109"
+  },
+  "securityControls": {
+    "transport": "HTTPS TLS 1.3 + HSTS Preload",
+    "csp": "Strict CSP with server-side API key isolation",
+    "kvkkOptInTelemetry": true,
+    "qaAntiBotProtection": "Honeypot + Interactive Challenge + IP Rate Limiting",
+    "adminTriggersLocked": true
+  },
+  "ecosystemNodes": [
+    { "rank": 1, "domain": "science-philosophy.grok.me", "status": "RETIRED_301_TARGET_HUB" },
+    { "rank": 2, "domain": "emrepelit7337.blogspot.com", "status": "LIVE_CMS_HTTP_200" },
+    { "rank": 3, "domain": "sci-phi.ai.studio", "status": "RETIRED_301_TARGET_HUB" },
+    { "rank": 4, "domain": "sci-phil.ai.studio", "status": "RETIRED_301_TARGET_HUB" },
+    { "rank": 5, "domain": "science-philosophy.ai.studio", "status": "RETIRED_301_TARGET_HUB" },
+    { "rank": 6, "domain": "science-philosophy-emre-pelit.ai.studio", "status": "RETIRED_301_TARGET_HUB" },
+    { "rank": 7, "domain": "emre-pelit-sci-phil.ai.studio", "status": "RETIRED_301_TARGET_HUB" },
+    { "rank": 8, "domain": "emrepelit-sciphi.ai.studio", "status": "LIVE_MAIN_HUB_HTTP_200" },
+    { "rank": 9, "domain": "emrepelit.github.io/science-philosophy", "status": "PASSIVE_ARCHIVE_404_AWAITING_REACTIVATION" },
+    { "rank": 10, "domain": "emrepelit-sci-phi.ai.studio", "status": "RETIRED_301_TARGET_HUB" }
+  ],
+  "securityTxt": "https://emrepelit-sciphi.ai.studio/.well-known/security.txt"
+}

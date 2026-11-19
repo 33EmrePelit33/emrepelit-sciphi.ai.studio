@@ -15,12 +15,14 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Volume2,
 } from 'lucide-react';
 import {
   AnalyticsMeasurementEvent,
   AppInteractionCategory,
   AppInteractionTotals,
   Article,
+  ArticleStatsBoost,
   CloudSnapshot,
   DynamicGatewayConfig,
   LanguageCode,
@@ -62,7 +64,7 @@ import { EmrePelitCVMenu } from './components/EmrePelitCVMenu';
 import { GlobalIndexingAndSocialHub } from './components/GlobalIndexingAndSocialHub';
 import { ArticleAnalysisModal } from './components/ArticleAnalysisModal';
 import { ArticleQuestionModule } from './components/ArticleQuestionModule';
-import { ArticleExplainerVideo } from './components/ArticleExplainerVideo';
+import { ArticleExplainerVideo, VideoWatchProgressPayload } from './components/ArticleExplainerVideo';
 import { ArticleQuizModule } from './components/ArticleQuizModule';
 import { InteractiveAppsSuite } from './components/InteractiveAppsSuite';
 import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallButton';
@@ -783,6 +785,8 @@ export default function App() {
     kvkkConsentRef.current = kvkkConsent;
   }, [kvkkConsent]);
   const [kvkkManageOpen, setKvkkManageOpen] = useState<boolean>(false);
+  const [adminModeUnlocked, setAdminModeUnlocked] = useState<boolean>(false);
+  const [ownerSessionToken, setOwnerSessionToken] = useState<string>('');
   const handleSaveKvkkConsent = useCallback((nextState: KvkkConsentState) => {
     setKvkkConsent(nextState);
     kvkkConsentRef.current = nextState;
@@ -908,6 +912,8 @@ export default function App() {
     qaObjections: 0,
     languageSearchExports: 0,
     pwaDownloads: 0,
+    videoWatches: 0,
+    videoWatchSeconds: 0,
   });
   const [analyticsEventLog, setAnalyticsEventLog] = useState<AnalyticsMeasurementEvent[]>(() => {
     if (typeof window !== 'undefined') {
@@ -952,7 +958,7 @@ export default function App() {
     readsDelta: 0,
   });
   const [articleStatsBoosts, setArticleStatsBoosts] = useState<
-    Record<string, { reads: number; views: number; citations: number }>
+    Record<string, ArticleStatsBoost>
   >(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -1241,7 +1247,7 @@ export default function App() {
 
       const baseTitle = 'Emre Pelit Sci-Phil — Bilim, Felsefe ve Simülasyon';
       const baseDesc =
-        `Emre Pelit'in ${corpusArticlesCount} özgün bilim ve felsefe makalesi, her makaleye özel 60 sn HTML5 açıklayıcı videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonlarını keşfedin.`;
+        `Emre Pelit'in ${corpusArticlesCount} özgün bilim ve felsefe makalesi, her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli (gerçek kişi içermeyen, sıfır yasal mükellefiyetli) HTML5 geniş özet videolar, kullanıcı kontrollü tonlama, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonlarını keşfedin.`;
 
       const dynamicTitle = matchedArticle
         ? `${getLocalizedText(matchedArticle.title, effectiveArticleLang)} — Emre Pelit Sci-Phil (${effectiveLangMeta.shortLabel})`
@@ -1252,10 +1258,10 @@ export default function App() {
         : `${t.hero.title} — Emre Pelit Sci-Phil (${currentLangMeta.nativeName})`;
 
       const dynamicDesc = matchedArticle
-        ? `${getLocalizedText(matchedArticle.abstract, effectiveArticleLang).slice(0, 130)} — HTML5 Video (60s) & Çoktan Seçmeli Test`
+        ? `${getLocalizedText(matchedArticle.abstract, effectiveArticleLang).slice(0, 124)} — 12 Dilli Sentetik Sesli Geniş Özet Videosu & Çoktan Seçmeli Test`
         : language === 'tr'
         ? baseDesc
-        : `${t.hero.subtitle} (${distinctWorksCount} Distinct Works · 60s HTML5 Videos · Multiple-Choice Quizzes · ${corpusArticlesCount} Multilingual Texts)`;
+        : `${t.hero.subtitle} (${distinctWorksCount} Distinct Works · 12-Lang Synthetic Cultural Voice Summary Videos · Multiple-Choice Quizzes · ${corpusArticlesCount} Multilingual Texts)`;
 
       document.title = dynamicTitle;
 
@@ -1845,6 +1851,11 @@ export default function App() {
         audioMinutesDelta?: number;
         uniqueReadersDelta?: number;
         simulatorRunsDelta?: number;
+        videoPlaysDelta?: number;
+        videoWatchSecondsDelta?: number;
+        videoCompletedDelta?: number;
+        maxVideoPositionSec?: number;
+        videoDurationSec?: number;
       },
       sourcePanel: AnalyticsMeasurementEvent['sourcePanel'],
       metricSummary: string,
@@ -1863,41 +1874,44 @@ export default function App() {
       const amDelta = Math.max(0, Math.floor(Number(delta.audioMinutesDelta) || 0));
       const uDelta = Math.max(0, Math.floor(Number(delta.uniqueReadersDelta) || 0));
       const sDelta = Math.max(0, Math.floor(Number(delta.simulatorRunsDelta) || 0));
+      const vpDelta = Math.max(0, Math.floor(Number(delta.videoPlaysDelta) || 0));
+      const vsDelta = Math.max(0, Math.floor(Number(delta.videoWatchSecondsDelta) || 0));
+      const vcDelta = Math.max(0, Math.floor(Number(delta.videoCompletedDelta) || 0));
+      const maxPosSec = Math.max(0, Math.floor(Number(delta.maxVideoPositionSec) || 0));
+      const vDurSec = Math.max(0, Math.floor(Number(delta.videoDurationSec) || 0));
 
       const inferredCategory: AppInteractionCategory =
         interactionCategoryOverride ||
-        (sourcePanel === 'PWA_DOWNLOAD'
-          ? 'PWA_DOWNLOAD'
-          : sourcePanel === 'SIMULATION_LAB'
-            ? 'SIMULATION_RUN'
-            : sourcePanel === 'AUDIO_NARRATOR'
-              ? 'AUDIO_LISTEN'
-              : sourcePanel === 'AI_ANALYSIS_LAB'
-                ? 'ANALYSIS_MODAL'
-                : sourcePanel === 'QA_OBJECTOR'
-                  ? 'QA_OBJECTION'
-                  : sourcePanel === 'LANGUAGE_SWITCH' ||
-                      sourcePanel === 'SEARCH_FILTER' ||
-                      sourcePanel === 'EXPORT_CITATION' ||
-                      sourcePanel === 'NAVIGATION'
-                    ? 'LANGUAGE_SEARCH_EXPORT'
-                    : sourcePanel === 'ARTICLE_READER'
-                      ? 'ARTICLE_READ'
-                      : 'PAGE_VIEW');
+        (sourcePanel === 'VIDEO_PLAYER' || vpDelta > 0 || vsDelta > 0
+          ? 'VIDEO_WATCH'
+          : sourcePanel === 'PWA_DOWNLOAD'
+            ? 'PWA_DOWNLOAD'
+            : sourcePanel === 'SIMULATION_LAB'
+              ? 'SIMULATION_RUN'
+              : sourcePanel === 'AUDIO_NARRATOR'
+                ? 'AUDIO_LISTEN'
+                : sourcePanel === 'AI_ANALYSIS_LAB'
+                  ? 'ANALYSIS_MODAL'
+                  : sourcePanel === 'QA_OBJECTOR'
+                    ? 'QA_OBJECTION'
+                    : sourcePanel === 'LANGUAGE_SWITCH' ||
+                        sourcePanel === 'SEARCH_FILTER' ||
+                        sourcePanel === 'EXPORT_CITATION' ||
+                        sourcePanel === 'NAVIGATION'
+                      ? 'LANGUAGE_SEARCH_EXPORT'
+                      : sourcePanel === 'ARTICLE_READER'
+                        ? 'ARTICLE_READ'
+                        : 'PAGE_VIEW');
 
       const hasExplicitInteraction =
         Boolean(interactionCategoryOverride) ||
+        sourcePanel === 'VIDEO_PLAYER' ||
         sourcePanel === 'PWA_DOWNLOAD' ||
         sourcePanel === 'QA_OBJECTOR' ||
         sourcePanel === 'LANGUAGE_SWITCH' ||
         sourcePanel === 'SEARCH_FILTER' ||
         sourcePanel === 'EXPORT_CITATION' ||
         sourcePanel === 'NAVIGATION';
-
-      // Strict KVKK Law No. 6698 opt-in gate: do not mutate session analytics or hit backend telemetry endpoints until accepted
-      if (kvkkConsentRef.current.status !== 'accepted' || !kvkkConsentRef.current.analytics) {
-        return;
-      }
 
       // Strict guard: If no measured value changed AND not an explicit UI interaction, skip
       if (
@@ -1908,7 +1922,10 @@ export default function App() {
         rmDelta === 0 &&
         amDelta === 0 &&
         uDelta === 0 &&
-        sDelta === 0
+        sDelta === 0 &&
+        vpDelta === 0 &&
+        vsDelta === 0 &&
+        vcDelta === 0
       ) {
         return;
       }
@@ -1920,42 +1937,89 @@ export default function App() {
         targetDomainOrAll === 'ALL_8_SITES';
       const currentSyncSeq = syncSeqRef.current++;
 
-      // If a specific article was viewed/read/cited, update both articles state AND articleStatsBoosts synchronously
+      // If a specific article was viewed/read/cited/watched, update both articles state AND articleStatsBoosts synchronously
       let nextBoostsSnapshot = articleStatsBoostsRef.current;
-      if (delta.targetArticleId && (rDelta > 0 || vDelta > 0 || cDelta > 0)) {
+      if (
+        delta.targetArticleId &&
+        (rDelta > 0 || vDelta > 0 || cDelta > 0 || vpDelta > 0 || vsDelta > 0 || vcDelta > 0 || maxPosSec > 0)
+      ) {
         const targetId = delta.targetArticleId;
-        const curB = nextBoostsSnapshot[targetId] || { reads: 0, views: 0, citations: 0 };
+        const curB: ArticleStatsBoost = nextBoostsSnapshot[targetId] || {
+          reads: 0,
+          views: 0,
+          citations: 0,
+          videoPlays: 0,
+          videoWatchSeconds: 0,
+          videoCompletions: 0,
+          maxVideoPositionSec: 0,
+        };
+        const updatedArtBoost: ArticleStatsBoost = {
+          reads: curB.reads + rDelta,
+          views: curB.views + vDelta,
+          citations: curB.citations + cDelta,
+          videoPlays: (curB.videoPlays || 0) + vpDelta,
+          videoWatchSeconds: (curB.videoWatchSeconds || 0) + vsDelta,
+          videoCompletions: (curB.videoCompletions || 0) + vcDelta,
+          maxVideoPositionSec: Math.max(curB.maxVideoPositionSec || 0, maxPosSec),
+          videoDurationSec: Math.max(curB.videoDurationSec || 0, vDurSec),
+        };
         nextBoostsSnapshot = {
           ...nextBoostsSnapshot,
-          [targetId]: {
-            reads: curB.reads + rDelta,
-            views: curB.views + vDelta,
-            citations: curB.citations + cDelta,
-          },
+          [targetId]: updatedArtBoost,
         };
         articleStatsBoostsRef.current = nextBoostsSnapshot;
         setArticleStatsBoosts((prevBoosts) => {
-          const prevCur = prevBoosts[targetId] || { reads: 0, views: 0, citations: 0 };
+          const prevCur: ArticleStatsBoost = prevBoosts[targetId] || {
+            reads: 0,
+            views: 0,
+            citations: 0,
+            videoPlays: 0,
+            videoWatchSeconds: 0,
+            videoCompletions: 0,
+            maxVideoPositionSec: 0,
+            videoDurationSec: 0,
+          };
           return {
             ...prevBoosts,
             [targetId]: {
-              reads: Math.max(nextBoostsSnapshot[targetId].reads, prevCur.reads + rDelta),
-              views: Math.max(nextBoostsSnapshot[targetId].views, prevCur.views + vDelta),
-              citations: Math.max(nextBoostsSnapshot[targetId].citations, prevCur.citations + cDelta),
+              reads: Math.max(updatedArtBoost.reads, prevCur.reads + rDelta),
+              views: Math.max(updatedArtBoost.views, prevCur.views + vDelta),
+              citations: Math.max(updatedArtBoost.citations, prevCur.citations + cDelta),
+              videoPlays: Math.max(updatedArtBoost.videoPlays || 0, (prevCur.videoPlays || 0) + vpDelta),
+              videoWatchSeconds: Math.max(
+                updatedArtBoost.videoWatchSeconds || 0,
+                (prevCur.videoWatchSeconds || 0) + vsDelta
+              ),
+              videoCompletions: Math.max(
+                updatedArtBoost.videoCompletions || 0,
+                (prevCur.videoCompletions || 0) + vcDelta
+              ),
+              maxVideoPositionSec: Math.max(
+                updatedArtBoost.maxVideoPositionSec || 0,
+                prevCur.maxVideoPositionSec || 0,
+                maxPosSec
+              ),
+              videoDurationSec: Math.max(
+                updatedArtBoost.videoDurationSec || 0,
+                prevCur.videoDurationSec || 0,
+                vDurSec
+              ),
             },
           };
         });
-        setArticles((prevArts) =>
-          prevArts.map((a) =>
-            a.id === targetId
-              ? {
-                  ...a,
-                  networkImpressions: (a.networkImpressions || 0) + vDelta,
-                  citationsCount: (a.citationsCount || 0) + cDelta,
-                }
-              : a
-          )
-        );
+        if (vDelta > 0 || cDelta > 0) {
+          setArticles((prevArts) =>
+            prevArts.map((a) =>
+              a.id === targetId
+                ? {
+                    ...a,
+                    networkImpressions: (a.networkImpressions || 0) + vDelta,
+                    citationsCount: (a.citationsCount || 0) + cDelta,
+                  }
+                : a
+            )
+          );
+        }
       }
 
       const isMainHubTarget =
@@ -1992,6 +2056,8 @@ export default function App() {
             audioListenMinutes: totalAudioMins % 60,
             uniqueReaders: node.stats.uniqueReaders + uDelta,
             simulatorRuns: node.stats.simulatorRuns + sDelta,
+            videoPlays: (node.stats.videoPlays || 0) + vpDelta,
+            videoWatchSeconds: (node.stats.videoWatchSeconds || 0) + vsDelta,
           };
 
           return {
@@ -2046,13 +2112,21 @@ export default function App() {
               node.stats.simulatorRuns,
               prevEntry?.measuredSimulatorRuns || 0
             ),
+            measuredVideoPlays: Math.max(
+              node.stats.videoPlays || 0,
+              prevEntry?.measuredVideoPlays || 0
+            ),
+            measuredVideoWatchSeconds: Math.max(
+              node.stats.videoWatchSeconds || 0,
+              prevEntry?.measuredVideoWatchSeconds || 0
+            ),
             lastMeasuredAt: didChange ? nowIso : prevEntry?.lastMeasuredAt || nowIso,
           };
         });
         return nextMap;
       });
 
-      // Keep live session + all-time app interaction totals 100% synchronized with every read, view & interaction delta
+      // Keep live session + all-time app interaction totals 100% synchronized with every read, view, video watch & interaction delta
       const effectiveViewDelta = nextCumulative.totalViews > appInteractionTotalsRef.current.pageViews
         ? nextCumulative.totalViews - appInteractionTotalsRef.current.pageViews
         : vDelta > 0
@@ -2083,7 +2157,8 @@ export default function App() {
       const qaInc = inferredCategory === 'QA_OBJECTION' ? 1 : 0;
       const lsInc = inferredCategory === 'LANGUAGE_SEARCH_EXPORT' ? 1 : 0;
       const pwaInc = inferredCategory === 'PWA_DOWNLOAD' ? 1 : 0;
-      const interactionStep = pvInc + arInc + amInc + srInc + alInc + qaInc + lsInc + pwaInc;
+      const vwInc = vpDelta > 0 ? vpDelta : 0;
+      const interactionStep = pvInc + arInc + amInc + srInc + alInc + qaInc + lsInc + pwaInc + vwInc;
 
       const prevTotals = appInteractionTotalsRef.current;
       const nextAppTotals = mergeMonotonicAppInteractionTotals({
@@ -2095,6 +2170,11 @@ export default function App() {
         qaObjections: prevTotals.qaObjections + qaInc,
         languageSearchExports: prevTotals.languageSearchExports + lsInc,
         pwaDownloads: prevTotals.pwaDownloads + pwaInc,
+        videoWatches: Math.max((prevTotals.videoWatches || 0) + vwInc, nextCumulative.videoPlays),
+        videoWatchSeconds: Math.max(
+          (prevTotals.videoWatchSeconds || 0) + vsDelta,
+          nextCumulative.videoWatchSeconds
+        ),
         lastUpdatedAt: nowIso,
       });
       appInteractionTotalsRef.current = nextAppTotals;
@@ -2110,6 +2190,8 @@ export default function App() {
         qaObjections: prevSess.qaObjections + qaInc,
         languageSearchExports: prevSess.languageSearchExports + lsInc,
         pwaDownloads: prevSess.pwaDownloads + pwaInc,
+        videoWatches: (prevSess.videoWatches || 0) + vwInc,
+        videoWatchSeconds: (prevSess.videoWatchSeconds || 0) + vsDelta,
       }));
 
       const syncPayload: AnalyticsMeasurementEvent = {
@@ -2128,6 +2210,9 @@ export default function App() {
         audioMinutesDelta: amDelta,
         uniqueReadersDelta: uDelta,
         simulatorRunsDelta: sDelta,
+        videoPlaysDelta: vpDelta,
+        videoWatchSecondsDelta: vsDelta,
+        videoCompletedDelta: vcDelta,
         cumulativeViewsAfter: nextCumulative.totalViews,
         cumulativeReadsAfter: nextCumulative.netReads,
         cumulativeAppInteractionsAfter: nextAppTotals.totalInteractionsSinceLaunch,
@@ -2193,6 +2278,11 @@ export default function App() {
             audioMinutesDelta: amDelta,
             uniqueReadersDelta: uDelta,
             simulatorRunsDelta: sDelta,
+            videoPlaysDelta: vpDelta,
+            videoWatchSecondsDelta: vsDelta,
+            videoCompletedDelta: vcDelta,
+            maxVideoPositionSec: maxPosSec,
+            videoDurationSec: vDurSec,
             sourcePanel,
             interactionCategory: inferredCategory,
             metricSummary,
@@ -2212,7 +2302,41 @@ export default function App() {
     []
   );
 
-  // Listen for Cross-Tab BroadcastChannel & localStorage Storage Events so new reads/views from any tab stay 100% synced
+  // Per-article comprehensive-summary explainer video watch duration & speaker-synced completion live handler
+  const handleArticleVideoWatchProgress = useCallback(
+    (artId: string, payload: VideoWatchProgressPayload) => {
+      const denom = Math.max(1, payload.durationSec || 180);
+      const pct = Math.min(100, Math.round((payload.maxPositionSec / denom) * 100));
+      const durMins = Math.floor(denom / 60);
+      const durRemSec = denom % 60;
+      const durLabel = `${String(durMins).padStart(2, '0')}:${String(durRemSec).padStart(2, '0')}`;
+      const parts: string[] = [];
+      if (payload.playsDelta > 0) parts.push(`+${payload.playsDelta} Video Oynatma`);
+      if (payload.watchSecondsDelta > 0) parts.push(`+${payload.watchSecondsDelta} sn İzlenme`);
+      if (payload.completed) parts.push(`Geniş Özet (${durLabel}) Tamamlandı`);
+      if (parts.length === 0) return;
+
+      handleRecordAnalyticsMeasurement(
+        'emrepelit-sciphi.ai.studio',
+        {
+          targetArticleId: artId,
+          viewsDelta: payload.playsDelta > 0 ? 1 : 0,
+          readsDelta: payload.playsDelta > 0 ? 1 : 0,
+          videoPlaysDelta: payload.playsDelta,
+          videoWatchSecondsDelta: payload.watchSecondsDelta,
+          videoCompletedDelta: payload.completed ? 1 : 0,
+          maxVideoPositionSec: payload.maxPositionSec,
+          videoDurationSec: denom,
+        },
+        'VIDEO_PLAYER',
+        `Geniş Özet Videosu Ölçümü (#${artId}): ${parts.join(' · ')} (İlerleme %${pct})`,
+        'VIDEO_WATCH'
+      );
+    },
+    [handleRecordAnalyticsMeasurement]
+  );
+
+  // Listen for Cross-Tab BroadcastChannel & localStorage Storage Events continuously (cookieless first-party aggregate sync)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let bc: BroadcastChannel | null = null;
@@ -2229,7 +2353,7 @@ export default function App() {
             }
             if (ev.data.articleStatsBoosts && typeof ev.data.articleStatsBoosts === 'object') {
               setArticleStatsBoosts((prev) => {
-                const mergedBoosts = { ...prev };
+                const mergedBoosts: Record<string, ArticleStatsBoost> = { ...prev };
                 for (const [artId, incB] of Object.entries(ev.data.articleStatsBoosts as Record<string, any>)) {
                   if (!incB || typeof incB !== 'object') continue;
                   const curB = mergedBoosts[artId] || { reads: 0, views: 0, citations: 0 };
@@ -2237,8 +2361,26 @@ export default function App() {
                     reads: Math.max(curB.reads, Number(incB.reads) || 0),
                     views: Math.max(curB.views, Number(incB.views) || 0),
                     citations: Math.max(curB.citations, Number(incB.citations) || 0),
+                    videoPlays: Math.max(curB.videoPlays || 0, Number(incB.videoPlays) || 0),
+                    videoWatchSeconds: Math.max(
+                      curB.videoWatchSeconds || 0,
+                      Number(incB.videoWatchSeconds) || 0
+                    ),
+                    videoCompletions: Math.max(
+                      curB.videoCompletions || 0,
+                      Number(incB.videoCompletions) || 0
+                    ),
+                    maxVideoPositionSec: Math.max(
+                      curB.maxVideoPositionSec || 0,
+                      Number(incB.maxVideoPositionSec) || 0
+                    ),
+                    videoDurationSec: Math.max(
+                      curB.videoDurationSec || 0,
+                      Number(incB.videoDurationSec) || 0
+                    ),
                   };
                 }
+                articleStatsBoostsRef.current = mergedBoosts;
                 return mergedBoosts;
               });
             }
@@ -2289,7 +2431,7 @@ export default function App() {
           const parsedBoosts = JSON.parse(e.newValue);
           if (parsedBoosts && typeof parsedBoosts === 'object') {
             setArticleStatsBoosts((prev) => {
-              const merged = { ...prev };
+              const merged: Record<string, ArticleStatsBoost> = { ...prev };
               for (const [artId, val] of Object.entries(parsedBoosts as Record<string, any>)) {
                 if (!val || typeof val !== 'object') continue;
                 const cur = merged[artId] || { reads: 0, views: 0, citations: 0 };
@@ -2297,6 +2439,23 @@ export default function App() {
                   reads: Math.max(cur.reads, Number(val.reads) || 0),
                   views: Math.max(cur.views, Number(val.views) || 0),
                   citations: Math.max(cur.citations, Number(val.citations) || 0),
+                  videoPlays: Math.max(cur.videoPlays || 0, Number(val.videoPlays) || 0),
+                  videoWatchSeconds: Math.max(
+                    cur.videoWatchSeconds || 0,
+                    Number(val.videoWatchSeconds) || 0
+                  ),
+                  videoCompletions: Math.max(
+                    cur.videoCompletions || 0,
+                    Number(val.videoCompletions) || 0
+                  ),
+                  maxVideoPositionSec: Math.max(
+                    cur.maxVideoPositionSec || 0,
+                    Number(val.maxVideoPositionSec) || 0
+                  ),
+                  videoDurationSec: Math.max(
+                    cur.videoDurationSec || 0,
+                    Number(val.videoDurationSec) || 0
+                  ),
                 };
               }
               return merged;
@@ -2331,6 +2490,14 @@ export default function App() {
                     cur?.measuredSimulatorRuns || 0,
                     Number(inc.measuredSimulatorRuns) || 0
                   ),
+                  measuredVideoPlays: Math.max(
+                    cur?.measuredVideoPlays || 0,
+                    Number(inc.measuredVideoPlays) || 0
+                  ),
+                  measuredVideoWatchSeconds: Math.max(
+                    cur?.measuredVideoWatchSeconds || 0,
+                    Number(inc.measuredVideoWatchSeconds) || 0
+                  ),
                   lastMeasuredAt: String(inc.lastMeasuredAt || cur?.lastMeasuredAt || ''),
                 };
               }
@@ -2354,14 +2521,9 @@ export default function App() {
     };
   }, []);
 
-  // Automatically record session/page entry strictly AFTER visitor grants KVKK opt-in analytics consent
+  // Automatically record cookieless first-party page entry (zero PII, zero third-party cookies)
   useEffect(() => {
-    if (
-      initialEntryRecordedRef.current ||
-      typeof window === 'undefined' ||
-      kvkkConsent.status !== 'accepted' ||
-      !kvkkConsent.analytics
-    ) {
+    if (initialEntryRecordedRef.current || typeof window === 'undefined') {
       return;
     }
     initialEntryRecordedRef.current = true;
@@ -2385,9 +2547,9 @@ export default function App() {
         ? `Canlı Senkron: Yeni Görüntülenme & Makale Ziyareti (${entryDomain} · #${articleParam}): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur`
         : `Canlı Senkron: Yeni Platform Görüntülenmesi (${entryDomain}): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur`
     );
-  }, [kvkkConsent.status, kvkkConsent.analytics, handleRecordAnalyticsMeasurement]);
+  }, [handleRecordAnalyticsMeasurement]);
 
-  // Increment cumulative views & app interactions strictly when KVKK analytics consent is active
+  // Increment cumulative views & app interactions on language/page change (cookieless aggregate counter)
   const didMountViewTrackerRef = useRef<boolean>(false);
   const prevTrackedLangRef = useRef<LanguageCode>(language);
   useEffect(() => {
@@ -2398,9 +2560,6 @@ export default function App() {
     }
     const isLangChange = prevTrackedLangRef.current !== language;
     prevTrackedLangRef.current = language;
-    if (kvkkConsentRef.current.status !== 'accepted' || !kvkkConsentRef.current.analytics) {
-      return;
-    }
     handleRecordAnalyticsMeasurement(
       'emrepelit-sciphi.ai.studio',
       {
@@ -2533,6 +2692,16 @@ export default function App() {
               cur?.measuredSimulatorRuns || 0,
               Number(cloudItem?.measuredSimulatorRuns) || 0
             ),
+            measuredVideoPlays: Math.max(
+              nodeItem?.stats?.videoPlays || 0,
+              cur?.measuredVideoPlays || 0,
+              Number(cloudItem?.measuredVideoPlays) || 0
+            ),
+            measuredVideoWatchSeconds: Math.max(
+              nodeItem?.stats?.videoWatchSeconds || 0,
+              cur?.measuredVideoWatchSeconds || 0,
+              Number(cloudItem?.measuredVideoWatchSeconds) || 0
+            ),
             lastMeasuredAt: String(cloudItem?.lastMeasuredAt || cur?.lastMeasuredAt || ''),
           };
         });
@@ -2544,6 +2713,8 @@ export default function App() {
           pageViews: mergedNodeSums.totalViews,
           articleReads: mergedNodeSums.netReads,
           simulationRuns: mergedNodeSums.simulatorRuns,
+          videoWatches: mergedNodeSums.videoPlays,
+          videoWatchSeconds: mergedNodeSums.videoWatchSeconds,
         });
         appInteractionTotalsRef.current = merged;
         return merged;
@@ -2578,7 +2749,7 @@ export default function App() {
 
       if (data?.articleStatsBoosts && typeof data.articleStatsBoosts === 'object') {
         setArticleStatsBoosts((prev) => {
-          const mergedBoosts: Record<string, { reads: number; views: number; citations: number }> = {
+          const mergedBoosts: Record<string, ArticleStatsBoost> = {
             ...prev,
           };
           for (const [artId, cloudBoost] of Object.entries(
@@ -2590,6 +2761,23 @@ export default function App() {
                 reads: Math.max(curB.reads, Number(cloudBoost.reads) || 0),
                 views: Math.max(curB.views, Number(cloudBoost.views) || 0),
                 citations: Math.max(curB.citations, Number(cloudBoost.citations) || 0),
+                videoPlays: Math.max(curB.videoPlays || 0, Number(cloudBoost.videoPlays) || 0),
+                videoWatchSeconds: Math.max(
+                  curB.videoWatchSeconds || 0,
+                  Number(cloudBoost.videoWatchSeconds) || 0
+                ),
+                videoCompletions: Math.max(
+                  curB.videoCompletions || 0,
+                  Number(cloudBoost.videoCompletions) || 0
+                ),
+                maxVideoPositionSec: Math.max(
+                  curB.maxVideoPositionSec || 0,
+                  Number(cloudBoost.maxVideoPositionSec) || 0
+                ),
+                videoDurationSec: Math.max(
+                  curB.videoDurationSec || 0,
+                  Number(cloudBoost.videoDurationSec) || 0
+                ),
               };
             }
           }
@@ -2651,14 +2839,25 @@ export default function App() {
     ((scrollToArticles?: boolean, forceRefresh?: boolean, targetWebsiteDomain?: string) => Promise<void>) | null
   >(null);
 
-  // Load persisted cloud state, open Server-Sent Events (/api/live/events), and run 15s live Blogger sync
+  // 1. One-time initial read-only corpus hydration on mount (wrapped safely for privacy blockers)
   useEffect(() => {
-    const initHub = async () => {
-      await syncCloudAnalyticsState(true);
-      await handleSyncBloggerRef.current?.(false, false);
+    const initCorpusOnce = async () => {
+      try {
+        await syncCloudAnalyticsState(true);
+      } catch {
+        // Non-blocking
+      }
+      try {
+        await handleSyncBloggerRef.current?.(false, false);
+      } catch {
+        // Non-blocking
+      }
     };
-    void initHub();
+    void initCorpusOnce();
+  }, [syncCloudAnalyticsState]);
 
+  // 2. Continuous Live SSE (/api/live/events) & 15s polling for cookieless all-10-sites cumulative stats
+  useEffect(() => {
     const intervalId = window.setInterval(() => {
       void syncCloudAnalyticsState(false);
       void handleSyncBloggerRef.current?.(false, false);
@@ -2691,7 +2890,7 @@ export default function App() {
         liveEvents.addEventListener('analytics-sync', (ev) => {
           try {
             const parsed = JSON.parse((ev as MessageEvent).data || '{}');
-            if (parsed && (parsed.networkNodes || parsed.appInteractionTotals)) {
+            if (parsed && (parsed.networkNodes || parsed.appInteractionTotals || parsed.articleStatsBoosts)) {
               applyMonotonicServerAnalyticsSnapshot(parsed, false);
               if (parsed.payload) {
                 window.dispatchEvent(
@@ -2705,9 +2904,12 @@ export default function App() {
           }
           void syncCloudAnalyticsState(false);
         });
+        liveEvents.onerror = () => {
+          // Gracefully ignore SSE disruption under strict privacy extensions
+        };
       }
     } catch {
-      // SSE connection optional; 15s polling remains active
+      // SSE connection optional under privacy blockers
     }
 
     return () => {
@@ -2744,6 +2946,9 @@ export default function App() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (isOwnerAuthorized) {
         headers['X-Owner-Email'] = 'emrepelit39@gmail.com';
+        if (ownerSessionToken) {
+          headers['X-Owner-Token'] = ownerSessionToken;
+        }
       }
       await fetch('/api/cloud/state', {
         method: 'POST',
@@ -3689,7 +3894,7 @@ export default function App() {
       id="top"
       data-active-tab={activeTab}
       dir={currentLangMeta.dir}
-      className={`min-h-screen ${surfaceThemeClass} ${typographyScaleClass} flex flex-col transition-colors duration-200 ${
+      className={`min-h-screen max-w-full overflow-x-clip ${surfaceThemeClass} ${typographyScaleClass} flex flex-col transition-colors duration-200 ${
         isKvkkBannerVisible ? 'pb-24' : 'pb-6'
       }`}
     >
@@ -3713,11 +3918,11 @@ export default function App() {
         {language === 'tr' ? 'Ana İçeriğe Atla' : 'Skip to Main Content'}
       </a>
 
-      {/* Strict 3-Zone Top Bar Contract with Responsive Wrapping & Interactive CV Dropdown Menu */}
+      {/* Strict 3-Zone Top Bar Contract with Overflow-Visible Dropdowns & Zero Inner Scrollbars */}
       <header
         role="banner"
         aria-label="Emre Pelit Sci-Phil Ana Üst Menü"
-        className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-xs border-b border-stone-300 px-4 sm:px-6 py-3 flex flex-wrap xl:flex-nowrap items-center justify-between gap-x-5 gap-y-2.5"
+        className="sticky top-0 z-40 overflow-visible max-w-full bg-[#FBF9F5]/95 backdrop-blur-xs border-b border-stone-300 px-4 sm:px-6 py-3 flex flex-wrap xl:flex-nowrap items-center justify-between gap-x-5 gap-y-2.5"
       >
         {/* Zone 1: Custom Sci-Phil Application Icon + Wordmark */}
         <a
@@ -3742,10 +3947,10 @@ export default function App() {
           </div>
         </a>
 
-        {/* Zone 2: Responsive wrapping/scrollable navigation bar (prevents clipping on narrow viewports) */}
+        {/* Zone 2: Overflow-visible wrapping navigation bar (no scrollbars, dropdowns never clipped) */}
         <nav
           aria-label="Ana Bölümler Navigasyonu"
-          className="hidden md:flex flex-1 min-w-0 max-w-full flex-wrap items-center gap-x-4 gap-y-1.5 overflow-x-auto text-sm font-medium text-stone-700"
+          className="hidden md:flex flex-1 min-w-0 max-w-full flex-wrap items-center gap-x-4 gap-y-1.5 overflow-visible text-sm font-medium text-stone-700"
         >
           <a
             href="#corpus"
@@ -3781,7 +3986,7 @@ export default function App() {
                 id="nav-cv-dropdown-panel"
                 role="region"
                 aria-label="Emre Pelit Özgeçmiş ve Telif Özeti"
-                className="absolute left-0 mt-3 w-[min(440px,90vw)] bg-white border border-stone-300 shadow-lg p-4 z-50 space-y-3 text-xs text-stone-800"
+                className="absolute left-0 mt-3 w-[min(440px,90vw)] bg-white border border-stone-300 shadow-xl p-4 z-[70] space-y-3 text-xs text-stone-800"
               >
                 <div className="flex items-center justify-between pb-2 border-b border-stone-200">
                   <div>
@@ -3839,9 +4044,20 @@ export default function App() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <strong>İletişim &amp; Profiller:</strong>
-                    <span>Toroslar, Mersin</span>
+                    <span>Mersin, Türkiye</span>
                     <span>·</span>
-                    <span>emrepelit39@gmail.com</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNavCvDropdownOpen(false);
+                        document
+                          .getElementById('homepage-qa-objection-engine')
+                          ?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="font-mono font-semibold text-[#1E3A8A] hover:underline cursor-pointer"
+                    >
+                      Korumalı İletişim Formu ↓
+                    </button>
                     <span>·</span>
                     <a
                       href="https://github.com/emrepelit109"
@@ -3914,7 +4130,7 @@ export default function App() {
                 id="nav-about-dropdown-panel"
                 role="region"
                 aria-label="Hakkında — Emre Pelit"
-                className="absolute left-0 mt-3 w-[min(420px,90vw)] bg-white border border-stone-300 shadow-lg p-5 z-50 space-y-3.5 text-sm text-stone-800"
+                className="absolute left-0 mt-3 w-[min(420px,90vw)] bg-white border border-stone-300 shadow-xl p-5 z-[70] space-y-3.5 text-sm text-stone-800"
               >
                 <div className="flex items-center justify-between pb-2.5 border-b border-stone-200">
                   <div>
@@ -4032,13 +4248,22 @@ export default function App() {
           >
             {t.nav.controlCloud}
           </a>
-          <button
-            type="button"
-            onClick={() => handleSyncBlogger(true)}
-            className="px-4 py-2 text-xs font-medium text-white bg-[#1E3A8A] hover:bg-[#172E6E] rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            {bloggerSyncState.syncing ? 'Senkronize Ediliyor...' : t.nav.primaryCta}
-          </button>
+          {adminModeUnlocked ? (
+            <button
+              type="button"
+              onClick={() => handleSyncBlogger(true)}
+              className="px-4 py-2 text-xs font-medium text-white bg-[#1E3A8A] hover:bg-[#172E6E] rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              {bloggerSyncState.syncing ? 'Senkronize Ediliyor...' : t.nav.primaryCta}
+            </button>
+          ) : (
+            <a
+              href="#corpus"
+              className="px-4 py-2 text-xs font-medium text-white bg-[#1E3A8A] hover:bg-[#172E6E] rounded-sm transition-colors whitespace-nowrap shrink-0"
+            >
+              {t.nav.articles}
+            </a>
+          )}
         </div>
       </header>
 
@@ -4116,20 +4341,32 @@ export default function App() {
               {t.hero.bloggerBadge} ({bloggerSyncState.lastSyncedAt})
             </span>
             <span aria-hidden="true">·</span>
-            <button
-              type="button"
-              onClick={handleInstantGlobalIndexAndScroll}
-              className="px-2 py-0.5 bg-[#047857] hover:bg-[#065F46] text-white font-semibold rounded-sm transition-colors cursor-pointer"
-            >
-              Tüm Akademik İndekslerde, Bütün Web Tarayıcılarında &amp; Ağların Tümünde İndeksle
-            </button>
-            <button
-              type="button"
-              onClick={handleQueueAllArticlesIndividuallyAndScroll}
-              className="px-2.5 py-0.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold border border-amber-500 rounded-sm transition-colors cursor-pointer"
-            >
-              Tüm {corpusArticlesCount} Makaleyi Tüm Tarayıcılarda Tek Tek İndeksleme Kuyruğuna Sok
-            </button>
+            {adminModeUnlocked ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleInstantGlobalIndexAndScroll}
+                  className="px-2 py-0.5 bg-[#047857] hover:bg-[#065F46] text-white font-semibold rounded-sm transition-colors cursor-pointer"
+                >
+                  Tüm Akademik İndekslerde, Bütün Web Tarayıcılarında &amp; Ağların Tümünde İndeksle
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQueueAllArticlesIndividuallyAndScroll}
+                  className="px-2.5 py-0.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold border border-amber-500 rounded-sm transition-colors cursor-pointer"
+                >
+                  Tüm {corpusArticlesCount} Makaleyi Tüm Tarayıcılarda Tek Tek İndeksleme Kuyruğuna Sok
+                </button>
+              </>
+            ) : (
+              <a
+                href="#control-cloud"
+                className="px-2 py-0.5 bg-stone-200 hover:bg-stone-300 text-stone-800 border border-stone-300 font-semibold rounded-sm transition-colors"
+                title="Senkronizasyon ve toplu indeksleme tetikleyicileri yalnızca kurucu oturumunda açılır"
+              >
+                🔒 Yönetici Senkron &amp; İndeksleme Kilitli (#control-cloud)
+              </a>
+            )}
           </div>
 
           {/* 12 Major World Languages Selector (Instant UI, Full Content & Audio Narrator Switch) */}
@@ -4891,13 +5128,18 @@ export default function App() {
               {networkNodes.map((node) => {
                 const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
                 const isBloggerLive = node.domain === 'emrepelit7337.blogspot.com';
+                const isPassiveArchive =
+                  node.domain === 'emrepelit.github.io/science-philosophy' ||
+                  node.httpCode === 404;
                 const isLiveNode =
                   LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
                 const badgeLabel = isMainHub
                   ? 'CANLI ANA HUB · HTTP 200'
                   : isBloggerLive
                     ? 'CANLI BLOGGER · HTTP 200'
-                    : 'YAYINDAN KALDIRILDI · 301 → HUB';
+                    : isPassiveArchive
+                      ? 'PASİF ARŞİV · 404'
+                      : 'YAYINDAN KALDIRILDI · 301 → HUB';
                 const nodeViews = node.stats.totalViews ?? node.stats.netReads;
                 const sharePct = (
                   (node.stats.netReads / Math.max(1, liveCumulativeStats.netReads)) *
@@ -4924,7 +5166,9 @@ export default function App() {
                               ? 'bg-emerald-400 text-slate-950 border-emerald-300'
                               : isBloggerLive
                                 ? 'bg-amber-500/20 text-amber-300 border-amber-400/50'
-                                : 'bg-slate-900 text-slate-400 border-slate-700'
+                                : isPassiveArchive
+                                  ? 'bg-amber-950/50 text-amber-300 border-amber-700/60'
+                                  : 'bg-slate-900 text-slate-400 border-slate-700'
                           }`}
                         >
                           {badgeLabel}
@@ -5549,6 +5793,18 @@ export default function App() {
                     <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] tabular-nums">
                       <button
                         type="button"
+                        onClick={() => {
+                          document
+                            .getElementById(`article-audio-${article.id}`)
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold text-white bg-[#1E3A8A] hover:bg-[#172E6E] border border-[#1E3A8A] rounded-xs transition-colors cursor-pointer"
+                      >
+                        <Volume2 className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Sesli Dinle (12 Dil)</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleOpenAnalysisModal(article)}
                         className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 border border-amber-500 rounded-xs transition-colors cursor-pointer"
                       >
@@ -5607,6 +5863,28 @@ export default function App() {
                         <p className="text-sm font-medium text-stone-600 leading-snug">
                           {subtitle}
                         </p>
+
+                        {/* Prominent Per-Article 12-Language Audio Narration + Live Synchronized Transcript */}
+                        <div id={`article-audio-${article.id}`} className="scroll-mt-24 pt-1">
+                          <ArticleAudioPlayer
+                            article={article}
+                            language={language}
+                            voicePersona={gatewayConfig.defaultVoicePersona}
+                            onAudioMeasured={(artId, minsDelta) =>
+                              handleRecordAnalyticsMeasurement(
+                                'emrepelit-sciphi.ai.studio',
+                                {
+                                  readsDelta: 1,
+                                  viewsDelta: 1,
+                                  targetArticleId: artId,
+                                  audioMinutesDelta: minsDelta,
+                                },
+                                'AUDIO_NARRATOR',
+                                `Analitik Ölçüm (Sesli Anlatım #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
+                              )
+                            }
+                          />
+                        </div>
 
                         {/* Dedicated Per-Article Pop-up Full Content Analysis, Understandable Guide, Professional Guide, Core Thesis Equation & Content-Matched Audio Narration Strip Next to Article */}
                         <div className="bg-amber-50/95 border-2 border-amber-400 p-3.5 text-xs font-mono text-stone-900 space-y-2.5 rounded-xs">
@@ -5870,26 +6148,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Article-Only Dedicated Multi-Language Audio Narrator + Synchronized Live Transcript */}
-                      <ArticleAudioPlayer
-                        article={article}
-                        language={language}
-                        voicePersona={gatewayConfig.defaultVoicePersona}
-                        onAudioMeasured={(artId, minsDelta) =>
-                          handleRecordAnalyticsMeasurement(
-                            'emrepelit-sciphi.ai.studio',
-                            {
-                              readsDelta: 1,
-                              viewsDelta: 1,
-                              targetArticleId: artId,
-                              audioMinutesDelta: minsDelta,
-                            },
-                            'AUDIO_NARRATOR',
-                            `Analitik Ölçüm (Sesli Anlatım #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
-                          )
-                        }
-                      />
-
                       {/* Article-Specific Executive Summary (Abstract) */}
                       <div className="bg-[#FBF9F5] border border-stone-200 p-4 space-y-2">
                         <div className="flex items-center justify-between">
@@ -5901,23 +6159,18 @@ export default function App() {
                           {abstractText}
                         </p>
                       </div>
-                      {/* Article-Specific HTML5 Explainer Video (Royalty-free & Respecting Freedom of Thought) */}
+                      {/* Article-Specific Unrestricted Comprehensive-Summary Animated-Entity HTML5 Video (12 Languages · Cultural Narrators) */}
                       <ArticleExplainerVideo
                         article={article}
                         language={language}
-                        onVideoMeasured={(artId) =>
-                          handleRecordAnalyticsMeasurement(
-                            'emrepelit-sciphi.ai.studio',
-                            {
-                              viewsDelta: 1,
-                              readsDelta: 1,
-                              readingMinutesDelta: 1,
-                              targetArticleId: artId,
-                            },
-                            'ARTICLE_READER',
-                            `HTML5 Açıklayıcı Video (60 sn) İzleme (#${artId}): +1 Görüntülenme, +1 Okunma`
-                          )
-                        }
+                        articleVideoStats={{
+                          plays: articleStatsBoosts[article.id]?.videoPlays || 0,
+                          watchSeconds: articleStatsBoosts[article.id]?.videoWatchSeconds || 0,
+                          completions: articleStatsBoosts[article.id]?.videoCompletions || 0,
+                          maxPositionSec: articleStatsBoosts[article.id]?.maxVideoPositionSec || 0,
+                          videoDurationSec: articleStatsBoosts[article.id]?.videoDurationSec || 0,
+                        }}
+                        onVideoWatchProgress={handleArticleVideoWatchProgress}
                       />
                     </div>
 
@@ -6356,6 +6609,7 @@ export default function App() {
           }
           onForceLiveSync={() => syncCloudAnalyticsState(false)}
           articleStatsBoosts={articleStatsBoosts}
+          kvkkAnalyticsGranted={true}
         />
 
         {/* SECTION 02B: Interactive Science, Physics & Philosophy Applications Suite */}
@@ -6393,7 +6647,11 @@ export default function App() {
         </div>
 
         {/* SECTION 03: AI-Powered Content Generation & Epistemological Analysis Studio */}
-        <div id="ai-studio" className="scroll-mt-24 pt-6 border-t border-stone-300">
+        <section
+          id="ai-studio"
+          aria-label="YZ Üretim ve Analiz Laboratuvarı"
+          className="scroll-mt-28 pt-6 border-t border-stone-300"
+        >
           <AIContentLab
             articles={articles}
             language={language}
@@ -6412,10 +6670,14 @@ export default function App() {
               )
             }
           />
-        </div>
+        </section>
 
         {/* SECTION 04: Personalized Control Panel, Dynamic API Gateway, Cloud Storage & Security */}
-        <div id="control-cloud" className="scroll-mt-24 pt-6 border-t border-stone-300">
+        <section
+          id="control-cloud"
+          aria-label="Kontrol ve Bulut Yönetimi"
+          className="scroll-mt-28 pt-6 border-t border-stone-300"
+        >
           <ControlAndCloudPanel
             config={gatewayConfig}
             snapshots={snapshots}
@@ -6425,8 +6687,12 @@ export default function App() {
             onUpdateConfig={handleUpdateGatewayConfig}
             onCreateSnapshot={handleCreateCloudSnapshot}
             onTriggerBloggerSync={() => handleSyncBlogger(false, true)}
+            onOwnerUnlockChange={(unlocked, sessionToken) => {
+              setAdminModeUnlocked(unlocked);
+              setOwnerSessionToken(unlocked ? sessionToken || '' : '');
+            }}
           />
-        </div>
+        </section>
       </main>
 
       {/* Pop-up Window (Modal) for Full Article Content Analysis, Scientific Score & Audio Narration */}
@@ -6462,6 +6728,18 @@ export default function App() {
             `Analitik Ölçüm (Açılır Pencere Tam Makale Analizi & Bilimsel Skor #${artId}): +1 Görüntülenme, +1 Okunma, +1 Analiz & Simülasyon`
           )
         }
+        onVideoWatchProgress={handleArticleVideoWatchProgress}
+        articleVideoStats={
+          activeModalAnalysisArticle
+            ? {
+                plays: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoPlays || 0,
+                watchSeconds: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoWatchSeconds || 0,
+                completions: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoCompletions || 0,
+                maxPositionSec: articleStatsBoosts[activeModalAnalysisArticle.id]?.maxVideoPositionSec || 0,
+                videoDurationSec: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoDurationSec || 0,
+              }
+            : undefined
+        }
       />
 
       {/* Quiet Academic Footer */}
@@ -6473,7 +6751,7 @@ export default function App() {
             </div>
             <div>
               {APP_CHROME_I18N[language].network301FooterLabel}{' '}
-              emrepelit-sciphi.ai.studio (Canlı Ana Hub · HTTP 200) · emrepelit7337.blogspot.com (Canlı Blogger CMS · HTTP 200) · Emekli 301 → Hub: science-philosophy.grok.me · sci-phi.ai.studio · sci-phil.ai.studio · science-philosophy.ai.studio · science-philosophy-emre-pelit.ai.studio · emre-pelit-sci-phil.ai.studio · emrepelit.github.io/science-philosophy · emrepelit-sci-phi.ai.studio
+              emrepelit-sciphi.ai.studio (Canlı Ana Hub · HTTP 200) · emrepelit7337.blogspot.com (Canlı Blogger CMS · HTTP 200) · Emekli 301 → Hub: science-philosophy.grok.me · sci-phi.ai.studio · sci-phil.ai.studio · science-philosophy.ai.studio · science-philosophy-emre-pelit.ai.studio · emre-pelit-sci-phil.ai.studio · emrepelit-sci-phi.ai.studio · Pasif Arşiv (404): emrepelit.github.io/science-philosophy
             </div>
             <div className="font-mono text-[11px] text-stone-700 pt-0.5 flex flex-wrap items-center gap-2">
               <span>YouTube:</span>
@@ -6496,14 +6774,12 @@ export default function App() {
                 github.com/emrepelit109 ↗
               </a>
               <span>·</span>
-              <a
-                href="https://emrepelit.github.io/science-philosophy"
-                target="_blank"
-                rel="me noopener noreferrer"
-                className="font-semibold text-[#1E3A8A] hover:underline"
+              <span
+                title="GitHub Pages düğümü pasif arşiv durumundadır (404 · yeniden aktifleştirme bekliyor)"
+                className="font-semibold text-stone-500"
               >
-                emrepelit.github.io/science-philosophy (301) ↗
-              </a>
+                emrepelit.github.io/science-philosophy (Pasif Arşiv · 404)
+              </span>
               <span>·</span>
               {(
                 [

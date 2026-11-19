@@ -2736,19 +2736,19 @@ export const INITIAL_301_NETWORK_NODES: Network301Node[] = [
     id: 'node-github-pages-09',
     rank: 9,
     domain: 'emrepelit.github.io/science-philosophy',
-    nodeTitle: 'emrepelit.github.io/science-philosophy (#9 Yayından Kaldırıldı · Kalıcı 301 → Yalnızca emrepelit-sciphi.ai.studio · Tarihsel Arşiv)',
+    nodeTitle: 'emrepelit.github.io/science-philosophy (#9 Pasif Arşiv Düğümü · GitHub Pages 404 — Yeniden Aktifleştirme Bekliyor)',
     launchDate: '24 Nisan 2026',
     articlesCount: 316,
     bloggerSyncedCount: 316,
     lastBloggerSyncAt: '2026-11-17 10:08 UTC',
     allBloggerArticlesPublished: false,
     sharePercent: 1.46,
-    addedTo301Badge: true,
+    addedTo301Badge: false,
     redirectTargetUrl: 'https://emrepelit-sciphi.ai.studio/en/article/the-conventional-monotony-of-human-comprehension-blogger-258995342970019936',
-    httpCode: 301,
+    httpCode: 404,
     status: 'DECOMMISSIONED_REDIRECTED_301',
     isLiveWebsite: false,
-    decommissionedNote: 'Yayından kaldırıldı; kalıcı HTTP 301 ile yalnızca emrepelit-sciphi.ai.studio Ana Hub’a devredildi.',
+    decommissionedNote: 'Pasif Arşiv Düğümü (GitHub Pages 404): Depo yayını pasiftir; yeniden aktifleştirildiğinde meta-refresh + rel="canonical" ile Ana Hub’a yönlendirilecektir. Tüm güncel içerik emrepelit-sciphi.ai.studio üzerinden sunulur.',
     tlsProtocol: 'TLS 1.3 / SHA-256',
     stats: {
       baseReads: 1840,
@@ -2882,6 +2882,8 @@ export function mergeMonotonicNodeStats(
     Math.max(0, canonicalStats.audioListenMinutes || 0);
   let maxUniqueReaders = Math.max(0, canonicalStats.uniqueReaders || 0);
   let maxSimulatorRuns = Math.max(0, canonicalStats.simulatorRuns || 0);
+  let maxVideoPlays = Math.max(0, canonicalStats.videoPlays || 0);
+  let maxVideoWatchSeconds = Math.max(0, canonicalStats.videoWatchSeconds || 0);
   let syncLatencyMs = canonicalStats.syncLatencyMs || 12;
 
   for (const cand of candidates) {
@@ -2913,6 +2915,12 @@ export function mergeMonotonicNodeStats(
     if (typeof cand.simulatorRuns === 'number' && !Number.isNaN(cand.simulatorRuns)) {
       maxSimulatorRuns = Math.max(maxSimulatorRuns, cand.simulatorRuns);
     }
+    if (typeof cand.videoPlays === 'number' && !Number.isNaN(cand.videoPlays)) {
+      maxVideoPlays = Math.max(maxVideoPlays, Math.floor(cand.videoPlays));
+    }
+    if (typeof cand.videoWatchSeconds === 'number' && !Number.isNaN(cand.videoWatchSeconds)) {
+      maxVideoWatchSeconds = Math.max(maxVideoWatchSeconds, Math.floor(cand.videoWatchSeconds));
+    }
     if (typeof cand.syncLatencyMs === 'number' && cand.syncLatencyMs > 0) {
       syncLatencyMs = cand.syncLatencyMs;
     }
@@ -2934,6 +2942,8 @@ export function mergeMonotonicNodeStats(
     audioListenMinutes: maxAudioTotalMinutes % 60,
     uniqueReaders: maxUniqueReaders,
     simulatorRuns: maxSimulatorRuns,
+    videoPlays: maxVideoPlays,
+    videoWatchSeconds: maxVideoWatchSeconds,
     syncLatencyMs,
   };
 }
@@ -3044,6 +3054,10 @@ export interface Cumulative8SitesStats {
   audioMins: number;
   uniqueReaders: number;
   simulatorRuns: number;
+  videoPlays: number;
+  videoWatchSeconds: number;
+  videoWatchHours: number;
+  videoWatchMins: number;
   totalArticlesPublishedAcross8Sites: number;
   uniqueCorpusArticlesCount: number;
   publicationsCount: number;
@@ -3069,6 +3083,8 @@ export function computeCumulativeNetworkStats(
         node.stats.audioListenHours * 60 + node.stats.audioListenMinutes;
       acc.uniqueReaders += node.stats.uniqueReaders;
       acc.simulatorRuns += node.stats.simulatorRuns;
+      acc.videoPlays += node.stats.videoPlays || 0;
+      acc.videoWatchSeconds += node.stats.videoWatchSeconds || 0;
       acc.totalArticlesPublishedAcross8Sites += node.articlesCount;
       acc.publicationsCount += node.publications.length;
       acc.totalReferrals += node.publications.reduce(
@@ -3086,6 +3102,8 @@ export function computeCumulativeNetworkStats(
       audioMinutesTotal: 0,
       uniqueReaders: 0,
       simulatorRuns: 0,
+      videoPlays: 0,
+      videoWatchSeconds: 0,
       totalArticlesPublishedAcross8Sites: 0,
       publicationsCount: 0,
       totalReferrals: 0,
@@ -3096,6 +3114,7 @@ export function computeCumulativeNetworkStats(
     316,
     ...safeNodes.map((n) => n.articlesCount || 316)
   );
+  const totalVideoMins = Math.floor(raw.videoWatchSeconds / 60);
 
   return {
     sitesCount: safeNodes.length,
@@ -3104,6 +3123,8 @@ export function computeCumulativeNetworkStats(
     readingMins: raw.readingMinutesTotal % 60,
     audioHours: Math.floor(raw.audioMinutesTotal / 60),
     audioMins: raw.audioMinutesTotal % 60,
+    videoWatchHours: Math.floor(totalVideoMins / 60),
+    videoWatchMins: totalVideoMins % 60,
     uniqueCorpusArticlesCount,
   };
 }
@@ -3118,6 +3139,8 @@ export const INITIAL_HISTORICAL_APP_INTERACTION_BASELINE: AppInteractionTotals =
     BASELINE_NODE_SUMS.audioMinutesTotal > 0
       ? Math.max(1, Math.round(BASELINE_NODE_SUMS.audioMinutesTotal / 4.2))
       : 71083; // 71.083
+  const videoWatches = BASELINE_NODE_SUMS.videoPlays;
+  const videoWatchSeconds = BASELINE_NODE_SUMS.videoWatchSeconds;
   const analysisModals = 42862;
   const qaObjections = 11420;
   const languageSearchExports = 64311;
@@ -3127,10 +3150,11 @@ export const INITIAL_HISTORICAL_APP_INTERACTION_BASELINE: AppInteractionTotals =
     articleReads +
     simulationRuns +
     audioListens +
+    videoWatches +
     analysisModals +
     qaObjections +
     languageSearchExports +
-    pwaDownloads; // 864.115
+    pwaDownloads;
 
   return {
     totalInteractionsSinceLaunch,
@@ -3139,6 +3163,8 @@ export const INITIAL_HISTORICAL_APP_INTERACTION_BASELINE: AppInteractionTotals =
     analysisModals,
     simulationRuns,
     audioListens,
+    videoWatches,
+    videoWatchSeconds,
     qaObjections,
     languageSearchExports,
     pwaDownloads,
@@ -3177,6 +3203,8 @@ export function mergeMonotonicAppInteractionTotals(
   let analysisModals = b.analysisModals;
   let simulationRuns = b.simulationRuns;
   let audioListens = b.audioListens;
+  let videoWatches = b.videoWatches || 0;
+  let videoWatchSeconds = b.videoWatchSeconds || 0;
   let qaObjections = b.qaObjections;
   let languageSearchExports = b.languageSearchExports;
   let pwaDownloads = b.pwaDownloads;
@@ -3199,6 +3227,12 @@ export function mergeMonotonicAppInteractionTotals(
     if (typeof c.audioListens === 'number' && !Number.isNaN(c.audioListens)) {
       audioListens = Math.max(audioListens, Math.floor(c.audioListens));
     }
+    if (typeof c.videoWatches === 'number' && !Number.isNaN(c.videoWatches)) {
+      videoWatches = Math.max(videoWatches, Math.floor(c.videoWatches));
+    }
+    if (typeof c.videoWatchSeconds === 'number' && !Number.isNaN(c.videoWatchSeconds)) {
+      videoWatchSeconds = Math.max(videoWatchSeconds, Math.floor(c.videoWatchSeconds));
+    }
     if (typeof c.qaObjections === 'number' && !Number.isNaN(c.qaObjections)) {
       qaObjections = Math.max(qaObjections, Math.floor(c.qaObjections));
     }
@@ -3219,6 +3253,7 @@ export function mergeMonotonicAppInteractionTotals(
     analysisModals +
     simulationRuns +
     audioListens +
+    videoWatches +
     qaObjections +
     languageSearchExports +
     pwaDownloads;
@@ -3230,6 +3265,8 @@ export function mergeMonotonicAppInteractionTotals(
     analysisModals,
     simulationRuns,
     audioListens,
+    videoWatches,
+    videoWatchSeconds,
     qaObjections,
     languageSearchExports,
     pwaDownloads,

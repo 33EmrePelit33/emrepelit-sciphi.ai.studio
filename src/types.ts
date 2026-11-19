@@ -105,8 +105,8 @@ export interface Network301Node {
   sharePercent: number;
   addedTo301Badge?: boolean;
   redirectTargetUrl: string;
-  httpCode: 301 | 200;
-  status: 'LIVE_MAIN_HUB' | 'LIVE_BLOGGER_SOURCE' | 'DECOMMISSIONED_REDIRECTED_301' | 'PERMANENT_301_ACTIVE';
+  httpCode: 301 | 200 | 404;
+  status: 'LIVE_MAIN_HUB' | 'LIVE_BLOGGER_SOURCE' | 'DECOMMISSIONED_REDIRECTED_301' | 'PERMANENT_301_ACTIVE' | 'PASSIVE_ARCHIVE_404';
   isLiveWebsite?: boolean;
   decommissionedNote?: string;
   tlsProtocol: 'TLS 1.3 / SHA-256';
@@ -121,6 +121,8 @@ export interface Network301Node {
     audioListenMinutes: number;
     uniqueReaders: number;
     simulatorRuns: number;
+    videoPlays?: number;
+    videoWatchSeconds?: number;
     syncLatencyMs: number;
   };
   publications: NetworkPublication[];
@@ -169,6 +171,17 @@ export interface EpistemologicalAnalysisResult {
   recommendedSimulationType: SimulationType;
 }
 
+export interface ArticleStatsBoost {
+  reads: number;
+  views: number;
+  citations: number;
+  videoPlays?: number;
+  videoWatchSeconds?: number;
+  videoCompletions?: number;
+  maxVideoPositionSec?: number;
+  videoDurationSec?: number;
+}
+
 export interface SiteMeasuredAnalytics {
   domain: string;
   measuredReads: number;
@@ -177,6 +190,8 @@ export interface SiteMeasuredAnalytics {
   measuredAudioMinutes: number;
   measuredUniqueReaders: number;
   measuredSimulatorRuns: number;
+  measuredVideoPlays?: number;
+  measuredVideoWatchSeconds?: number;
   lastMeasuredAt: string;
 }
 
@@ -186,6 +201,7 @@ export type AppInteractionCategory =
   | 'ANALYSIS_MODAL'
   | 'SIMULATION_RUN'
   | 'AUDIO_LISTEN'
+  | 'VIDEO_WATCH'
   | 'QA_OBJECTION'
   | 'LANGUAGE_SEARCH_EXPORT'
   | 'PWA_DOWNLOAD';
@@ -197,6 +213,8 @@ export interface AppInteractionTotals {
   analysisModals: number;
   simulationRuns: number;
   audioListens: number;
+  videoWatches?: number;
+  videoWatchSeconds?: number;
   qaObjections: number;
   languageSearchExports: number;
   pwaDownloads: number;
@@ -212,6 +230,7 @@ export interface AnalyticsMeasurementEvent {
     | 'ANALYTICS_PANEL'
     | 'ARTICLE_READER'
     | 'AUDIO_NARRATOR'
+    | 'VIDEO_PLAYER'
     | 'SIMULATION_LAB'
     | 'AI_ANALYSIS_LAB'
     | 'PWA_DOWNLOAD'
@@ -228,6 +247,9 @@ export interface AnalyticsMeasurementEvent {
   citationsDelta?: number;
   readingMinutesDelta: number;
   audioMinutesDelta: number;
+  videoPlaysDelta?: number;
+  videoWatchSecondsDelta?: number;
+  videoCompletedDelta?: number;
   uniqueReadersDelta: number;
   simulatorRunsDelta: number;
   cumulativeViewsAfter?: number;

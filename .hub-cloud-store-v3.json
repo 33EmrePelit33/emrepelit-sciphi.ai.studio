@@ -7,7 +7,7 @@
       "domain": "science-philosophy.grok.me",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 46095,
         "recent48hReads": 0,
@@ -19,13 +19,17 @@
         "audioListenMinutes": 22,
         "uniqueReaders": 36352,
         "simulatorRuns": 20402,
-        "syncLatencyMs": 12
+        "syncLatencyMs": 12,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "24 Nisan 2026",
+      "sharePercent": 36.58
     },
     {
       "id": "node-blogspot-02",
@@ -33,7 +37,7 @@
       "domain": "emrepelit7337.blogspot.com",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 56145,
         "recent48hReads": 0,
@@ -45,13 +49,17 @@
         "audioListenMinutes": 26,
         "uniqueReaders": 44278,
         "simulatorRuns": 28954,
-        "syncLatencyMs": 18
+        "syncLatencyMs": 18,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": true,
       "httpCode": 200,
       "allBloggerArticlesPublished": true,
       "status": "LIVE_BLOGGER_SOURCE",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "24 Nisan 2026",
+      "sharePercent": 44.56
     },
     {
       "id": "node-sciphi-03",
@@ -59,7 +67,7 @@
       "domain": "sci-phi.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 4350,
         "recent48hReads": 0,
@@ -71,13 +79,17 @@
         "audioListenMinutes": 29,
         "uniqueReaders": 3430,
         "simulatorRuns": 2243,
-        "syncLatencyMs": 14
+        "syncLatencyMs": 14,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "30 Eylül 2026",
+      "sharePercent": 3.45
     },
     {
       "id": "node-sciphil-04",
@@ -85,7 +97,7 @@
       "domain": "sci-phil.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 4120,
         "recent48hReads": 0,
@@ -97,13 +109,17 @@
         "audioListenMinutes": 29,
         "uniqueReaders": 3249,
         "simulatorRuns": 2125,
-        "syncLatencyMs": 15
+        "syncLatencyMs": 15,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "24 Nisan 2026",
+      "sharePercent": 3.27
     },
     {
       "id": "node-sciphilosophy-05",
@@ -111,7 +127,7 @@
       "domain": "science-philosophy.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 2980,
         "recent48hReads": 0,
@@ -123,13 +139,17 @@
         "audioListenMinutes": 48,
         "uniqueReaders": 2350,
         "simulatorRuns": 1537,
-        "syncLatencyMs": 16
+        "syncLatencyMs": 16,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "30 Eylül 2026",
+      "sharePercent": 2.36
     },
     {
       "id": "node-sp-emrepelit-06",
@@ -137,7 +157,7 @@
       "domain": "science-philosophy-emre-pelit.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 2640,
         "recent48hReads": 0,
@@ -149,13 +169,17 @@
         "audioListenMinutes": 28,
         "uniqueReaders": 2082,
         "simulatorRuns": 1362,
-        "syncLatencyMs": 15
+        "syncLatencyMs": 15,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "30 Eylül 2026",
+      "sharePercent": 2.1
     },
     {
       "id": "node-emrepelit-sciphil-07",
@@ -163,7 +187,7 @@
       "domain": "emre-pelit-sci-phil.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 3450,
         "recent48hReads": 0,
@@ -175,13 +199,17 @@
         "audioListenMinutes": 13,
         "uniqueReaders": 2721,
         "simulatorRuns": 1779,
-        "syncLatencyMs": 11
+        "syncLatencyMs": 11,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "24 Nisan 2026",
+      "sharePercent": 2.74
     },
     {
       "id": "node-this-website-08",
@@ -189,25 +217,29 @@
       "domain": "emrepelit-sciphi.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 23:52:00 UTC",
       "stats": {
-        "baseReads": 3324,
+        "baseReads": 3331,
         "recent48hReads": 0,
-        "netReads": 3324,
-        "totalViews": 12714,
+        "netReads": 3331,
+        "totalViews": 12722,
         "readingTimeHours": 219,
-        "readingTimeMinutes": 42,
+        "readingTimeMinutes": 54,
         "audioListenHours": 128,
         "audioListenMinutes": 57,
-        "uniqueReaders": 2623,
+        "uniqueReaders": 2629,
         "simulatorRuns": 1699,
-        "syncLatencyMs": 4
+        "syncLatencyMs": 4,
+        "videoPlays": 1,
+        "videoWatchSeconds": 45
       },
       "isLiveWebsite": true,
       "httpCode": 200,
       "allBloggerArticlesPublished": true,
       "status": "LIVE_MAIN_HUB",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "30 Eylül 2026 (Kök Miras: 24 Nisan 2026)",
+      "sharePercent": 2.64
     },
     {
       "id": "node-github-pages-09",
@@ -215,7 +247,7 @@
       "domain": "emrepelit.github.io/science-philosophy",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 1840,
         "recent48hReads": 0,
@@ -227,13 +259,17 @@
         "audioListenMinutes": 7,
         "uniqueReaders": 1451,
         "simulatorRuns": 949,
-        "syncLatencyMs": 9
+        "syncLatencyMs": 9,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "24 Nisan 2026",
+      "sharePercent": 1.46
     },
     {
       "id": "node-nsosyal-hyphen-10",
@@ -241,7 +277,7 @@
       "domain": "emrepelit-sci-phi.ai.studio",
       "articlesCount": 316,
       "bloggerSyncedCount": 316,
-      "lastBloggerSyncAt": "2026-11-18 16:55:00 UTC",
+      "lastBloggerSyncAt": "2026-11-18 22:30:51 UTC",
       "stats": {
         "baseReads": 1060,
         "recent48hReads": 0,
@@ -253,13 +289,17 @@
         "audioListenMinutes": 30,
         "uniqueReaders": 836,
         "simulatorRuns": 546,
-        "syncLatencyMs": 10
+        "syncLatencyMs": 10,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
       },
       "isLiveWebsite": false,
       "httpCode": 301,
       "allBloggerArticlesPublished": true,
       "status": "DECOMMISSIONED_REDIRECTED_301",
-      "tlsProtocol": "TLS 1.3 / SHA-256"
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "launchDate": "30 Eylül 2026",
+      "sharePercent": 0.84
     }
   ],
   "analyticsMeasurements": {
@@ -271,6 +311,8 @@
       "measuredAudioMinutes": 110722,
       "measuredUniqueReaders": 36352,
       "measuredSimulatorRuns": 20402,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "emrepelit7337.blogspot.com": {
@@ -281,6 +323,8 @@
       "measuredAudioMinutes": 132026,
       "measuredUniqueReaders": 44278,
       "measuredSimulatorRuns": 28954,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "sci-phi.ai.studio": {
@@ -291,6 +335,8 @@
       "measuredAudioMinutes": 10229,
       "measuredUniqueReaders": 3430,
       "measuredSimulatorRuns": 2243,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "sci-phil.ai.studio": {
@@ -301,6 +347,8 @@
       "measuredAudioMinutes": 9689,
       "measuredUniqueReaders": 3249,
       "measuredSimulatorRuns": 2125,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "science-philosophy.ai.studio": {
@@ -311,6 +359,8 @@
       "measuredAudioMinutes": 7008,
       "measuredUniqueReaders": 2350,
       "measuredSimulatorRuns": 1537,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "science-philosophy-emre-pelit.ai.studio": {
@@ -321,6 +371,8 @@
       "measuredAudioMinutes": 6208,
       "measuredUniqueReaders": 2082,
       "measuredSimulatorRuns": 1362,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "emre-pelit-sci-phil.ai.studio": {
@@ -331,17 +383,21 @@
       "measuredAudioMinutes": 8113,
       "measuredUniqueReaders": 2721,
       "measuredSimulatorRuns": 1779,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "emrepelit-sciphi.ai.studio": {
       "domain": "emrepelit-sciphi.ai.studio",
-      "measuredReads": 3324,
-      "measuredViews": 12714,
-      "measuredReadingMinutes": 13182,
+      "measuredReads": 3331,
+      "measuredViews": 12722,
+      "measuredReadingMinutes": 13194,
       "measuredAudioMinutes": 7737,
-      "measuredUniqueReaders": 2623,
+      "measuredUniqueReaders": 2629,
       "measuredSimulatorRuns": 1699,
-      "lastMeasuredAt": "2026-11-18 16:33:25 UTC"
+      "measuredVideoPlays": 1,
+      "measuredVideoWatchSeconds": 45,
+      "lastMeasuredAt": "2026-11-18 23:52:00 UTC"
     },
     "emrepelit.github.io/science-philosophy": {
       "domain": "emrepelit.github.io/science-philosophy",
@@ -351,6 +407,8 @@
       "measuredAudioMinutes": 4327,
       "measuredUniqueReaders": 1451,
       "measuredSimulatorRuns": 949,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     },
     "emrepelit-sci-phi.ai.studio": {
@@ -361,6 +419,8 @@
       "measuredAudioMinutes": 2490,
       "measuredUniqueReaders": 836,
       "measuredSimulatorRuns": 546,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
     }
   },
@@ -371,34 +431,114 @@
       "citations": 0
     },
     "blogger-6317429267560308262": {
-      "reads": 2,
-      "views": 2,
+      "reads": 3,
+      "views": 3,
       "citations": 0
     },
     "blogger-4647342132829770088": {
-      "reads": 1,
-      "views": 1,
+      "reads": 2,
+      "views": 2,
       "citations": 0
     },
     "blogger-3409168328583454003": {
       "reads": 1,
       "views": 1,
       "citations": 0
+    },
+    "blogger-8511316585908488579": {
+      "reads": 1,
+      "views": 1,
+      "citations": 0
+    },
+    "art-quantum-observer-01": {
+      "reads": 1,
+      "views": 1,
+      "citations": 0,
+      "videoPlays": 1,
+      "videoWatchSeconds": 45,
+      "videoCompletions": 0,
+      "maxVideoPositionSec": 45
     }
   },
   "appInteractionTotals": {
-    "pageViews": 485032,
-    "articleReads": 126004,
+    "pageViews": 485040,
+    "articleReads": 126011,
     "analysisModals": 42862,
     "simulationRuns": 61596,
     "audioListens": 71083,
+    "videoWatches": 1,
+    "videoWatchSeconds": 45,
     "qaObjections": 11420,
     "languageSearchExports": 64313,
     "pwaDownloads": 1842,
-    "totalInteractionsSinceLaunch": 864152,
-    "lastUpdatedAt": "2026-11-18 16:33:25 UTC"
+    "totalInteractionsSinceLaunch": 864168,
+    "lastUpdatedAt": "2026-11-18 23:52:00 UTC"
   },
   "appInteractionLog": [
+    {
+      "id": "meas-1795045920903-31-wbzr",
+      "timestamp": "2026-11-18 23:52:00 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "targetArticleId": "art-quantum-observer-01",
+      "sourcePanel": "VIDEO_PLAYER",
+      "interactionCategory": "VIDEO_WATCH",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Verification test: 10dk video watch +45s",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 0,
+      "audioMinutesDelta": 0,
+      "videoPlaysDelta": 1,
+      "videoWatchSecondsDelta": 45,
+      "videoCompletedDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485040,
+      "cumulativeReadsAfter": 126011,
+      "cumulativeAppInteractionsAfter": 864168,
+      "syncSeq": 31
+    },
+    {
+      "id": "meas-1795041038527-30-lgb3",
+      "timestamp": "2026-11-18 22:30:38 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485039,
+      "cumulativeReadsAfter": 126010,
+      "cumulativeAppInteractionsAfter": 864165,
+      "syncSeq": 30
+    },
+    {
+      "id": "meas-1795040430782-26-pms1",
+      "timestamp": "2026-11-18 22:20:30 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485033,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864154,
+      "syncSeq": 26
+    },
     {
       "id": "meas-1795019605659-25-mzjk",
       "timestamp": "2026-11-18 16:33:25 UTC",
@@ -1930,6 +2070,329 @@
       "syncSeq": 24
     },
     {
+      "id": "meas-1795040429474-1-5hr7",
+      "timestamp": "2026-11-18 22:20:29 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485038,
+      "cumulativeReadsAfter": 126009,
+      "cumulativeAppInteractionsAfter": 864163,
+      "syncSeq": 1
+    },
+    {
+      "id": "meas-1795027446506-29-egog",
+      "timestamp": "2026-11-18 18:44:06 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485037,
+      "cumulativeReadsAfter": 126008,
+      "cumulativeAppInteractionsAfter": 864161,
+      "syncSeq": 29
+    },
+    {
+      "id": "meas-1795026774762-26-rrze",
+      "timestamp": "2026-11-18 18:32:54 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485033,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864154,
+      "syncSeq": 26
+    },
+    {
+      "id": "meas-1795026773081-1-52we",
+      "timestamp": "2026-11-18 18:32:53 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485036,
+      "cumulativeReadsAfter": 126007,
+      "cumulativeAppInteractionsAfter": 864159,
+      "syncSeq": 1
+    },
+    {
+      "id": "meas-1795023726864-27-9pqw",
+      "timestamp": "2026-11-18 17:42:06 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Uygulama Etkileşimi: Sayfa/Panel Gezintisi (Dil: TR · Sayfa #1): +1 Görüntülenme",
+      "readsDelta": 0,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 0,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485034,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864155,
+      "syncSeq": 27
+    },
+    {
+      "id": "meas-1795022594308-26-4a00",
+      "timestamp": "2026-11-18 17:23:14 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485033,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864154,
+      "syncSeq": 26
+    },
+    {
+      "id": "meas-1795022592737-1-v81v",
+      "timestamp": "2026-11-18 17:23:12 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485033,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864154,
+      "syncSeq": 1
+    },
+    {
+      "id": "meas-1795023726119-26-mhuk",
+      "timestamp": "2026-11-18 17:42:06 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Uygulama Etkileşimi: Sayfa/Panel Gezintisi (Dil: TR · Sayfa #1): +1 Görüntülenme",
+      "readsDelta": 0,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 0,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485034,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864155,
+      "syncSeq": 26
+    },
+    {
+      "id": "meas-1795025158297-28-p0sb",
+      "timestamp": "2026-11-18 18:05:58 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485035,
+      "cumulativeReadsAfter": 126006,
+      "cumulativeAppInteractionsAfter": 864157,
+      "syncSeq": 28
+    },
+    {
+      "id": "meas-1795025153889-1-9qb8",
+      "timestamp": "2026-11-18 18:05:53 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485035,
+      "cumulativeReadsAfter": 126006,
+      "cumulativeAppInteractionsAfter": 864157,
+      "syncSeq": 1
+    },
+    {
+      "id": "meas-1795027417783-1-4a4d",
+      "timestamp": "2026-11-18 18:43:37 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485035,
+      "cumulativeReadsAfter": 126006,
+      "cumulativeAppInteractionsAfter": 864157,
+      "syncSeq": 1
+    },
+    {
+      "id": "meas-1795045879499-30-cakw",
+      "timestamp": "2026-11-18 23:51:19 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485037,
+      "cumulativeReadsAfter": 126008,
+      "cumulativeAppInteractionsAfter": 864161,
+      "syncSeq": 30
+    },
+    {
+      "id": "meas-1795045612680-29-q8bx",
+      "timestamp": "2026-11-18 23:46:52 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Uygulama Etkileşimi: Sayfa/Panel Gezintisi (Dil: TR · Sayfa #1): +1 Görüntülenme",
+      "readsDelta": 0,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 0,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485036,
+      "cumulativeReadsAfter": 126007,
+      "cumulativeAppInteractionsAfter": 864159,
+      "syncSeq": 29
+    },
+    {
+      "id": "meas-1795045538161-28-j7hf",
+      "timestamp": "2026-11-18 23:45:38 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "targetArticleId": "blogger-8511316585908488579",
+      "sourcePanel": "ARTICLE_READER",
+      "interactionCategory": "ARTICLE_READ",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Hareketli Varlık Videosu (10 dk) İzleme (#blogger-8511316585908488579): +1 Görüntülenme, +1 Okunma",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485035,
+      "cumulativeReadsAfter": 126007,
+      "cumulativeAppInteractionsAfter": 864158,
+      "syncSeq": 28
+    },
+    {
+      "id": "meas-1795045393032-27-7nzo",
+      "timestamp": "2026-11-18 23:43:13 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "targetArticleId": "blogger-4647342132829770088",
+      "sourcePanel": "ARTICLE_READER",
+      "interactionCategory": "ARTICLE_READ",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Hareketli Varlık Videosu (10 dk) İzleme (#blogger-4647342132829770088): +1 Görüntülenme, +1 Okunma",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485034,
+      "cumulativeReadsAfter": 126006,
+      "cumulativeAppInteractionsAfter": 864156,
+      "syncSeq": 27
+    },
+    {
+      "id": "meas-1795044550242-26-et09",
+      "timestamp": "2026-11-18 23:29:10 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "targetArticleId": "blogger-6317429267560308262",
+      "sourcePanel": "ARTICLE_READER",
+      "interactionCategory": "ARTICLE_READ",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Hareketli Varlık Videosu (10 dk) İzleme (#blogger-6317429267560308262): +1 Görüntülenme, +1 Okunma",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485033,
+      "cumulativeReadsAfter": 126005,
+      "cumulativeAppInteractionsAfter": 864154,
+      "syncSeq": 26
+    },
+    {
       "id": "hist-baseline-10nodes-v1",
       "timestamp": "2026-11-17 00:00 UTC",
       "targetDomain": "ALL_10_SITES",
@@ -2003,8 +2466,7 @@
     "verifiedYouTubeChannel": "@science_only",
     "verifiedYouTubeUrl": "https://www.youtube.com/@science_only",
     "verifiedLinkedIn": "https://www.linkedin.com/in/emrepelit109",
-    "verifiedEmail": "emrepelit39@gmail.com",
-    "verifiedPhone": "05319009588",
+    "protectedContactChannel": "https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine",
     "protected10Websites": [
       "science-philosophy.grok.me",
       "emrepelit7337.blogspot.com",
@@ -2019,8 +2481,9 @@
     ],
     "monotonicStatsProtection": "STRICT_ANALYTICS_PANEL_DRIVEN_NON_DECREASING_WITH_VIEWS_LOCK",
     "securityProtocol": "ZERO-TRUST-TLS-1.3-SHA256-CSP-WAF-HSTS-PRELOAD-10-NODES-OWNER-LOCKED",
-    "exclusiveSettingsOwner": "Emre Pelit (emrepelit39@gmail.com)",
+    "exclusiveSettingsOwner": "Emre Pelit (Owner-Verified Only)",
     "externalInterventionAllowed": false,
-    "sealedAt": "2026-11-18T16:55:35.490Z"
-  }
+    "sealedAt": "2026-11-18T23:51:19.568Z"
+  },
+  "syncSeqCounter": 31
 }

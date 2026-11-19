@@ -449,24 +449,24 @@ export const EmrePelitCVMenu: React.FC<EmrePelitCVMenuProps> = ({
                     </a>
                   </div>
 
-                  {/* Contact Bar matching PDF Header */}
+                  {/* Contact Bar — Privacy Hardened against Scraper Bots */}
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#FBF9F5] p-3.5 border border-stone-200">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-[#1E3A8A] shrink-0" />
                       <div>
                         <dt className="sr-only">Konum</dt>
                         <dd className="font-medium text-stone-900">
-                          Toroslar, Mersin, Türkiye
+                          Mersin, Türkiye
                         </dd>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5 text-[#1E3A8A] shrink-0" />
                       <div>
-                        <dt className="sr-only">E-posta</dt>
-                        <dd className="font-mono text-stone-900">
-                          <a href="mailto:emrepelit39@gmail.com" className="hover:underline">
-                            emrepelit39@gmail.com
+                        <dt className="sr-only">İletişim</dt>
+                        <dd className="font-mono text-[#1E3A8A]">
+                          <a href="#homepage-qa-objection-engine" className="hover:underline font-semibold">
+                            Korumalı İletişim &amp; Soru Formu ↗
                           </a>
                         </dd>
                       </div>
