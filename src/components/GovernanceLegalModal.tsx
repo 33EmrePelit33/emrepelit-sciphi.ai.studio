@@ -1,6 +1,21 @@
-import React, { useEffect } from 'react';
-import { X, ShieldCheck, Lock, FileText, Cpu, Scale, BookMarked } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  X,
+  ShieldCheck,
+  Lock,
+  FileText,
+  Cpu,
+  Scale,
+  BookMarked,
+  Download,
+  Trash2,
+  RotateCcw,
+  SlidersHorizontal,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { LanguageCode } from '../types';
+import type { KvkkConsentState } from './KvkkConsentBanner';
 
 export type GovernanceTab = 'privacy' | 'terms' | 'imprint' | 'kvkk' | 'disclaimer' | 'methodology';
 
@@ -11,6 +26,10 @@ interface GovernanceLegalModalProps {
   onClose: () => void;
   language: LanguageCode;
   totalArticlesCount: number;
+  kvkkConsent?: KvkkConsentState;
+  getAuthToken?: () => string | null;
+  onWithdrawConsent?: () => void;
+  onOpenConsentBanner?: () => void;
 }
 
 const TAB_LABELS: Record<
@@ -22,133 +41,133 @@ const TAB_LABELS: Record<
   }
 > = {
   tr: {
-    modalTitle: 'Yönetişim, Gizlilik, Kullanım Koşulları, Künye, KVKK & Metodoloji',
-    independentBadge: 'Bağımsız Yazar Arşivi · Hakemli Dergi Değildir',
-    privacy: 'Gizlilik Politikası',
+    modalTitle: 'Yönetişim, Gizlilik, KVKK (6698) & AB GDPR (2016/679), Künye & Metodoloji',
+    independentBadge: 'Bağımsız Yazar Arşivi · KVKK & GDPR Uyumlu',
+    privacy: 'Gizlilik & GDPR',
     terms: 'Kullanım Koşulları',
     imprint: 'Künye',
-    kvkk: 'KVKK (6698)',
+    kvkk: 'KVKK (6698) & Haklar',
     disclaimer: 'Sorumluluk Reddi',
     methodology: 'YZ & Telemetri Metodolojisi',
     close: 'Kapat (ESC)',
   },
   en: {
-    modalTitle: 'Governance, Privacy Policy, Terms of Use, Imprint, KVKK & Methodology',
-    independentBadge: 'Independent Author Archive · Not a Peer-Reviewed Journal',
-    privacy: 'Privacy Policy',
+    modalTitle: 'Governance, Privacy & GDPR (2016/679), Terms, Imprint, KVKK (6698) & Methodology',
+    independentBadge: 'Independent Author Archive · KVKK & GDPR Compliant',
+    privacy: 'Privacy & GDPR',
     terms: 'Terms of Use',
     imprint: 'Imprint',
-    kvkk: 'KVKK (Law 6698)',
+    kvkk: 'KVKK (6698) & Rights',
     disclaimer: 'Scientific Disclaimer',
     methodology: 'AI & Telemetry Methodology',
     close: 'Close (ESC)',
   },
   es: {
-    modalTitle: 'Gobernanza, Privacidad, Condiciones de Uso, Aviso Legal, KVKK y Metodología',
-    independentBadge: 'Archivo Independiente de Autor · No es Revista Arbitrada',
-    privacy: 'Privacidad',
+    modalTitle: 'Gobernanza, Privacidad y RGPD, Condiciones, Aviso Legal, KVKK y Metodología',
+    independentBadge: 'Archivo Independiente · Cumplimiento KVKK y RGPD',
+    privacy: 'Privacidad y RGPD',
     terms: 'Condiciones de Uso',
-    imprint: 'Aviso Legal / Pie Editorial',
-    kvkk: 'KVKK (Ley 6698)',
+    imprint: 'Aviso Legal',
+    kvkk: 'KVKK (6698) y Derechos',
     disclaimer: 'Descargo Científico',
     methodology: 'Metodología IA y Telemetría',
     close: 'Cerrar (ESC)',
   },
   de: {
-    modalTitle: 'Governance, Datenschutz, Nutzungsbedingungen, Impressum, KVKK & Methodik',
-    independentBadge: 'Unabhängiges Autorenarchiv · Keine Peer-Review-Zeitschrift',
-    privacy: 'Datenschutz',
+    modalTitle: 'Governance, Datenschutz & DSGVO, Nutzungsbedingungen, Impressum, KVKK & Methodik',
+    independentBadge: 'Unabhängiges Autorenarchiv · KVKK- & DSGVO-konform',
+    privacy: 'Datenschutz & DSGVO',
     terms: 'Nutzungsbedingungen',
     imprint: 'Impressum',
-    kvkk: 'KVKK (Gesetz 6698)',
+    kvkk: 'KVKK (6698) & Rechte',
     disclaimer: 'Haftungsausschluss',
     methodology: 'KI- & Telemetrie-Methodik',
     close: 'Schließen (ESC)',
   },
   fr: {
-    modalTitle: 'Gouvernance, Confidentialité, Conditions d’Utilisation, Mentions Légales, KVKK & Méthodologie',
-    independentBadge: "Archive Indépendante d'Auteur · Sans Comité de Lecture",
-    privacy: 'Confidentialité',
+    modalTitle: 'Gouvernance, Confidentialité & RGPD, Conditions, Mentions Légales, KVKK & Méthodologie',
+    independentBadge: "Archive Indépendante d'Auteur · Conforme KVKK & RGPD",
+    privacy: 'Confidentialité & RGPD',
     terms: 'Conditions d’Utilisation',
     imprint: 'Mentions Légales',
-    kvkk: 'KVKK (Loi 6698)',
+    kvkk: 'KVKK (6698) & Droits',
     disclaimer: 'Avertissement',
     methodology: 'Méthodologie IA & Télémétrie',
     close: 'Fermer (ESC)',
   },
   ru: {
-    modalTitle: 'Управление, Конфиденциальность, Условия использования, Выходные данные и KVKK',
-    independentBadge: 'Независимый авторский архив · Не рецензируемый журнал',
-    privacy: 'Конфиденциальность',
+    modalTitle: 'Управление, Конфиденциальность и GDPR, Условия, Выходные данные и KVKK',
+    independentBadge: 'Независимый авторский архив · KVKK и GDPR',
+    privacy: 'Конфиденциальность и GDPR',
     terms: 'Условия использования',
     imprint: 'Выходные данные',
-    kvkk: 'KVKK (Закон 6698)',
+    kvkk: 'KVKK (6698) и права',
     disclaimer: 'Отказ от ответственности',
     methodology: 'Методология ИИ и телеметрии',
     close: 'Закрыть (ESC)',
   },
   ar: {
-    modalTitle: 'الحوكمة والخصوصية وشروط الاستخدام وبيانات النشر وKVKK والمنهجية',
-    independentBadge: 'أرشيف مؤلف مستقل · ليس مجلة محكمة',
-    privacy: 'سياسة الخصوصية',
+    modalTitle: 'الحوكمة والخصوصية وGDPR وشروط الاستخدام وبيانات النشر وKVKK والمنهجية',
+    independentBadge: 'أرشيف مؤلف مستقل · متوافق مع KVKK وGDPR',
+    privacy: 'الخصوصية وGDPR',
     terms: 'شروط الاستخدام',
     imprint: 'بيانات الناشر',
-    kvkk: 'KVKK (قانون 6698)',
+    kvkk: 'KVKK (6698) والحقوق',
     disclaimer: 'إخلاء المسؤولية العلمية',
     methodology: 'منهجية الذكاء الاصطناعي والقياس',
     close: 'إغلاق (ESC)',
   },
   zh: {
-    modalTitle: '治理、隐私政策、使用条款、版权声明、KVKK 与方法论',
-    independentBadge: '独立作者档案 · 非同行评审期刊',
-    privacy: '隐私政策',
+    modalTitle: '治理、隐私与 GDPR、使用条款、版权声明、KVKK 与方法论',
+    independentBadge: '独立作者档案 · 符合 KVKK 与 GDPR',
+    privacy: '隐私与 GDPR',
     terms: '使用条款',
     imprint: '版权与出版信息',
-    kvkk: 'KVKK (第6698号法)',
+    kvkk: 'KVKK (6698) 与权利',
     disclaimer: '免责声明',
     methodology: 'AI 与遥测方法论',
     close: '关闭 (ESC)',
   },
   ja: {
-    modalTitle: 'ガバナンス・プライバシー・利用規約・奥付・KVKK・方法論',
-    independentBadge: '独立著者アーカイブ · 査読付き学術誌ではありません',
-    privacy: 'プライバシー',
+    modalTitle: 'ガバナンス・プライバシーとGDPR・利用規約・奥付・KVKK・方法論',
+    independentBadge: '独立著者アーカイブ · KVKK・GDPR準拠',
+    privacy: 'プライバシー・GDPR',
     terms: '利用規約',
     imprint: '奥付・運営者情報',
-    kvkk: 'KVKK (法6698)',
+    kvkk: 'KVKK (6698)・権利',
     disclaimer: '免責事項',
     methodology: 'AI・計測方法論',
     close: '閉じる (ESC)',
   },
   pt: {
-    modalTitle: 'Governança, Privacidade, Termos de Uso, Expediente, KVKK e Metodologia',
-    independentBadge: 'Arquivo Independente de Autor · Não é Periódico Arbitrado',
-    privacy: 'Privacidade',
+    modalTitle: 'Governança, Privacidade e RGPD, Termos, Expediente, KVKK e Metodologia',
+    independentBadge: 'Arquivo Independente · Conformidade KVKK e RGPD',
+    privacy: 'Privacidade e RGPD',
     terms: 'Termos de Uso',
     imprint: 'Expediente',
-    kvkk: 'KVKK (Lei 6698)',
+    kvkk: 'KVKK (6698) e Direitos',
     disclaimer: 'Aviso Legal',
     methodology: 'Metodologia IA e Telemetria',
     close: 'Fechar (ESC)',
   },
   it: {
-    modalTitle: 'Governance, Privacy, Termini di Utilizzo, Colophon, KVKK e Metodologia',
-    independentBadge: 'Archivio Indipendente di Autore · Non è Rivista Peer-Reviewed',
-    privacy: 'Privacy',
+    modalTitle: 'Governance, Privacy e GDPR, Termini, Colophon, KVKK e Metodologia',
+    independentBadge: 'Archivio Indipendente · Conforme KVKK e GDPR',
+    privacy: 'Privacy e GDPR',
     terms: 'Termini d’Uso',
     imprint: 'Colophon',
-    kvkk: 'KVKK (Legge 6698)',
+    kvkk: 'KVKK (6698) e Diritti',
     disclaimer: 'Esclusione di Responsabilità',
     methodology: 'Metodologia IA e Telemetria',
     close: 'Chiudi (ESC)',
   },
   ko: {
-    modalTitle: '거버넌스, 개인정보 처리방침, 이용약관, 판권 정보, KVKK 및 방법론',
-    independentBadge: '독립 저자 아카이브 · 동료 심사 학술지 아님',
-    privacy: '개인정보 처리방침',
+    modalTitle: '거버넌스, 개인정보 및 GDPR, 이용약관, 판권 정보, KVKK 및 방법론',
+    independentBadge: '독립 저자 아카이브 · KVKK 및 GDPR 준수',
+    privacy: '개인정보 및 GDPR',
     terms: '이용약관',
     imprint: '판권 정보',
-    kvkk: 'KVKK (법률 제6698호)',
+    kvkk: 'KVKK (6698) 및 권리',
     disclaimer: '과학적 면책 조항',
     methodology: 'AI 및 원격 측정 방법론',
     close: '닫기 (ESC)',
@@ -162,7 +181,17 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
   onClose,
   language,
   totalArticlesCount,
+  kvkkConsent,
+  getAuthToken,
+  onWithdrawConsent,
+  onOpenConsentBanner,
 }) => {
+  const [rightsStatusMessage, setRightsStatusMessage] = useState<string | null>(null);
+  const [rightsErrorMessage, setRightsErrorMessage] = useState<string | null>(null);
+  const [isExportingData, setIsExportingData] = useState<boolean>(false);
+  const [isDeletingData, setIsDeletingData] = useState<boolean>(false);
+  const [confirmEraseArmed, setConfirmEraseArmed] = useState<boolean>(false);
+
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -176,6 +205,272 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
 
   const labels = TAB_LABELS[language] || TAB_LABELS.en;
   const isTurkish = language === 'tr';
+
+  const handleExportMyData = async () => {
+    setIsExportingData(true);
+    setRightsErrorMessage(null);
+    setRightsStatusMessage(null);
+    try {
+      const localBrowserData: Record<string, string | null> = {};
+      if (typeof window !== 'undefined') {
+        for (let i = 0; i < window.localStorage.length; i += 1) {
+          const key = window.localStorage.key(i);
+          if (key) {
+            localBrowserData[key] = window.localStorage.getItem(key);
+          }
+        }
+      }
+
+      let serverAccountExport: unknown = null;
+      const token = getAuthToken ? getAuthToken() : null;
+      if (token) {
+        const res = await fetch('/api/privacy/export-my-data', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          serverAccountExport = await res.json();
+        }
+      }
+
+      const bundle = {
+        legalStandards: ['KVKK (Turkish Law No. 6698, Art. 11)', 'GDPR (EU 2016/679, Art. 15 & Art. 20)'],
+        exportedAtUtc: new Date().toISOString(),
+        dataController: {
+          name: 'Emre Pelit',
+          location: 'Mersin, Türkiye',
+          contactEmail: 'emrepelit39@gmail.com',
+        },
+        consentState: kvkkConsent || null,
+        browserLocalStorageRecords: localBrowserData,
+        authenticatedServerRecords: serverAccountExport
+          ? serverAccountExport
+          : isTurkish
+            ? 'Oturum açılmadığı için sunucuda hesabınıza bağlı kişisel kayıt bulunmamaktadır.'
+            : 'No signed-in session active; no account-linked server records were retrieved.',
+      };
+
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `emrepelit-sciphi-kvkk-gdpr-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setRightsStatusMessage(
+        isTurkish
+          ? 'KVKK m.11 & GDPR m.20 veri dışa aktarım dosyanız (JSON) başarıyla indirildi.'
+          : 'Your KVKK Art. 11 & GDPR Art. 20 personal data export (JSON) has been downloaded.'
+      );
+    } catch {
+      setRightsErrorMessage(
+        isTurkish
+          ? 'Veri dışa aktarım sırasında beklenmeyen bir hata oluştu.'
+          : 'An unexpected error occurred while exporting your data.'
+      );
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  const handleEraseAllMyData = async () => {
+    if (!confirmEraseArmed) {
+      setConfirmEraseArmed(true);
+      setRightsStatusMessage(null);
+      setRightsErrorMessage(null);
+      return;
+    }
+    setIsDeletingData(true);
+    setRightsErrorMessage(null);
+    setRightsStatusMessage(null);
+    try {
+      let serverErased = false;
+      const token = getAuthToken ? getAuthToken() : null;
+      if (token) {
+        const res = await fetch('/api/privacy/delete-my-data', {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          serverErased = true;
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+      }
+      if (onWithdrawConsent) {
+        onWithdrawConsent();
+      }
+
+      setConfirmEraseArmed(false);
+      setRightsStatusMessage(
+        isTurkish
+          ? serverErased
+            ? 'Tüm tarayıcı verileriniz ve oturumunuza bağlı sunucu kayıtlarınız (GDPR m.17 / KVKK m.7) kalıcı olarak silindi ve tüm açık rızalar geri çekildi.'
+            : 'Tüm tarayıcı yerel verileriniz kalıcı olarak silindi ve tüm açık rızalar geri çekildi. E-posta ile gönderdiğiniz eski soruların sunucudan silinmesi için emrepelit39@gmail.com adresine yazabilirsiniz.'
+          : serverErased
+            ? 'All browser data and your signed-in server records have been permanently erased (GDPR Art. 17 / KVKK Art. 7) and all consent withdrawn.'
+            : 'All browser local storage data has been permanently erased and all optional consent withdrawn. To erase voluntary non-signed-in Q&A emails, contact emrepelit39@gmail.com.'
+      );
+    } catch {
+      setRightsErrorMessage(
+        isTurkish
+          ? 'Silme işlemi tamamlanırken hata oluştu; lütfen emrepelit39@gmail.com üzerinden başvurun.'
+          : 'An error occurred during erasure; please contact emrepelit39@gmail.com.'
+      );
+    } finally {
+      setIsDeletingData(false);
+    }
+  };
+
+  const renderDataSubjectRightsCenter = () => (
+    <div className="mt-4 bg-white border-2 border-[#1E3A8A] rounded-xs p-4 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-[#1E3A8A] font-mono text-xs font-extrabold uppercase">
+          <ShieldCheck className="w-4 h-4 shrink-0" />
+          <span>
+            {isTurkish
+              ? 'KVKK Madde 11 & GDPR Madde 7(3) / 15 / 17 / 20 Self-Servis Veri Sahibi Hakları Merkezi'
+              : 'KVKK Art. 11 & GDPR Art. 7(3) / 15 / 17 / 20 Self-Service Data Subject Rights Center'}
+          </span>
+        </div>
+        {kvkkConsent && (
+          <span className="font-mono text-[10px] px-2 py-0.5 rounded-xs bg-stone-100 border border-stone-300 text-stone-700">
+            {isTurkish ? 'Rıza Durumu:' : 'Consent Status:'}{' '}
+            <strong>
+              {kvkkConsent.status === 'accepted'
+                ? isTurkish
+                  ? 'Açık Rıza Verildi'
+                  : 'Accepted'
+                : kvkkConsent.status === 'rejected'
+                  ? isTurkish
+                    ? kvkkConsent.gpcHonored
+                      ? 'Reddedildi (GPC/DNT)'
+                      : 'Reddedildi (Yalnızca Zorunlu)'
+                    : kvkkConsent.gpcHonored
+                      ? 'Rejected (GPC/DNT)'
+                      : 'Rejected (Essential Only)'
+                  : isTurkish
+                    ? 'Beklemede (Takip Kapalı)'
+                    : 'Pending (Trackers Off)'}
+            </strong>
+          </span>
+        )}
+      </div>
+
+      <p className="text-xs text-stone-700">
+        {isTurkish
+          ? 'Herhangi bir yazışmaya gerek kalmadan tarayıcınızdaki ve (Google ile giriş yaptıysanız) hesabınıza bağlı sunucu kayıtlarınızı JSON formatında indirebilir, açık rızanızı tek tıkla geri çekebilir veya tüm verilerinizi kalıcı olarak silebilirsiniz.'
+          : 'Without waiting for manual correspondence, you can download your browser and (if signed in) server-side personal data in JSON format, withdraw optional consent immediately, or permanently erase all stored data.'}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+        <button
+          type="button"
+          onClick={() => void handleExportMyData()}
+          disabled={isExportingData}
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1E3A8A] hover:bg-[#172E6E] text-white font-bold rounded-xs cursor-pointer transition-colors disabled:opacity-60"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>
+            {isExportingData
+              ? isTurkish
+                ? 'Hazırlanıyor...'
+                : 'Exporting...'
+              : isTurkish
+                ? 'Verilerimi İndir (JSON — GDPR m.20)'
+                : 'Export My Data (JSON — GDPR Art. 20)'}
+          </span>
+        </button>
+
+        {onWithdrawConsent && (
+          <button
+            type="button"
+            onClick={() => {
+              onWithdrawConsent();
+              setConfirmEraseArmed(false);
+              setRightsErrorMessage(null);
+              setRightsStatusMessage(
+                isTurkish
+                  ? 'Açık rızanız geri çekildi (GDPR Madde 7(3)). Harici yazı tipleri ve isteğe bağlı analitik anında devre dışı bırakıldı.'
+                  : 'Your consent has been withdrawn (GDPR Art. 7(3)). External fonts and optional analytics were disabled immediately.'
+              );
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-stone-800 hover:bg-stone-700 text-white font-bold rounded-xs cursor-pointer transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>
+              {isTurkish ? 'Açık Rızayı Geri Çek (GDPR m.7)' : 'Withdraw Consent (GDPR Art. 7)'}
+            </span>
+          </button>
+        )}
+
+        {onOpenConsentBanner && (
+          <button
+            type="button"
+            onClick={onOpenConsentBanner}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-400 font-bold rounded-xs cursor-pointer transition-colors"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>{isTurkish ? 'Tercihleri Yönet' : 'Manage Preferences'}</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void handleEraseAllMyData()}
+          disabled={isDeletingData}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 font-bold rounded-xs cursor-pointer transition-colors disabled:opacity-60 ${
+            confirmEraseArmed
+              ? 'bg-red-700 hover:bg-red-800 text-white border-2 border-red-950'
+              : 'bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-400'
+          }`}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>
+            {isDeletingData
+              ? isTurkish
+                ? 'Siliniyor...'
+                : 'Erasing...'
+              : confirmEraseArmed
+                ? isTurkish
+                  ? 'Eminim — Tüm Verilerimi Kalıcı Sil!'
+                  : 'Confirm — Permanently Erase All My Data!'
+                : isTurkish
+                  ? 'Tüm Verilerimi Sil (GDPR m.17 / KVKK m.7)'
+                  : 'Delete All My Data (GDPR Art. 17)'}
+          </span>
+        </button>
+
+        {confirmEraseArmed && (
+          <button
+            type="button"
+            onClick={() => setConfirmEraseArmed(false)}
+            className="px-2.5 py-2 text-stone-700 hover:text-stone-900 underline cursor-pointer"
+          >
+            {isTurkish ? 'Vazgeç' : 'Cancel'}
+          </button>
+        )}
+      </div>
+
+      {rightsStatusMessage && (
+        <div className="flex items-start gap-2 p-2.5 bg-emerald-50 border border-emerald-400 text-emerald-950 text-xs rounded-xs">
+          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+          <span>{rightsStatusMessage}</span>
+        </div>
+      )}
+      {rightsErrorMessage && (
+        <div className="flex items-start gap-2 p-2.5 bg-rose-50 border border-rose-400 text-rose-950 text-xs rounded-xs">
+          <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+          <span>{rightsErrorMessage}</span>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -248,39 +543,48 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
           {activeTab === 'privacy' && (
             <div className="space-y-3">
               <h3 className="text-xl font-editorial font-bold text-stone-900">
-                {isTurkish ? 'Gizlilik Politikası ve Veri İşleme İlkeleri' : 'Privacy Policy & Data Handling'}
+                {isTurkish
+                  ? 'Gizlilik Politikası ve AB GDPR (2016/679) Uyumluluk Beyanı'
+                  : 'Privacy Policy & EU GDPR (Regulation 2016/679) Compliance Statement'}
               </h3>
+              <p className="text-xs font-mono bg-stone-100 border border-stone-300 p-3">
+                {isTurkish
+                  ? 'Veri Sorumlusu (Data Controller): Emre Pelit | Konum: Mersin, Türkiye | Resmi İletişim: emrepelit39@gmail.com | Mevzuat: AB GDPR (2016/679) & 6698 Sayılı KVKK'
+                  : 'Data Controller: Emre Pelit | Location: Mersin, Türkiye | Contact: emrepelit39@gmail.com | Frameworks: EU GDPR (2016/679) & Turkish Law No. 6698 (KVKK)'}
+              </p>
               <p>
                 {isTurkish
-                  ? 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (emrepelit-sciphi.ai.studio), ziyaretçilerin okuma deneyimini ve etkileşim sürekliliğini korumak için yalnızca gerekli teknik verileri işler. Platformda reklam takip ağı, üçüncü taraf veri simsarlığı veya izinsiz profilleme bulunmamaktadır.'
-                  : 'Emre Pelit — Sci-Phil Science, Philosophy & Simulation Archive (emrepelit-sciphi.ai.studio) processes strictly the technical state required for reading continuity and scientific simulations. No ad-tech brokers or unauthorized third-party profiling trackers are active.'}
+                  ? 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (emrepelit-sciphi.ai.studio), "Tasarım ve Varsayılan Olarak Gizlilik" (Privacy by Design & by Default — GDPR Madde 25) ilkesiyle geliştirilmiştir. Reklam ağı, üçüncü taraf veri simsarlığı veya izinsiz davranışsal profilleme bulunmamaktadır.'
+                  : 'Emre Pelit — Sci-Phil Science, Philosophy & Simulation Archive (emrepelit-sciphi.ai.studio) is engineered under Privacy by Design & by Default (GDPR Art. 25). Zero advertising trackers, data brokers, or unauthorized profiling scripts exist on this platform.'}
               </p>
               <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
                 <li>
-                  <strong>{isTurkish ? 'Tarayıcı Yerel Depolaması (localStorage):' : 'Browser Local Storage:'}</strong>{' '}
+                  <strong>{isTurkish ? 'Rıza Öncesi Sıfır Üçüncü Taraf İsteği & Google Fonts İzolasyonu:' : 'Zero Pre-Consent Third-Party Requests & Google Fonts Isolation:'}</strong>{' '}
                   {isTurkish
-                    ? 'Seçtiğiniz dil tercihi (12 dil), yer imine eklediğiniz makaleler, yazı tipi ölçeği ve oturum etkileşim sayaçları yalnızca kendi tarayıcınızda saklanır.'
-                    : 'Selected language (12 languages), bookmarked articles, typography preferences, and session counters are stored locally in your browser.'}
+                    ? 'Açık rızanız (opt-in) alınmadan ne Google Fonts ne de harici analitik/telemetri betikleri yüklenir; dolayısıyla AB ve Türkiye ziyaretçilerinin IP adresleri rıza dışı üçüncü taraf sunuculara aktarılmaz. Tarayıcınızın Global Privacy Control (GPC) ve Do Not Track (DNT) sinyalleri otomatik olarak tanınır.'
+                    : 'Neither Google Fonts nor optional external analytics scripts load prior to explicit opt-in consent, ensuring zero pre-consent visitor IP transfer to third-party CDNs. Browser Global Privacy Control (GPC) and Do Not Track (DNT) signals are respected automatically.'}
                 </li>
                 <li>
-                  <strong>{isTurkish ? 'Sunucu Tarafı Canlı İstatistik Senkronizasyonu:' : 'Server Telemetry Synchronization:'}</strong>{' '}
+                  <strong>{isTurkish ? 'Alt İşleyiciler ve Uluslararası Veri Aktarımı (GDPR Bölüm V / KVKK m.9):' : 'Sub-Processors & International Transfers (GDPR Ch. V / KVKK Art. 9):'}</strong>{' '}
                   {isTurkish
-                    ? 'Makale açılışı, simülasyon çalıştırmaları ve sesli anlatım olayları anonim kümülatif sayaçlar olarak yalnızca kendi Express sunucumuzda (/api/cloud/*) kaydedilir; kişisel IP bazlı profil tutulmaz.'
-                    : 'Article opens, simulation runs, and audio events are recorded solely as aggregate counters in the first-party Express store (/api/cloud/*) without personal profiling.'}
+                    ? '(1) Google Cloud Platform (Avrupa — europe-west2): Uygulama barındırma, isteğe bağlı oturum açmış okur yer imleri ve gönüllü soru kayıtları. (2) Firebase Authentication (Yalnızca Google ile gönüllü giriş yapanlar için): Kimlik doğrulama ve cihazlar arası yer imi eşitleme. (3) Sunucu Tarafı Yapay Zeka (/api/*): Soru-cevap ve 12 dil çeviri yanıtları istemci anahtarı olmadan yalnızca sunucu tarafından yürütülür. Üçüncü taraf e-posta bildirim rölesine okur e-posta adresi kesinlikle gönderilmez (veri minimizasyonu).'
+                    : '(1) Google Cloud Platform (Europe — europe-west2): Application hosting, optional signed-in bookmarks, and voluntary Q&A submissions. (2) Firebase Authentication (strictly opt-in Google Sign-In): Cross-device bookmark sync. (3) Server-side AI (/api/*): On-demand Q&A and 12-language translation isolated server-side. Raw reader email PII is stripped from uncontracted third-party relay fallbacks (GDPR Art. 5(1)(c) data minimization).'}
                 </li>
                 <li>
-                  <strong>{isTurkish ? 'İsteğe Bağlı Harici Analitik (GA4 / Cloudflare Web Analytics):' : 'Optional External Analytics (GA4 / Cloudflare Web Analytics):'}</strong>{' '}
+                  <strong>{isTurkish ? 'Saklama Süreleri (GDPR Madde 5(1)(e) / KVKK m.7):' : 'Data Retention Periods (GDPR Art. 5(1)(e) / KVKK Art. 7):'}</strong>{' '}
                   {isTurkish
-                    ? 'Yalnızca site sahibi tarafından Kontrol Paneli üzerinden geçerli bir Ölçüm Kimliği (G-...) veya Cloudflare Beacon Token tanımlandığında ilgili ölçüm betiği etkinleştirilir.'
-                    : 'Only activated if the site owner explicitly configures a valid GA4 Measurement ID or Cloudflare Web Analytics token in the owner-locked Control Panel.'}
+                    ? 'Tarayıcı yerel tercihleri (dil, tema, rıza seçimi) kullanıcı silene kadar; Google ile giriş yapanların yer imi kayıtları silme talebine kadar; gönüllü Soru/İtiraz kayıtları en fazla 12 ay veya silme talebine kadar saklanır; anonim kümülatif okunma/görüntülenme sayaçları kişisel veri içermez.'
+                    : 'Browser preferences remain until cleared; signed-in bookmark records remain until deletion is requested; voluntary Q&A submissions are retained for a maximum of 12 months or erased immediately upon request; aggregate reading counters contain zero personal identifiers.'}
                 </li>
                 <li>
-                  <strong>{isTurkish ? 'Soru & İtiraz Formu Gizliliği:' : 'Q&A / Objection Confidentiality:'}</strong>{' '}
+                  <strong>{isTurkish ? 'Denetim Makamına Şikayet Hakkı (GDPR Madde 77 / KVKK m.14):' : 'Right to Lodge a Complaint (GDPR Art. 77 / KVKK Art. 14):'}</strong>{' '}
                   {isTurkish
-                    ? 'Külliyatta yanıtı bulunamayan sorular için gönüllü olarak iletilen mesajlar ve iletişim e-postası yalnızca Emre Pelit’in (emrepelit39@gmail.com) yanıt vermesi amacıyla kullanılır ve üçüncü kişilerle paylaşılmaz.'
-                    : 'Voluntary questions routed when no corpus match exists are handled strictly for scholarly response by Emre Pelit (emrepelit39@gmail.com) and never shared with third parties.'}
+                    ? 'Türkiye’de Kişisel Verileri Koruma Kurumu’na (kvkk.gov.tr), AB/AEA’da ise ikamet ettiğiniz üye devletin ulusal Veri Koruma Otoritesi’ne (edpb.europa.eu) şikayette bulunma hakkınız her zaman saklıdır.'
+                    : 'You retain the right to lodge a complaint with the Turkish Data Protection Authority (kvkk.gov.tr) or your local EU/EEA supervisory authority (edpb.europa.eu).'}
                 </li>
               </ul>
+
+              {renderDataSubjectRightsCenter()}
             </div>
           )}
 
@@ -324,9 +628,9 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
               </h3>
               <div className="bg-stone-100 border border-stone-300 p-4 font-mono text-xs space-y-1.5">
                 <div><strong>{isTurkish ? 'Yayın Adı:' : 'Archive Name:'}</strong> Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi</div>
-                <div><strong>{isTurkish ? 'Münhasır Yazar & Editör:' : 'Sole Author & Maintainer:'}</strong> Emre Pelit (Mersin Üniversitesi &amp; Anadolu Üniversitesi AÖF)</div>
+                <div><strong>{isTurkish ? 'Münhasır Yazar & Veri Sorumlusu:' : 'Sole Author & Data Controller:'}</strong> Emre Pelit (Mersin Üniversitesi &amp; Anadolu Üniversitesi AÖF)</div>
                 <div><strong>{isTurkish ? 'Konum:' : 'Location:'}</strong> Mersin, Türkiye</div>
-                <div><strong>{isTurkish ? 'İletişim Kanalı:' : 'Contact Channel:'}</strong> {isTurkish ? 'Site içi korumalı Soru & İletişim Formu' : 'Protected In-Site Inquiry & Contact Form'}</div>
+                <div><strong>{isTurkish ? 'KVKK & GDPR İletişim E-Postası:' : 'KVKK & GDPR Contact Email:'}</strong> emrepelit39@gmail.com</div>
                 <div><strong>{isTurkish ? 'Kanonik Ana Hub (HTTP 200):' : 'Canonical Main Hub (HTTP 200):'}</strong> https://emrepelit-sciphi.ai.studio</div>
                 <div><strong>{isTurkish ? 'Kaynak Blog Arşivi:' : 'Source CMS Archive:'}</strong> https://emrepelit7337.blogspot.com ({totalArticlesCount} Makale)</div>
                 <div><strong>GitHub:</strong> https://github.com/emrepelit109 (Pasif Arşiv: emrepelit.github.io/science-philosophy)</div>
@@ -344,34 +648,36 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
             <div className="space-y-3">
               <h3 className="text-xl font-editorial font-bold text-stone-900">
                 {isTurkish
-                  ? '6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) Aydınlatma Metni'
-                  : 'Personal Data Protection Notice (Turkish Law No. 6698 — KVKK)'}
+                  ? '6698 Sayılı KVKK & AB GDPR (2016/679) Aydınlatma Metni'
+                  : 'KVKK (Turkish Law No. 6698) & EU GDPR (2016/679) Data Protection Notice'}
               </h3>
               <p className="text-xs font-mono bg-stone-100 border border-stone-300 p-3">
                 {isTurkish
-                  ? 'Veri Sorumlusu: Emre Pelit | İletişim: Site İçi Korumalı Form | Konum: Mersin, Türkiye | Resmi Alan Adı: https://emrepelit-sciphi.ai.studio'
-                  : 'Data Controller: Emre Pelit | Contact: Protected In-Site Form | Location: Mersin, Türkiye | Canonical Domain: https://emrepelit-sciphi.ai.studio'}
+                  ? 'Veri Sorumlusu: Emre Pelit | Resmi İletişim: emrepelit39@gmail.com | Konum: Mersin, Türkiye | Resmi Alan Adı: https://emrepelit-sciphi.ai.studio'
+                  : 'Data Controller: Emre Pelit | Official Contact: emrepelit39@gmail.com | Location: Mersin, Türkiye | Canonical Domain: https://emrepelit-sciphi.ai.studio'}
               </p>
               <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
                 <li>
-                  <strong>{isTurkish ? 'İşlenen Veriler ve Hukuki Sebep:' : 'Processed Data & Legal Basis:'}</strong>{' '}
+                  <strong>{isTurkish ? 'İşlenen Veri Kategorileri ve Hukuki Sebepler (KVKK m.5 / GDPR m.6):' : 'Data Categories & Legal Bases (KVKK Art. 5 / GDPR Art. 6):'}</strong>{' '}
                   {isTurkish
-                    ? '6698 sayılı Kanun’un 5/2-(f) maddesi (meşru menfaat: güvenlik WAF koruması, DDOS önleme ve temel hizmet sürekliliği) ile 5/1 maddesi (açık rıza: Soru/İtiraz kutusundan gönüllü e-posta iletimi) kapsamında işlenir.'
-                    : 'Processed under Article 5/2-(f) (legitimate interest for WAF security and service continuity) and Article 5/1 (explicit consent when submitting an inquiry via the Q&A module).'}
+                    ? 'Güvenlik (WAF / hız sınırı) ve temel erişim sürekliliği KVKK m.5/2-(f) & GDPR m.6(1)(f) meşru menfaat; isteğe bağlı analitik, harici yazı tipleri (Google Fonts) ve Soru/İtiraz formunda gönüllü ad/e-posta/soru iletimi ise KVKK m.5/1 & GDPR m.6(1)(a) açık rıza (işaretlenmemiş onay kutusu ile) kapsamında işlenir. İsteğe bağlı Google ile girişte yer imi eşitlemesi KVKK m.5/2-(c) & GDPR m.6(1)(b) talep edilen hizmetin ifası hukuki sebebine dayanır.'
+                    : 'WAF security and core access continuity rely on legitimate interest (KVKK Art. 5/2-f, GDPR Art. 6(1)(f)). Optional analytics, external Google Fonts, and voluntary Q&A submissions (via an unchecked consent checkbox) rely strictly on explicit consent (KVKK Art. 5/1, GDPR Art. 6(1)(a)). Optional Google Sign-In bookmark sync relies on performance of a requested service (KVKK Art. 5/2-c, GDPR Art. 6(1)(b)).'}
                 </li>
                 <li>
-                  <strong>{isTurkish ? 'Veri Aktarımı & API Anahtarı Güvenliği:' : 'Data Transfer & API Key Isolation:'}</strong>{' '}
+                  <strong>{isTurkish ? 'Yurt İçi / Yurt Dışı Aktarım ve Veri Minimizasyonu (KVKK m.9 / GDPR m.44-49):' : 'Data Transfers & Minimization (KVKK Art. 9 / GDPR Art. 44-49):'}</strong>{' '}
                   {isTurkish
-                    ? 'Yapay zeka analiz ve çok dilli seslendirme istekleri istemci tarayıcıdan değil, gizli API anahtarı izolasyonuna sahip /api/* arka uç uç noktalarından yürütülür.'
-                    : 'AI analysis and multilingual TTS requests run through backend /api/* routes with strict server-side key isolation.'}
+                    ? 'Uygulama ve opsiyonel hesap/soru kayıtları Avrupa (europe-west2) güvenli bulut altyapısında barındırılır. Yapay zeka yanıtları sunucu tarafında (/api/*) izole edilir. Soru/İtiraz e-postanız hiçbir zaman kamuya veya sözleşmesiz üçüncü taraf rölelere açılmaz; yalnızca veri sorumlusu Emre Pelit’in (emrepelit39@gmail.com) erişebileceği birinci taraf kuyrukta korunur.'
+                    : 'Hosting and optional signed-in/Q&A records reside in the European cloud region (europe-west2). AI requests run strictly server-side (/api/*). Reader emails are never disclosed publicly or transmitted to uncontracted third-party relays, remaining strictly in the first-party controller queue for emrepelit39@gmail.com.'}
                 </li>
                 <li>
-                  <strong>{isTurkish ? '11. Madde Kapsamındaki Haklarınız:' : 'Your Rights under Article 11:'}</strong>{' '}
+                  <strong>{isTurkish ? 'KVKK Madde 11 & GDPR Madde 15–22 Kapsamındaki Haklarınız:' : 'Your Rights under KVKK Art. 11 & GDPR Art. 15–22:'}</strong>{' '}
                   {isTurkish
-                    ? 'emrepelit39@gmail.com adresine başvurarak kişisel verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini talep etme hakkına sahipsiniz.'
-                    : 'You may contact emrepelit39@gmail.com at any time to inquire about, rectify, or request deletion of any voluntarily submitted personal data.'}
+                    ? 'Verilerinizin işlenip işlenmediğini öğrenme, JSON formatında erişim/taşınabilirlik, düzeltme, silinme/yok edilme (KVKK m.7 / GDPR m.17), işlemeye itiraz etme ve açık rızayı dilediğiniz an geri çekme (GDPR m.7(3)) haklarını aşağıdaki Self-Servis panelden anında veya emrepelit39@gmail.com adresine başvurarak en geç 30 gün içinde ücretsiz kullanabilirsiniz.'
+                    : 'You may exercise your rights to access, export in JSON (portability), rectify, erase (KVKK Art. 7 / GDPR Art. 17), object, or withdraw consent (GDPR Art. 7(3)) instantly via the Self-Service Rights Center below or free of charge within 30 days by contacting emrepelit39@gmail.com.'}
                 </li>
               </ul>
+
+              {renderDataSubjectRightsCenter()}
             </div>
           )}
 

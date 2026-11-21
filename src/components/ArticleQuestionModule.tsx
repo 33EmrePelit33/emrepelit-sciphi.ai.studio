@@ -18,6 +18,8 @@ import {
   AlertTriangle,
   Scale,
   RefreshCw,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Article, LanguageCode } from '../types';
 import { getLocalizedArray, getLocalizedText, getLanguageMeta } from '../i18n/translations';
@@ -75,6 +77,8 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
   const [showEmailQueueLog, setShowEmailQueueLog] = useState<boolean>(false);
   const [ownerViewActive, setOwnerViewActive] = useState<boolean>(false);
   const [speakingAnswerId, setSpeakingAnswerId] = useState<string | null>(null);
+  const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
+  const [copiedFaqId, setCopiedFaqId] = useState<string | null>(null);
 
   // Anti-Bot & Anti-Spam Hardening (Honeypot + Human Math Challenge + 15s Cooldown)
   const [honeypotValue, setHoneypotValue] = useState<string>('');
@@ -85,6 +89,8 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
   const [humanAnswerInput, setHumanAnswerInput] = useState<string>('');
   const [humanChallengeError, setHumanChallengeError] = useState<string | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+  // KVKK Madde 5/1 & GDPR Art. 6(1)(a) explicit unchecked-by-default consent for Q&A processing & forwarding
+  const [qaPrivacyConsent, setQaPrivacyConsent] = useState<boolean>(false);
 
   const pendingEmailInputRef = useRef<HTMLInputElement | null>(null);
   const humanAnswerInputRef = useRef<HTMLInputElement | null>(null);
@@ -157,6 +163,47 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
     };
   }, [isOpen, showEmailQueueLog, ownerViewActive, activeArticle.id]);
 
+  // Automatically forward any previously asked client-side questions (from localStorage) strictly to emrepelit39@gmail.com once per browser session
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const syncFlagKey = 'emre_pelit_past_qa_synced_v1';
+    if (window.sessionStorage.getItem(syncFlagKey)) return;
+    window.sessionStorage.setItem(syncFlagKey, '1');
+    try {
+      const rawHistory = window.localStorage.getItem('emre_pelit_qa_asked_history_v1');
+      const parsedHistory = rawHistory ? JSON.parse(rawHistory) : [];
+      if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+        const forwardedRaw = window.localStorage.getItem('emre_pelit_qa_forwarded_keys_v1');
+        const forwardedSet = new Set<string>(forwardedRaw ? JSON.parse(forwardedRaw) : []);
+        const pending = parsedHistory.filter((item: any) => {
+          const k = `${String(item?.articleId || '')}::${String(item?.question || '').toLowerCase()}`;
+          return item?.question && !forwardedSet.has(k);
+        });
+        if (pending.length > 0) {
+          void fetch('/api/qa/forward-past-questions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ questions: pending, sendDigest: true }),
+          })
+            .then((r) => {
+              if (r.ok) {
+                for (const item of pending) {
+                  forwardedSet.add(`${String(item?.articleId || '')}::${String(item?.question || '').toLowerCase()}`);
+                }
+                window.localStorage.setItem(
+                  'emre_pelit_qa_forwarded_keys_v1',
+                  JSON.stringify(Array.from(forwardedSet).slice(-500))
+                );
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
   const handleSpeakAnswer = (qaItem: ArticleQaResponse) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
@@ -189,6 +236,213 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
     window.speechSynthesis.speak(utterance);
   };
 
+  // Instant Zero-Friction Per-Article Q&A Pairs (Localized across 12 languages, no CAPTCHA required to read)
+  const instantFaqItems = React.useMemo(() => {
+    const labels: Record<
+      LanguageCode,
+      { badge: string; q1: string; q2: string; q3: string; q4: string; listen: string; stop: string; copy: string; copied: string }
+    > = {
+      tr: {
+        badge: 'MAKALE ÖZEL HAZIR SORU-CEVAP (ANINDA OKU & DİNLE · 12 DİL)',
+        q1: `“${title}” makalesinin temel savı ve ana sonucu nedir?`,
+        q2: 'Bu makale hangi önceki bilimsel araştırmalara ve yerleşik kabullere dayanır?',
+        q3: `Makalenin matematiksel modeli (${analysis.coreThesisEquation.equationCode}) neyi ifade eder?`,
+        q4: 'Konuya yeni başlayan biri ile bir uzman bu çalışmadan hangi farklı çıkarımları yapabilir?',
+        listen: 'Dinle',
+        stop: 'Durdur',
+        copy: 'Kopyala',
+        copied: 'Kopyalandı',
+      },
+      en: {
+        badge: 'INSTANT ARTICLE Q&A (ZERO FRICTION · 12 LANGUAGES)',
+        q1: `What is the core thesis and main conclusion of "${title}"?`,
+        q2: 'Which prior scientific studies and established consensuses ground this paper?',
+        q3: `What does the formal mathematical model (${analysis.coreThesisEquation.equationCode}) represent?`,
+        q4: 'What distinct insights do beginners and domain specialists gain from this paper?',
+        listen: 'Listen',
+        stop: 'Stop',
+        copy: 'Copy',
+        copied: 'Copied',
+      },
+      es: {
+        badge: 'PREGUNTAS Y RESPUESTAS DEL ARTÍCULO (12 IDIOMAS)',
+        q1: `¿Cuál es la tesis central y conclusión de "${title}"?`,
+        q2: '¿En qué investigaciones científicas previas y consensos se fundamenta?',
+        q3: `¿Qué expresa el modelo matemático (${analysis.coreThesisEquation.equationCode})?`,
+        q4: '¿Qué aportes obtienen tanto lectores generales como especialistas?',
+        listen: 'Escuchar',
+        stop: 'Detener',
+        copy: 'Copiar',
+        copied: 'Copiado',
+      },
+      de: {
+        badge: 'ARTIKEL-FRAGEN & ANTWORTEN (SOFORT LESBAR · 12 SPRACHEN)',
+        q1: `Was ist die Kernthese und Hauptschlussfolgerung von „${title}“?`,
+        q2: 'Auf welchen früheren wissenschaftlichen Arbeiten und Konsensen basiert der Artikel?',
+        q3: `Was beschreibt das mathematische Modell (${analysis.coreThesisEquation.equationCode})?`,
+        q4: 'Welche Erkenntnisse gewinnen Einsteiger und Fachleute jeweils?',
+        listen: 'Anhören',
+        stop: 'Stopp',
+        copy: 'Kopieren',
+        copied: 'Kopiert',
+      },
+      fr: {
+        badge: 'QUESTIONS & RÉPONSES DE L’ARTICLE (12 LANGUES)',
+        q1: `Quelle est la thèse centrale et la conclusion de « ${title} » ?`,
+        q2: 'Sur quelles études scientifiques antérieures et consensus s’appuie l’article ?',
+        q3: `Que traduit le modèle mathématique (${analysis.coreThesisEquation.equationCode}) ?`,
+        q4: 'Quels enseignements distincts en tirent un débutant et un spécialiste ?',
+        listen: 'Écouter',
+        stop: 'Arrêter',
+        copy: 'Copier',
+        copied: 'Copié',
+      },
+      ru: {
+        badge: 'ВОПРОСЫ И ОТВЕТЫ ПО СТАТЬЕ (12 ЯЗЫКОВ)',
+        q1: `В чём основной тезис и главный вывод статьи «${title}»?`,
+        q2: 'На какие научные исследования и консенсус опирается работа?',
+        q3: `Что отражает математическая модель (${analysis.coreThesisEquation.equationCode})?`,
+        q4: 'Что вынесут из работы начинающий читатель и специалист?',
+        listen: 'Слушать',
+        stop: 'Стоп',
+        copy: 'Копировать',
+        copied: 'Скопировано',
+      },
+      ar: {
+        badge: 'أسئلة وأجوبة المقال الفورية (12 لغة)',
+        q1: `ما هي الأطروحة الأساسية والاستنتاج الرئيسي لمقال «${title}»؟`,
+        q2: 'ما الأبحاث العلمية السابقة والإجماع العلمي الذي يستند إليه المقال؟',
+        q3: `ماذا يمثّل النموذج الرياضي (${analysis.coreThesisEquation.equationCode})؟`,
+        q4: 'ما الفائدة المختلفة التي يحصل عليها القارئ العام والمتخصص؟',
+        listen: 'استماع',
+        stop: 'إيقاف',
+        copy: 'نسخ',
+        copied: 'تم النسخ',
+      },
+      zh: {
+        badge: '文章即时问答（12种语言）',
+        q1: `《${title}》的核心论点与主要结论是什么？`,
+        q2: '本文建立在哪些既有科学研究与学术共识之上？',
+        q3: `数学模型（${analysis.coreThesisEquation.equationCode}）表达了什么含义？`,
+        q4: '初学者与专业学者能从本文中分别获得哪些启发？',
+        listen: '收听',
+        stop: '停止',
+        copy: '复制',
+        copied: '已复制',
+      },
+      ja: {
+        badge: '記事別Q&A（12言語対応）',
+        q1: `「${title}」の中心的テーゼと主な結論は何ですか？`,
+        q2: 'この論文はどの先行研究と科学的合意に基づいていますか？',
+        q3: `数理モデル（${analysis.coreThesisEquation.equationCode}）は何を示していますか？`,
+        q4: '初学者と専門家はそれぞれどのような知見を得られますか？',
+        listen: '聴く',
+        stop: '停止',
+        copy: 'コピー',
+        copied: '完了',
+      },
+      pt: {
+        badge: 'PERGUNTAS E RESPOSTAS DO ARTIGO (12 IDIOMAS)',
+        q1: `Qual é a tese central e a conclusão principal de "${title}"?`,
+        q2: 'Em quais estudos científicos anteriores e consensos este artigo se apoia?',
+        q3: `O que expressa o modelo matemático (${analysis.coreThesisEquation.equationCode})?`,
+        q4: 'Quais aprendizados distintos iniciantes e especialistas obtêm?',
+        listen: 'Ouvir',
+        stop: 'Parar',
+        copy: 'Copiar',
+        copied: 'Copiado',
+      },
+      it: {
+        badge: 'DOMANDE E RISPOSTE DELL’ARTICOLO (12 LINGUE)',
+        q1: `Qual è la tesi centrale e la conclusione di «${title}»?`,
+        q2: 'Su quali studi scientifici precedenti e consensi si fonda?',
+        q3: `Cosa rappresenta il modello matematico (${analysis.coreThesisEquation.equationCode})?`,
+        q4: 'Quali spunti distinti ottengono principianti ed esperti?',
+        listen: 'Ascolta',
+        stop: 'Ferma',
+        copy: 'Copia',
+        copied: 'Copiato',
+      },
+      ko: {
+        badge: '논문별 즉시 Q&A (12개 언어)',
+        q1: `"${title}"의 핵심 명제와 주요 결론은 무엇인가요?`,
+        q2: '이 글은 어떤 선행 과학 연구와 학문적 합의에 기반하나요?',
+        q3: `수학적 모델(${analysis.coreThesisEquation.equationCode})은 무엇을 의미하나요?`,
+        q4: '입문자와 전문가가 각각 얻을 수 있는 통찰은 무엇인가요?',
+        listen: '듣기',
+        stop: '정지',
+        copy: '복사',
+        copied: '복사됨',
+      },
+    };
+    const ui = labels[language] || labels.en;
+    const scientistsList = analysis.priorScientificResearches
+      .map((pr) => `${pr.scientistName} (${pr.eraAndYear.split('·')[0].trim()})`)
+      .join(' · ');
+    const consensusTitle =
+      analysis.establishedScientificConsensuses[0]?.consensusTitle || '';
+    const findingsJoined = keyFindings.slice(0, 2).join(' ');
+
+    return {
+      ui,
+      items: [
+        {
+          id: `faq-1-${activeArticle.id}`,
+          question: ui.q1,
+          answer: `${abstractText}${findingsJoined ? ` ${findingsJoined}` : ''}`,
+        },
+        {
+          id: `faq-2-${activeArticle.id}`,
+          question: ui.q2,
+          answer: `${scientistsList}${consensusTitle ? ` — ${consensusTitle}.` : '.'} ${analysis.priorScientificResearches[0]?.scientificContributionAndFindings || ''}`,
+        },
+        {
+          id: `faq-3-${activeArticle.id}`,
+          question: ui.q3,
+          answer: `${analysis.coreThesisEquation.symbolicEquation} — ${analysis.coreThesisEquation.thesisMathematicalStatement}`,
+        },
+        {
+          id: `faq-4-${activeArticle.id}`,
+          question: ui.q4,
+          answer: `${analysis.nonExpertExplanation.introductoryExplanation} ${analysis.professionalExplanation.technicalAbstractSynthesis}`,
+        },
+      ],
+    };
+  }, [activeArticle.id, title, abstractText, keyFindings, analysis, language]);
+
+  const handleSpeakPlainFaq = (faqId: string, text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (speakingAnswerId === faqId) {
+      window.speechSynthesis.cancel();
+      setSpeakingAnswerId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const langMeta = getLanguageMeta(language);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langMeta.speechLang;
+    utterance.rate = voiceProfile.recommendedRate;
+    utterance.pitch = voiceProfile.recommendedPitch;
+    const voices = window.speechSynthesis.getVoices();
+    const matchedVoice =
+      voices.find((v) => v.lang.toLowerCase() === langMeta.speechLang.toLowerCase()) ||
+      voices.find((v) => v.lang.toLowerCase().startsWith(language.toLowerCase()));
+    if (matchedVoice) utterance.voice = matchedVoice;
+    utterance.onend = () => setSpeakingAnswerId(null);
+    utterance.onerror = () => setSpeakingAnswerId(null);
+    setSpeakingAnswerId(faqId);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleCopyFaq = (faqId: string, q: string, a: string) => {
+    const formatted = `Soru: ${q}\nCevap: ${a}\nKaynak: Emre Pelit — Sci-Phil (${title})`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(formatted).catch(() => {});
+    }
+    setCopiedFaqId(faqId);
+    setTimeout(() => setCopiedFaqId(null), 2200);
+  };
+
   const handleCompleteConfidentialEmailEscalation = async (
     qaItem: ArticleQaResponse,
     providedEmail?: string
@@ -219,6 +473,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
           askerEmail: candidateEmail,
           _hp: honeypotValue,
           humanVerified: true,
+          kvkkConsentAccepted: true,
         }),
       });
 
@@ -328,6 +583,16 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
       return;
     }
 
+    // 0d. Explicit KVKK Madde 5/1 & GDPR Art. 6(1)(a) Consent Verification (unchecked by default)
+    if (!qaPrivacyConsent) {
+      setHumanChallengeError(
+        language === 'tr'
+          ? 'KVKK (6698) & GDPR Açık Rıza Onayı: Sorunuzu göndermeden önce aşağıdaki kişisel veri işleme ve yazar inceleme onay kutusunu işaretlemeniz gerekmektedir.'
+          : 'KVKK & GDPR Explicit Consent Required: Please check the privacy consent box below before submitting your question.'
+      );
+      return;
+    }
+
     const effectiveInquiryType = overrideInquiryType ?? inquiryType;
     setIsProcessing(true);
     setIsOpen(true);
@@ -367,6 +632,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          kvkkConsentAccepted: true,
           articleId: localResult.articleId,
           articleTitle: localResult.articleTitle,
           articleSubtitle: subtitle,
@@ -412,6 +678,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
+                kvkkConsentAccepted: true,
                 articleId: localResult.articleId,
                 articleTitle: localResult.articleTitle,
                 inquiryType: localResult.inquiryType,
@@ -485,6 +752,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              kvkkConsentAccepted: true,
               articleId: localResult.articleId,
               articleTitle: localResult.articleTitle,
               inquiryType: localResult.inquiryType,
@@ -507,11 +775,53 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
         }
       }
 
+      // Persist asked question in local history & ensure owner visibility copy is forwarded to emrepelit39@gmail.com
+      try {
+        const existingRaw = window.localStorage.getItem('emre_pelit_qa_asked_history_v1');
+        const existingArr = existingRaw ? JSON.parse(existingRaw) : [];
+        const nextEntry = {
+          articleId: localResult.articleId,
+          articleTitle: localResult.articleTitle,
+          inquiryType: localResult.inquiryType,
+          question: qText,
+          askerName: askerName.trim() || 'Okur',
+          askerEmail: hasValidEmail ? cleanEmail : '',
+          answerSummary: localResult.optimalDirectAnswer,
+          askedAt: new Date().toISOString(),
+        };
+        window.localStorage.setItem(
+          'emre_pelit_qa_asked_history_v1',
+          JSON.stringify([nextEntry, ...(Array.isArray(existingArr) ? existingArr : [])].slice(0, 200))
+        );
+      } catch {
+        // Ignore storage quota
+      }
+
       setQaHistory((prev) => [localResult, ...prev]);
       if (!customQuestionText) {
         setQuestionInput('');
       }
     } catch {
+      // Even when /api/ai/article-qa fails, silently forward the asked question strictly to emrepelit39@gmail.com
+      void fetch('/api/qa/forward-past-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questions: [
+            {
+              articleId: localResult.articleId,
+              articleTitle: localResult.articleTitle,
+              inquiryType: localResult.inquiryType,
+              question: qText,
+              askerName: askerName.trim() || 'Okur',
+              askerEmail: hasValidEmail ? cleanEmail : '',
+              answerSummary: localResult.optimalDirectAnswer,
+              askedAt: new Date().toISOString(),
+            },
+          ],
+          sendDigest: false,
+        }),
+      }).catch(() => {});
       setQaHistory((prev) => [localResult, ...prev]);
       if (!customQuestionText) {
         setQuestionInput('');
@@ -581,9 +891,107 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
         )}
       </div>
 
-      {/* Expanded Interactive Question / Objection + 306-Article Engine + Confidential Email Escalation Body */}
+      {/* Expanded Interactive Question / Objection + Instant Per-Article Q&A Accordion + Author Email Escalation Body */}
       {isOpen && (
         <div className={`${isSidebar ? 'p-3.5 space-y-3' : 'p-4 sm:p-5 space-y-4'}`}>
+          {/* Instant Zero-Friction Per-Article Scientific Q&A Accordion (Schema.org FAQPage Microdata) */}
+          <div
+            itemScope
+            itemType="https://schema.org/FAQPage"
+            className={`rounded-xs border overflow-hidden ${
+              isHomepage
+                ? 'bg-slate-900/95 border-emerald-500/40 text-slate-100'
+                : 'bg-white border-emerald-600/40 text-stone-900'
+            }`}
+          >
+            <div
+              className={`px-3 py-2 flex items-center justify-between gap-2 text-[11px] font-mono font-bold border-b ${
+                isHomepage
+                  ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300'
+                  : 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+              }`}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{instantFaqItems.ui.badge}</span>
+              </span>
+              <span className="text-[10px] opacity-80">4/4</span>
+            </div>
+            <div className={`divide-y ${isHomepage ? 'divide-slate-800' : 'divide-stone-200'}`}>
+              {instantFaqItems.items.map((faq, idx) => {
+                const isExpandedFaq = openFaqIdx === idx;
+                const isSpeakingFaq = speakingAnswerId === faq.id;
+                const isCopiedFaq = copiedFaqId === faq.id;
+                return (
+                  <div
+                    key={faq.id}
+                    itemScope
+                    itemProp="mainEntity"
+                    itemType="https://schema.org/Question"
+                    className="text-xs"
+                  >
+                    <button
+                      type="button"
+                      aria-expanded={isExpandedFaq}
+                      onClick={() => setOpenFaqIdx(isExpandedFaq ? null : idx)}
+                      className={`w-full px-3 py-2.5 text-left flex items-start justify-between gap-2 transition-colors cursor-pointer ${
+                        isHomepage
+                          ? 'hover:bg-slate-800/80 text-slate-100'
+                          : 'hover:bg-stone-50 text-stone-900'
+                      }`}
+                    >
+                      <span itemProp="name" className="font-semibold leading-snug">
+                        <span className="font-mono text-emerald-600 mr-1.5">S{idx + 1}.</span>
+                        {faq.question}
+                      </span>
+                      {isExpandedFaq ? (
+                        <ChevronUp className="w-4 h-4 shrink-0 text-stone-500 mt-0.5" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 shrink-0 text-stone-500 mt-0.5" />
+                      )}
+                    </button>
+                    {isExpandedFaq && (
+                      <div
+                        itemScope
+                        itemProp="acceptedAnswer"
+                        itemType="https://schema.org/Answer"
+                        className={`px-3 pb-3 pt-1 space-y-2 ${
+                          isHomepage ? 'bg-slate-950/60 text-slate-200' : 'bg-[#FBF9F5] text-stone-800'
+                        }`}
+                      >
+                        <p itemProp="text" className="text-xs leading-relaxed font-academic-body">
+                          {faq.answer}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => handleSpeakPlainFaq(faq.id, `${faq.question} ${faq.answer}`)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs border cursor-pointer ${
+                              isSpeakingFaq
+                                ? 'bg-rose-600 text-white border-rose-600 font-bold'
+                                : 'bg-[#1E3A8A] text-white border-[#1E3A8A] hover:bg-[#172E6E]'
+                            }`}
+                          >
+                            {isSpeakingFaq ? <Square className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+                            <span>{isSpeakingFaq ? instantFaqItems.ui.stop : instantFaqItems.ui.listen}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyFaq(faq.id, faq.question, faq.answer)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs border border-stone-300 bg-white text-stone-800 hover:border-[#1E3A8A] cursor-pointer"
+                          >
+                            {isCopiedFaq ? <Check className="w-2.5 h-2.5 text-emerald-700" /> : <Copy className="w-2.5 h-2.5" />}
+                            <span>{isCopiedFaq ? instantFaqItems.ui.copied : instantFaqItems.ui.copy}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* System Explanation & Confidential Email Guarantee Banner */}
           <div
             className={`p-3 rounded-xs flex flex-col ${
@@ -925,6 +1333,41 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Explicit Unchecked-by-Default KVKK Madde 5/1 & GDPR Art. 6(1)(a) Consent Checkbox */}
+            <label
+              htmlFor={`qa-kvkk-consent-${activeArticle.id}-${variant}`}
+              className={`flex items-start gap-2.5 p-2.5 rounded-xs border text-[11px] leading-relaxed cursor-pointer ${
+                qaPrivacyConsent
+                  ? isHomepage
+                    ? 'bg-emerald-950/30 border-emerald-500/60 text-slate-100'
+                    : 'bg-emerald-50/70 border-emerald-500/60 text-stone-900'
+                  : isHomepage
+                    ? 'bg-slate-950 border-slate-700 text-slate-200'
+                    : 'bg-[#FBF9F5] border-stone-300 text-stone-800'
+              }`}
+            >
+              <input
+                id={`qa-kvkk-consent-${activeArticle.id}-${variant}`}
+                type="checkbox"
+                checked={qaPrivacyConsent}
+                onChange={(e) => {
+                  setQaPrivacyConsent(e.target.checked);
+                  if (e.target.checked) setHumanChallengeError(null);
+                }}
+                className="mt-0.5 w-4 h-4 accent-[#1E3A8A] shrink-0 cursor-pointer"
+              />
+              <span>
+                <strong className="font-mono">
+                  {language === 'tr'
+                    ? 'KVKK (6698 m.5/1) & AB GDPR (m.6(1)(a)) Açık Rıza Onayı (Zorunlu):'
+                    : 'KVKK (Law 6698) & EU GDPR (Art. 6(1)(a)) Explicit Consent (Required):'}
+                </strong>{' '}
+                {language === 'tr'
+                  ? 'Yazdığım sorunun/itirazın ve isteğe bağlı ad/e-posta bilgilerimin bilimsel yanıt üretmek ve yalnızca veri sorumlusu Emre Pelit’in (emrepelit39@gmail.com) görmesi amacıyla sunucu tarafında işlenmesini, en fazla 12 ay saklanmasını ve KVKK Madde 11 / GDPR Madde 15–20 haklarım kapsamında dilediğim an silinmesini talep edebileceğimi onaylıyorum.'
+                  : 'I explicitly consent to the server-side processing of my submitted question and optional name/email solely to generate a scholarly response and notify Data Controller Emre Pelit (emrepelit39@gmail.com), retained for up to 12 months and erasable at any time under GDPR Art. 17 & KVKK Art. 11.'}
+              </span>
+            </label>
 
             {humanChallengeError && (
               <div

@@ -43,6 +43,7 @@ import {
   computeCumulativeNetworkStats,
   GROK_ME_RECONCILED_3_MONOGRAPHS,
 } from '../data/initialData';
+import { WorldAnalyticsMap } from './WorldAnalyticsMap';
 
 const LIVE_WEBSITES_SET = new Set<string>(ACTIVE_LIVE_WEBSITES);
 import { computeArticleAverageReadingTime } from '../utils/articleAnalysisEngine';
@@ -1443,9 +1444,18 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           })}
         </div>
 
-        {/* TAB 1: OVERVIEW, METRIC-BY-METRIC CUMULATIVE MATRIX & ALL 10 OFFICIAL WEBSITES SINCE LAUNCH */}
+        {/* TAB 1: OVERVIEW, WORLD MAP GEO VISUALIZATION, METRIC-BY-METRIC CUMULATIVE MATRIX & ALL 10 OFFICIAL WEBSITES */}
         {activeHubTab === 'overview' && (
           <div className="space-y-5">
+            {/* Interactive World Map & Regional Breakdown Chart (Immediately visible in Analytics Panel) */}
+            <WorldAnalyticsMap
+              regionTotals={articleCumulativeData.regionTotals}
+              countryTotals={articleCumulativeData.countryTotals}
+              totalReads={articleCumulativeData.totalReads}
+              totalViews={articleCumulativeData.totalViews}
+              compact
+            />
+
             {/* Dedicated Cumulative Total Metric-by-Metric Breakdown Section */}
             <div className="bg-slate-900/95 border-2 border-emerald-400/80 p-4 rounded-xs space-y-3 font-mono text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
@@ -2346,6 +2356,14 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
         {/* TAB 2: 316+ ARTICLES, READING TIME LEADERBOARD & GLOBAL GEOGRAPHY */}
         {activeHubTab === 'articles-geo' && (
           <div className="space-y-5">
+            {/* Full Interactive World Map & Regional Reads/Views Table */}
+            <WorldAnalyticsMap
+              regionTotals={articleCumulativeData.regionTotals}
+              countryTotals={articleCumulativeData.countryTotals}
+              totalReads={articleCumulativeData.totalReads}
+              totalViews={articleCumulativeData.totalViews}
+            />
+
             {/* Site-Wide Cumulative Geographical Breakdown Summary (5 Continents/Regions + 12 Countries) */}
             <div className="bg-slate-950/95 border border-emerald-500/50 p-4 rounded-xs space-y-3 font-mono text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">

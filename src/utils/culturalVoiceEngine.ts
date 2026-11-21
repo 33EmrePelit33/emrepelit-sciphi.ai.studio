@@ -1223,3 +1223,414 @@ export function estimateSpeechDurationSec(
   const pauseSec = ((sentenceCount * profile.sentencePauseMs * safePause) / 1000) / safeRate;
   return Math.max(3, Math.ceil(speakingSec + pauseSec));
 }
+
+interface SpokenSymbolWords {
+  and: string;
+  percent: string;
+  equals: string;
+  approx: string;
+  notEqual: string;
+  lessEq: string;
+  greaterEq: string;
+  plus: string;
+  times: string;
+  infinity: string;
+  figure: string;
+  number: string;
+}
+
+const SPOKEN_SYMBOL_WORDS: Record<LanguageCode, SpokenSymbolWords> = {
+  tr: {
+    and: 've',
+    percent: 'yüzde',
+    equals: 'eşittir',
+    approx: 'yaklaşık',
+    notEqual: 'eşit değildir',
+    lessEq: 'küçük veya eşittir',
+    greaterEq: 'büyük veya eşittir',
+    plus: 'artı',
+    times: 'çarpı',
+    infinity: 'sonsuzluk',
+    figure: 'figür',
+    number: 'numara',
+  },
+  en: {
+    and: 'and',
+    percent: 'percent',
+    equals: 'equals',
+    approx: 'approximately',
+    notEqual: 'is not equal to',
+    lessEq: 'less than or equal to',
+    greaterEq: 'greater than or equal to',
+    plus: 'plus',
+    times: 'times',
+    infinity: 'infinity',
+    figure: 'figure',
+    number: 'number',
+  },
+  es: {
+    and: 'y',
+    percent: 'por ciento',
+    equals: 'es igual a',
+    approx: 'aproximadamente',
+    notEqual: 'no es igual a',
+    lessEq: 'menor o igual que',
+    greaterEq: 'mayor o igual que',
+    plus: 'más',
+    times: 'por',
+    infinity: 'infinito',
+    figure: 'figura',
+    number: 'número',
+  },
+  de: {
+    and: 'und',
+    percent: 'Prozent',
+    equals: 'gleich',
+    approx: 'ungefähr',
+    notEqual: 'ungleich',
+    lessEq: 'kleiner gleich',
+    greaterEq: 'größer gleich',
+    plus: 'plus',
+    times: 'mal',
+    infinity: 'Unendlichkeit',
+    figure: 'Abbildung',
+    number: 'Nummer',
+  },
+  fr: {
+    and: 'et',
+    percent: 'pour cent',
+    equals: 'égale',
+    approx: 'environ',
+    notEqual: 'différent de',
+    lessEq: 'inférieur ou égal à',
+    greaterEq: 'supérieur ou égal à',
+    plus: 'plus',
+    times: 'fois',
+    infinity: 'infini',
+    figure: 'figure',
+    number: 'numéro',
+  },
+  ru: {
+    and: 'и',
+    percent: 'процентов',
+    equals: 'равно',
+    approx: 'приблизительно',
+    notEqual: 'не равно',
+    lessEq: 'меньше или равно',
+    greaterEq: 'больше или равно',
+    plus: 'плюс',
+    times: 'умножить на',
+    infinity: 'бесконечность',
+    figure: 'рисунок',
+    number: 'номер',
+  },
+  ar: {
+    and: 'و',
+    percent: 'بالمئة',
+    equals: 'يساوي',
+    approx: 'تقريباً',
+    notEqual: 'لا يساوي',
+    lessEq: 'أقل من أو يساوي',
+    greaterEq: 'أكبر من أو يساوي',
+    plus: 'زائد',
+    times: 'ضرب',
+    infinity: 'اللانهاية',
+    figure: 'شكل',
+    number: 'رقم',
+  },
+  zh: {
+    and: '和',
+    percent: '百分之',
+    equals: '等于',
+    approx: '约等于',
+    notEqual: '不等于',
+    lessEq: '小于等于',
+    greaterEq: '大于等于',
+    plus: '加',
+    times: '乘以',
+    infinity: '无穷大',
+    figure: '图',
+    number: '编号',
+  },
+  ja: {
+    and: 'と',
+    percent: 'パーセント',
+    equals: 'イコール',
+    approx: 'およそ',
+    notEqual: '等しくない',
+    lessEq: '以下',
+    greaterEq: '以上',
+    plus: 'プラス',
+    times: '掛ける',
+    infinity: '無限大',
+    figure: '図',
+    number: '番号',
+  },
+  pt: {
+    and: 'e',
+    percent: 'por cento',
+    equals: 'igual a',
+    approx: 'aproximadamente',
+    notEqual: 'diferente de',
+    lessEq: 'menor ou igual a',
+    greaterEq: 'maior ou igual a',
+    plus: 'mais',
+    times: 'vezes',
+    infinity: 'infinito',
+    figure: 'figura',
+    number: 'número',
+  },
+  it: {
+    and: 'e',
+    percent: 'per cento',
+    equals: 'uguale a',
+    approx: 'circa',
+    notEqual: 'diverso da',
+    lessEq: 'minore o uguale a',
+    greaterEq: 'maggiore o uguale a',
+    plus: 'più',
+    times: 'per',
+    infinity: 'infinito',
+    figure: 'figura',
+    number: 'numero',
+  },
+  ko: {
+    and: '및',
+    percent: '퍼센트',
+    equals: '같다',
+    approx: '약',
+    notEqual: '같지 않다',
+    lessEq: '이하',
+    greaterEq: '이상',
+    plus: '플러스',
+    times: '곱하기',
+    infinity: '무한대',
+    figure: '그림',
+    number: '번호',
+  },
+};
+
+/**
+ * Normalizes ANY text containing alphanumeric codes, decimals, abbreviations, math/Greek Unicode,
+ * URLs, slashes, brackets, dashes, invisible chars, or emojis into smooth, natural spoken prose
+ * so browser SpeechSynthesis NEVER stalls, skips, or fails on unusual character combinations.
+ */
+export function sanitizeTextForUninterruptedSpeech(
+  rawText: string,
+  lang: LanguageCode = 'tr'
+): string {
+  if (!rawText) return '';
+  const w = SPOKEN_SYMBOL_WORDS[lang] || SPOKEN_SYMBOL_WORDS.en;
+  const isTr = lang === 'tr';
+
+  let s = String(rawText);
+
+  // 1. Unicode NFKC normalization (converts superscripts ², subscripts ₀, ligatures, fullwidth alphanumerics)
+  try {
+    s = s.normalize('NFKC');
+  } catch {
+    // ignore environments lacking normalize
+  }
+
+  // 2. Strip zero-width, bidi control, soft hyphens, BOM, ASCII control chars, and pictographic emojis
+  s = s
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u00AD]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')
+    .replace(/[\u2600-\u27BF\uE000-\uF8FF]/g, ' ');
+  try {
+    s = s.replace(/\p{Extended_Pictographic}/gu, ' ');
+  } catch {
+    // fallback if regex property escapes unavailable
+  }
+
+  // 3. Humanize URLs and emails so TTS never chokes on protocols or slashes
+  s = s
+    .replace(/https?:\/\/(?:www\.)?/gi, '')
+    .replace(
+      /\b([a-z0-9-]+(?:\.[a-z0-9-]+)*)\.(ai\.studio|blogspot\.com|com|org|net|edu|gov|io|studio)\b/gi,
+      (_, host: string, tld: string) => `${host.replace(/\./g, ' ')} ${tld.replace(/\./g, ' ')}`
+    );
+
+  // 4. Normalize technical figure/archive codes & glued alphanumeric tokens (e.g. FIG. BLG.316, SCIPHIL-#305, E=mc2)
+  s = s
+    .replace(/\bFIG\.?\s*BLG\.?\s*(\d+)/gi, `${w.figure} $1`)
+    .replace(/\bSCIPHIL[-_#\s]*(\d+)/gi, `Sci-Phil $1`)
+    .replace(/\bNo\.?\s*(\d+)/gi, `${w.number} $1`)
+    .replace(/#\s*(\d+)/g, `${w.number} $1`)
+    .replace(/%(\d+(?:[.,]\d+)?)/g, `${w.percent} $1`)
+    .replace(/(\d+(?:[.,]\d+)?)\s*%/g, isTr ? `${w.percent} $1` : `$1 ${w.percent}`)
+    .replace(/(\d+)\s*\+/g, `$1 ${w.plus}`);
+
+  // 5. Expand Greek letters & scientific/mathematical Unicode symbols into spoken words
+  const symbolMap: Array<[RegExp, string]> = [
+    [/[Φφ]/g, isTr ? ' Fi ' : ' Phi '],
+    [/[Ψψ]/g, ' Psi '],
+    [/[Δδ]/g, ' Delta '],
+    [/[Λλ]/g, ' Lambda '],
+    [/[Ττ]/g, ' Tau '],
+    [/[Ππ]/g, ' Pi '],
+    [/[Ωω]/g, ' Omega '],
+    [/[Αα]/g, isTr ? ' Alfa ' : ' Alpha '],
+    [/[Ββ]/g, ' Beta '],
+    [/[Γγ]/g, isTr ? ' Gama ' : ' Gamma '],
+    [/[Θθ]/g, isTr ? ' Teta ' : ' Theta '],
+    [/[Σσς]/g, ' Sigma '],
+    [/[Μμ]/g, isTr ? ' Mü ' : ' Mu '],
+    [/[Εε]/g, ' Epsilon '],
+    [/[ℏħ]/g, isTr ? ' Planck sabiti ' : ' h bar '],
+    [/∞/g, ` ${w.infinity} `],
+    [/≈|≃|≅/g, ` ${w.approx} `],
+    [/≠/g, ` ${w.notEqual} `],
+    [/≤/g, ` ${w.lessEq} `],
+    [/≥/g, ` ${w.greaterEq} `],
+    [/=/g, ` ${w.equals} `],
+    [/×/g, ` ${w.times} `],
+    [/±/g, ` ${w.plus} `],
+    [/&/g, ` ${w.and} `],
+    [/[→↔⇒⇔←↑↓]/g, ', '],
+    [/[·•¦|§¶—–―]/g, ', '],
+    [/\.{2,}|…/g, ', '],
+  ];
+  for (const [pattern, replacement] of symbolMap) {
+    s = s.replace(pattern, replacement);
+  }
+
+  // 6. Separate glued alphanumeric symbols cleanly (e.g. "AdS/CFT" -> "AdS CFT", "x_1" -> "x 1", "a-b" -> "a b", "v2.1" -> "v 2.1")
+  s = s
+    .replace(/[/\\_~^*#`]/g, ' ')
+    .replace(/[()[\]{}<>«»“”"„‟]/g, ' ')
+    .replace(/(\d+)\.(\d+)/g, isTr ? '$1 virgül $2' : '$1.$2')
+    // Separate ASCII letters glued directly to digits (e.g. "3D", "H2O", "BLG316", "10dk") only when ASCII so words like Turkish/other scripts remain intact
+    .replace(/([A-Za-z])(\d)/g, '$1 $2')
+    .replace(/(\d)([A-Za-z])/g, '$1 $2')
+    // Replace hyphens between words/codes with clean space so TTS never chokes on hyphenated alphanumeric IDs
+    .replace(/\s*-\s*/g, ' ');
+
+  // 7. Keep only safe Unicode letters, numbers, in-word apostrophes, spaces, and clean sentence punctuation
+  try {
+    s = s.replace(/[^\p{L}\p{N}\s.,!?;:'،、。！？؟]/gu, ' ');
+  } catch {
+    // Safe fallback preserving Latin/Turkish/Cyrillic/Arabic/CJK ranges
+    s = s.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿğĞıİöÖüÜşŞçÇА-Яа-яЁё\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\s.,!?;:'،、。！？؟]/g, ' ');
+  }
+
+  // 8. Clean stray apostrophes, repeated punctuation, and whitespace
+  s = s
+    .replace(/(^|\s)'+|'+(\s|$)/g, ' ')
+    .replace(/\s+([.,!?;:،、。！？؟])/g, '$1')
+    .replace(/([.,!?;:،、。！？؟])\1+/g, '$1')
+    .replace(/,\s*\./g, '.')
+    .replace(/\.\s*,/g, ',')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // 9. Verify the chunk actually contains speakable alphanumeric/letter content
+  try {
+    if (!/[\p{L}\p{N}]/u.test(s)) return '';
+  } catch {
+    if (!/[0-9A-Za-zÀ-ÿ\u0400-\u04FF\u0600-\u06FF\u3040-\u9FFF\uAC00-\uD7AF]/.test(s)) return '';
+  }
+
+  return s;
+}
+
+/**
+ * Ultra-safe plain fallback sanitizer used ONLY if a browser TTS voice throws an error
+ * on a chunk — removes all punctuation except spaces so any OS voice can speak it cleanly.
+ */
+export function toPlainSpokenFallback(text: string): string {
+  let s = String(text || '');
+  try {
+    s = s.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+  } catch {
+    s = s.replace(/[^0-9A-Za-zÀ-ÿğĞıİöÖüÜşŞçÇ\u0400-\u04FF\u0600-\u06FF\u3040-\u9FFF\uAC00-\uD7AF\s]/g, ' ');
+  }
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Splits a sanitized spoken sentence into guaranteed browser-safe utterance chunks
+ * (<= 155 chars for alphabetic/RTL scripts, <= 72 chars for CJK scripts) so Chrome, Edge,
+ * Safari, and mobile Web Speech engines NEVER hit their single-utterance buffer timeout or cut off mid-sentence.
+ */
+export function splitSafeUtteranceChunks(
+  rawText: string,
+  lang: LanguageCode = 'tr'
+): string[] {
+  const sanitized = sanitizeTextForUninterruptedSpeech(rawText, lang);
+  if (!sanitized) return [];
+
+  const isCjk = lang === 'zh' || lang === 'ja' || lang === 'ko';
+  const maxLen = isCjk ? 72 : 155;
+
+  if (sanitized.length <= maxLen) return [sanitized];
+
+  const chunks: string[] = [];
+
+  // First split by natural clause punctuation (CJK fullwidth needs no trailing space; Western requires trailing space so decimals like 3.14 stay intact)
+  const clauses = sanitized
+    .split(/(?<=[。！？、；])\s*|(?<=[,;،:.!?])\s+/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+  const pushWordBounded = (segment: string) => {
+    if (segment.length <= maxLen) {
+      chunks.push(segment);
+      return;
+    }
+    const hasSpaces = /\s/.test(segment);
+    if (!hasSpaces) {
+      // CJK or continuous script without spaces
+      for (let i = 0; i < segment.length; i += maxLen) {
+        const piece = segment.slice(i, i + maxLen).trim();
+        if (piece) chunks.push(piece);
+      }
+      return;
+    }
+    const words = segment.split(/\s+/).filter(Boolean);
+    let current = '';
+    for (const word of words) {
+      if (word.length > maxLen) {
+        if (current) {
+          chunks.push(current);
+          current = '';
+        }
+        for (let i = 0; i < word.length; i += maxLen) {
+          chunks.push(word.slice(i, i + maxLen));
+        }
+        continue;
+      }
+      const next = current ? `${current} ${word}` : word;
+      if (next.length > maxLen && current) {
+        chunks.push(current);
+        current = word;
+      } else {
+        current = next;
+      }
+    }
+    if (current) chunks.push(current);
+  };
+
+  let acc = '';
+  for (const clause of clauses) {
+    if (clause.length > maxLen) {
+      if (acc) {
+        pushWordBounded(acc);
+        acc = '';
+      }
+      pushWordBounded(clause);
+      continue;
+    }
+    const next = acc ? `${acc} ${clause}` : clause;
+    if (next.length > maxLen && acc) {
+      chunks.push(acc);
+      acc = clause;
+    } else {
+      acc = next;
+    }
+  }
+  if (acc) pushWordBounded(acc);
+
+  return chunks.filter((c) => c.trim().length > 0);
+}
+

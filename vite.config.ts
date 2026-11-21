@@ -59,36 +59,7 @@ export default defineConfig(() => {
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,woff,woff2}'],
           navigateFallback: null,
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'gstatic-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-          ],
+          runtimeCaching: [],
         },
         devOptions: {
           enabled: false,
@@ -102,6 +73,7 @@ export default defineConfig(() => {
       },
     },
     server: {
+      allowedHosts: true as const,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
@@ -111,7 +83,47 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
-      chunkSizeWarningLimit: 1600,
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
+                return 'vendor-react';
+              }
+              if (id.includes('/firebase/') || id.includes('/@firebase/')) {
+                return 'vendor-firebase';
+              }
+              if (id.includes('/katex/')) {
+                return 'vendor-katex';
+              }
+              if (id.includes('/lucide-react/')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('/motion/') || id.includes('/framer-motion/')) {
+                return 'vendor-motion';
+              }
+              return 'vendor-misc';
+            }
+            if (id.includes('/src/data/bloggerCorpusData')) {
+              return 'corpus-archive-data';
+            }
+            if (id.includes('/src/data/initialData')) {
+              return 'corpus-initial-data';
+            }
+            if (id.includes('/src/i18n/translations')) {
+              return 'i18n-translations';
+            }
+            if (id.includes('/src/utils/articleAnalysisEngine')) {
+              return 'engine-analysis';
+            }
+            if (id.includes('/src/utils/articleQaEngine')) {
+              return 'engine-qa';
+            }
+            return undefined;
+          },
+        },
+      },
     },
   };
 });

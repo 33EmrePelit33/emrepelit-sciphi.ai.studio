@@ -1,20 +1,31 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import {
   Award,
   BarChart3,
+  BookMarked,
   BookOpen,
   ChevronDown,
   ChevronUp,
+  Compass,
   Download,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileBadge,
+  Film,
   Globe,
+  Keyboard,
   Languages,
+  Layers,
+  MessageSquareText,
+  Moon,
   Network,
+  Printer,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
+  Upload,
   Volume2,
 } from 'lucide-react';
 import {
@@ -57,22 +68,59 @@ import {
 import { ScientificPlate } from './components/ScientificPlate';
 import { ArticleAudioPlayer } from './components/ArticleAudioPlayer';
 import { ArticleSimulation } from './components/ArticleSimulation';
-import { Network301Hub } from './components/Network301Hub';
-import { AIContentLab } from './components/AIContentLab';
-import { ControlAndCloudPanel } from './components/ControlAndCloudPanel';
-import { EmrePelitCVMenu } from './components/EmrePelitCVMenu';
-import { GlobalIndexingAndSocialHub } from './components/GlobalIndexingAndSocialHub';
-import { ArticleAnalysisModal } from './components/ArticleAnalysisModal';
 import { ArticleQuestionModule } from './components/ArticleQuestionModule';
-import { ArticleExplainerVideo, VideoWatchProgressPayload } from './components/ArticleExplainerVideo';
 import { ArticleQuizModule } from './components/ArticleQuizModule';
-import { InteractiveAppsSuite } from './components/InteractiveAppsSuite';
 import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallButton';
-import { GovernanceLegalModal, GovernanceTab } from './components/GovernanceLegalModal';
 import { MathFormula } from './components/MathFormula';
 import { CitationExportBox } from './components/CitationExportBox';
-import { KnowledgeGraph } from './components/KnowledgeGraph';
+import { ArticleStickyToc } from './components/ArticleStickyToc';
+import { UserAuthButton } from './components/UserAuthButton';
+import { RelatedArticlesStrip } from './components/RelatedArticlesStrip';
+import { ArticleShareMenu } from './components/ArticleShareMenu';
+import type { VideoWatchProgressPayload } from './components/ArticleExplainerVideo';
+import type { GovernanceTab } from './components/GovernanceLegalModal';
 import { computeArticleScientificAnalysis } from './utils/articleAnalysisEngine';
+
+// E1: Route/Modal/Section Code-Splitting via React.lazy for Fast Initial Load
+const Network301Hub = lazy(() =>
+  import('./components/Network301Hub').then((m) => ({ default: m.Network301Hub }))
+);
+const AIContentLab = lazy(() =>
+  import('./components/AIContentLab').then((m) => ({ default: m.AIContentLab }))
+);
+const ControlAndCloudPanel = lazy(() =>
+  import('./components/ControlAndCloudPanel').then((m) => ({ default: m.ControlAndCloudPanel }))
+);
+const EmrePelitCVMenu = lazy(() =>
+  import('./components/EmrePelitCVMenu').then((m) => ({ default: m.EmrePelitCVMenu }))
+);
+const GlobalIndexingAndSocialHub = lazy(() =>
+  import('./components/GlobalIndexingAndSocialHub').then((m) => ({ default: m.GlobalIndexingAndSocialHub }))
+);
+const ArticleAnalysisModal = lazy(() =>
+  import('./components/ArticleAnalysisModal').then((m) => ({ default: m.ArticleAnalysisModal }))
+);
+const GovernanceLegalModal = lazy(() =>
+  import('./components/GovernanceLegalModal').then((m) => ({ default: m.GovernanceLegalModal }))
+);
+const KnowledgeGraph = lazy(() =>
+  import('./components/KnowledgeGraph').then((m) => ({ default: m.KnowledgeGraph }))
+);
+const InteractiveAppsSuite = lazy(() =>
+  import('./components/InteractiveAppsSuite').then((m) => ({ default: m.InteractiveAppsSuite }))
+);
+const ArticleExplainerVideo = lazy(() =>
+  import('./components/ArticleExplainerVideo').then((m) => ({ default: m.ArticleExplainerVideo }))
+);
+const ReaderNotesDrawer = lazy(() =>
+  import('./components/ReaderNotesDrawer').then((m) => ({ default: m.ReaderNotesDrawer }))
+);
+const KeyboardShortcutsModal = lazy(() =>
+  import('./components/KeyboardShortcutsModal').then((m) => ({ default: m.KeyboardShortcutsModal }))
+);
+const TopicSeparatorConceptMap = lazy(() =>
+  import('./components/TopicSeparatorConceptMap').then((m) => ({ default: m.TopicSeparatorConceptMap }))
+);
 import {
   KvkkConsentBanner,
   KvkkConsentState,
@@ -767,12 +815,34 @@ export default function App() {
           if (parsed && (parsed.status === 'accepted' || parsed.status === 'rejected')) {
             return {
               status: parsed.status,
-              essential: true,
               analytics: Boolean(parsed.analytics),
               externalTelemetry: Boolean(parsed.externalTelemetry),
+              externalFonts: Boolean(
+                typeof parsed.externalFonts === 'boolean'
+                  ? parsed.externalFonts
+                  : parsed.externalTelemetry
+              ),
+              gpcHonored: Boolean(parsed.gpcHonored),
               updatedAt: String(parsed.updatedAt || ''),
             };
           }
+        }
+        // Automatically honor browser Global Privacy Control (GPC) and Do Not Track (DNT) signals (GDPR / ePrivacy / KVKK)
+        const nav = window.navigator as Navigator & { globalPrivacyControl?: boolean };
+        const win = window as Window & { doNotTrack?: string };
+        const gpcOrDntActive =
+          nav.globalPrivacyControl === true ||
+          nav.doNotTrack === '1' ||
+          win.doNotTrack === '1';
+        if (gpcOrDntActive) {
+          return {
+            status: 'rejected',
+            analytics: false,
+            externalTelemetry: false,
+            externalFonts: false,
+            gpcHonored: true,
+            updatedAt: new Date().toISOString(),
+          };
         }
       } catch {
         // Ignore storage read error
@@ -1031,6 +1101,12 @@ export default function App() {
   const [sourceFilter, setSourceFilter] = useState<'ALL' | 'BLOGGER_LIVE'>('ALL');
   const [showBloggerDirectory, setShowBloggerDirectory] = useState<boolean>(false);
   const [showKnowledgeGraph, setShowKnowledgeGraph] = useState<boolean>(false);
+  const [showTopicSeparatorMap, setShowTopicSeparatorMap] = useState<boolean>(true);
+  const [activeContinuationTopic, setActiveContinuationTopic] = useState<{
+    topicId: string;
+    topicLabel: string;
+    orderedArticleIds: string[];
+  } | null>(null);
   const [directorySearch, setDirectorySearch] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -1099,12 +1175,88 @@ export default function App() {
     return false;
   });
 
-  // Maximized UX Suite States (Live Reading Progress, Instant Command Palette ⌘K, Adaptive Typography & Theme, Bookmarks)
+  // Maximized UX Suite States (Live Reading Progress, Instant Command Palette ⌘K, Adaptive Typography & Theme, Bookmarks, Reading Tracker, Multilingual Grouping, Print)
   const [readingProgress, setReadingProgress] = useState<number>(0);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [commandQuery, setCommandQuery] = useState<string>('');
-  const [uxFontScale, setUxFontScale] = useState<'normal' | 'large' | 'xl'>('normal');
-  const [uxReadingTheme, setUxReadingTheme] = useState<'archival' | 'stark' | 'sepia'>('archival');
+  const [activeCommandIndex, setActiveCommandIndex] = useState<number>(0);
+  const [uxFontScale, setUxFontScale] = useState<'normal' | 'large' | 'xl'>(() => {
+    try {
+      const saved = localStorage.getItem('emre_pelit_ux_font_scale');
+      if (saved === 'normal' || saved === 'large' || saved === 'xl') return saved;
+    } catch {
+      // ignore
+    }
+    return 'normal';
+  });
+  const [uxReadingTheme, setUxReadingTheme] = useState<'archival' | 'stark' | 'sepia' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('emre_pelit_ux_theme');
+      if (saved === 'archival' || saved === 'stark' || saved === 'sepia' || saved === 'dark') {
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    return 'archival';
+  });
+  const [groupMultilingualWorks, setGroupMultilingualWorks] = useState<boolean>(false);
+  const [printingArticleId, setPrintingArticleId] = useState<string | null>(null);
+  const [bookmarkTransferNotice, setBookmarkTransferNotice] = useState<string>('');
+  const [isBroadcasting12Langs, setIsBroadcasting12Langs] = useState<boolean>(false);
+  const [broadcast12LangsStatus, setBroadcast12LangsStatus] = useState<string>('');
+  const bookmarkImportInputRef = useRef<HTMLInputElement | null>(null);
+
+  // UX1–UX6: Focus/Zen Reading Mode, Non-Intrusive Toast, Local Notes Drawer, Keyboard Shortcuts & J/K Article Index
+  const [focusReadingMode, setFocusReadingMode] = useState<boolean>(false);
+  const [notesDrawerOpen, setNotesDrawerOpen] = useState<boolean>(false);
+  const [notesTargetArticle, setNotesTargetArticle] = useState<{ id: string; title: string }>({
+    id: '',
+    title: '',
+  });
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const paginatedArticlesRef = useRef<Article[]>([]);
+  const activeArticleNavIndexRef = useRef<number>(0);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 3200);
+  }, []);
+
+  const [lastReadArticle, setLastReadArticle] = useState<{
+    id: string;
+    title: string;
+    updatedAt: string;
+  } | null>(() => {
+    try {
+      const saved = localStorage.getItem('emre_pelit_last_read_article');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.id === 'string' && typeof parsed.title === 'string') {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  const [readArticleIds, setReadArticleIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('emre_pelit_read_articles');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('emre_pelit_bookmarked_articles');
@@ -1115,15 +1267,236 @@ export default function App() {
   });
   const [showOnlyBookmarked, setShowOnlyBookmarked] = useState<boolean>(false);
 
+  // Persist E2 reading comfort preferences to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('emre_pelit_ux_theme', uxReadingTheme);
+    } catch {
+      // ignore
+    }
+  }, [uxReadingTheme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('emre_pelit_ux_font_scale', uxFontScale);
+    } catch {
+      // ignore
+    }
+  }, [uxFontScale]);
+
+  useEffect(() => {
+    setActiveCommandIndex(0);
+  }, [commandQuery, commandPaletteOpen]);
+
+  const recordPersonalRead = useCallback(
+    (articleId: string) => {
+      const targetArt = articles.find((a) => a.id === articleId);
+      const artTitle = targetArt ? getLocalizedText(targetArt.title, language) : articleId;
+      const record = {
+        id: articleId,
+        title: artTitle,
+        updatedAt: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setLastReadArticle(record);
+      try {
+        localStorage.setItem('emre_pelit_last_read_article', JSON.stringify(record));
+      } catch {
+        // ignore
+      }
+      setReadArticleIds((prev) => {
+        if (prev.includes(articleId)) return prev;
+        const next = [...prev, articleId];
+        try {
+          localStorage.setItem('emre_pelit_read_articles', JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    },
+    [articles, language]
+  );
+
+  const handleExportBookmarksJson = () => {
+    const payload = {
+      platform: 'emrepelit-sciphi.ai.studio',
+      exportedAt: new Date().toISOString(),
+      bookmarkedArticleIds,
+      readArticleIds,
+      lastReadArticle,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sciphil-okuma-listesi-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setBookmarkTransferNotice(`✓ ${bookmarkedArticleIds.length} yer imi ve ${readArticleIds.length} okuma kaydı JSON olarak dışa aktarıldı.`);
+    setTimeout(() => setBookmarkTransferNotice(''), 4500);
+  };
+
+  const handleImportBookmarksJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || '{}'));
+        const importedBookmarks: string[] = Array.isArray(parsed?.bookmarkedArticleIds)
+          ? parsed.bookmarkedArticleIds.filter((x: unknown) => typeof x === 'string')
+          : Array.isArray(parsed)
+          ? parsed.filter((x: unknown) => typeof x === 'string')
+          : [];
+        const importedReads: string[] = Array.isArray(parsed?.readArticleIds)
+          ? parsed.readArticleIds.filter((x: unknown) => typeof x === 'string')
+          : [];
+        if (importedBookmarks.length > 0) {
+          setBookmarkedArticleIds((prev) => {
+            const merged = Array.from(new Set([...prev, ...importedBookmarks]));
+            try {
+              localStorage.setItem('emre_pelit_bookmarked_articles', JSON.stringify(merged));
+            } catch {
+              // ignore
+            }
+            return merged;
+          });
+        }
+        if (importedReads.length > 0) {
+          setReadArticleIds((prev) => {
+            const merged = Array.from(new Set([...prev, ...importedReads]));
+            try {
+              localStorage.setItem('emre_pelit_read_articles', JSON.stringify(merged));
+            } catch {
+              // ignore
+            }
+            return merged;
+          });
+        }
+        setBookmarkTransferNotice(
+          `✓ JSON içe aktarıldı: ${importedBookmarks.length} yer imi, ${importedReads.length} okunan makale birleştirildi.`
+        );
+      } catch {
+        setBookmarkTransferNotice('⚠ Geçersiz JSON dosyası. Lütfen Sci-Phil dışa aktarım dosyasını seçin.');
+      } finally {
+        e.target.value = '';
+        setTimeout(() => setBookmarkTransferNotice(''), 5000);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handlePrintArticle = (article: Article) => {
+    setExpandedArticleIds((prev) => ({ ...prev, [article.id]: true }));
+    setPrintingArticleId(article.id);
+    recordPersonalRead(article.id);
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('printing-single-article');
+    }
+    const cleanup = () => {
+      document.body.classList.remove('printing-single-article');
+      setPrintingArticleId(null);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(() => {
+      window.print();
+      setTimeout(cleanup, 1200);
+    }, 180);
+  };
+
+  const handleBroadcastAll12LanguagesNow = async () => {
+    if (isBroadcasting12Langs) return;
+    setIsBroadcasting12Langs(true);
+    setBroadcast12LangsStatus('12 dilde tüm arama motorları ve tarayıcılar için eşzamanlı indeksleme gönderiliyor…');
+    try {
+      const res = await fetch('/api/indexing/broadcast-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          articlesCount: corpusArticlesCount,
+          languagesCount: 12,
+          importantPagesCount: 14,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const submitted = Number(data?.dispatchReport?.totalUrlsSubmitted || data?.totalIndexedUrls || corpusArticlesCount * 12);
+        const engineCount = Array.isArray(data?.dispatchReport?.engineResults)
+          ? data.dispatchReport.engineResults.length
+          : 7;
+        setBroadcast12LangsStatus(
+          `✓ Eşzamanlı 12-Dil İndeksleme Tamamlandı: ${submitted.toLocaleString('tr-TR')} kanonik URL · ${engineCount} arama/besleme motoruna paralel gönderildi (IndexNow + WebSub + Sitemap-12).`
+        );
+      } else {
+        setBroadcast12LangsStatus('⚠ İndeksleme isteği sunucudan yanıt alamadı; lütfen tekrar deneyin.');
+      }
+    } catch {
+      setBroadcast12LangsStatus('⚠ Ağ bağlantısı nedeniyle indeksleme pingi tamamlanamadı.');
+    } finally {
+      setIsBroadcasting12Langs(false);
+    }
+  };
+
+  // In-memory Firebase Auth ID token for authenticated bookmark & reading sync (never stored in localStorage)
+  const firebaseIdTokenRef = useRef<string | null>(null);
+
+  const handleFirebaseAuthChange = useCallback(async (_user: unknown, idToken: string | null) => {
+    firebaseIdTokenRef.current = idToken;
+    if (!idToken) return;
+    try {
+      const resp = await fetch('/api/user/bookmarks', {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (Array.isArray(data?.bookmarks)) {
+        const syncedBookmarked: string[] = [];
+        const syncedRead: string[] = [];
+        for (const row of data.bookmarks) {
+          if (row?.articleId && row.isBookmarked) syncedBookmarked.push(row.articleId);
+          if (row?.articleId && row.isRead) syncedRead.push(row.articleId);
+        }
+        if (syncedBookmarked.length > 0) {
+          setBookmarkedArticleIds((prev) => Array.from(new Set([...prev, ...syncedBookmarked])));
+        }
+        if (syncedRead.length > 0) {
+          setReadArticleIds((prev) => Array.from(new Set([...prev, ...syncedRead])));
+        }
+      }
+    } catch {
+      // Non-fatal sync error
+    }
+  }, []);
+
   const toggleBookmarkArticle = (articleId: string) => {
     setBookmarkedArticleIds((prev) => {
-      const next = prev.includes(articleId)
-        ? prev.filter((id) => id !== articleId)
-        : [...prev, articleId];
+      const willBeBookmarked = !prev.includes(articleId);
+      const next = willBeBookmarked
+        ? [...prev, articleId]
+        : prev.filter((id) => id !== articleId);
       try {
         localStorage.setItem('emre_pelit_bookmarked_articles', JSON.stringify(next));
       } catch {
         // Ignore storage quota
+      }
+      const token = firebaseIdTokenRef.current;
+      if (token) {
+        void fetch('/api/user/bookmarks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            articleId,
+            isBookmarked: willBeBookmarked,
+            isRead: readArticleIds.includes(articleId),
+            progressPercent: readArticleIds.includes(articleId) ? 100 : 0,
+          }),
+        }).catch(() => {});
       }
       return next;
     });
@@ -1142,14 +1515,95 @@ export default function App() {
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTypingTarget = Boolean(
+        target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable)
+      );
+
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
-      } else if (e.key === 'Escape') {
+        return;
+      }
+
+      if (e.key === 'Escape') {
         setCommandPaletteOpen(false);
         setAnalyticsPanelOpen(false);
         setNavCvDropdownOpen(false);
         setNavAboutDropdownOpen(false);
+        setShortcutsModalOpen(false);
+        setNotesDrawerOpen(false);
+        setFocusReadingMode(false);
+        return;
+      }
+
+      if (isTypingTarget || e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+
+      if (e.key === '?') {
+        e.preventDefault();
+        setShortcutsModalOpen((prev) => !prev);
+        return;
+      }
+
+      const lower = e.key.toLowerCase();
+      if (lower === 'f') {
+        e.preventDefault();
+        setFocusReadingMode((prev) => {
+          const next = !prev;
+          showToast(next ? 'Odak (Zen) Okuma Modu aktif (Esc ile çıkın).' : 'Standart görünüme dönüldü.');
+          return next;
+        });
+        return;
+      }
+
+      if (lower === 'n') {
+        e.preventDefault();
+        const visibleList = paginatedArticlesRef.current;
+        const currentArt =
+          visibleList[activeArticleNavIndexRef.current] || visibleList[0];
+        if (currentArt) {
+          setNotesTargetArticle({
+            id: currentArt.id,
+            title: getLocalizedText(currentArt.title, 'tr'),
+          });
+        }
+        setNotesDrawerOpen((prev) => !prev);
+        return;
+      }
+
+      if (lower === 'j' || lower === 'k') {
+        const visibleList = paginatedArticlesRef.current;
+        if (visibleList.length === 0) return;
+        e.preventDefault();
+        const delta = lower === 'j' ? 1 : -1;
+        const nextIdx = Math.max(
+          0,
+          Math.min(visibleList.length - 1, activeArticleNavIndexRef.current + delta)
+        );
+        activeArticleNavIndexRef.current = nextIdx;
+        const targetArt = visibleList[nextIdx];
+        if (targetArt) {
+          document.getElementById(targetArt.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+
+      if (lower === 'm') {
+        const visibleList = paginatedArticlesRef.current;
+        const currentArt =
+          visibleList[activeArticleNavIndexRef.current] || visibleList[0];
+        if (currentArt) {
+          e.preventDefault();
+          document
+            .getElementById(`article-audio-${currentArt.id}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
     };
     const handleHashChange = () => {
@@ -1167,7 +1621,7 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('hashchange', handleHashChange);
     };
-  }, []);
+  }, [showToast]);
 
   // Auto-scroll smoothly to corpus search results when arriving via browser OpenSearch / SearchAction (?q=...)
   useEffect(() => {
@@ -1524,15 +1978,40 @@ export default function App() {
     t.hero.subtitle,
   ]);
 
-  // Runtime injection of optional external telemetry scripts (GA4 / Cloudflare Web Analytics) strictly when configured by owner AND visitor granted KVKK explicit consent
+  // Consent-gated runtime loader for external Google Fonts & optional external telemetry (GDPR Art. 6(1)(a) & KVKK m.5/1)
   useEffect(() => {
-    if (
-      typeof document === 'undefined' ||
-      !kvkkConsent.analytics ||
-      !kvkkConsent.externalTelemetry
-    ) {
+    if (typeof document === 'undefined') return;
+
+    const allowExternalFonts =
+      kvkkConsent.status === 'accepted' &&
+      Boolean(kvkkConsent.externalFonts || kvkkConsent.externalTelemetry);
+
+    const existingFontsLink = document.getElementById('sciphil-google-fonts-optin');
+    if (allowExternalFonts) {
+      if (!existingFontsLink) {
+        const link = document.createElement('link');
+        link.id = 'sciphil-google-fonts-optin';
+        link.rel = 'stylesheet';
+        link.href =
+          'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap';
+        document.head.appendChild(link);
+      }
+    } else if (existingFontsLink) {
+      existingFontsLink.remove();
+    }
+
+    const allowExternalTelemetry =
+      kvkkConsent.status === 'accepted' &&
+      kvkkConsent.analytics &&
+      kvkkConsent.externalTelemetry;
+
+    if (!allowExternalTelemetry) {
+      document.getElementById('sciphil-ga4-loader')?.remove();
+      document.getElementById('sciphil-ga4-init')?.remove();
+      document.getElementById('sciphil-cf-beacon')?.remove();
       return;
     }
+
     const gaId = (gatewayConfig.gaMeasurementId || '').trim();
     if (/^G-[A-Z0-9]{6,14}$/i.test(gaId) && !document.getElementById('sciphil-ga4-loader')) {
       const s = document.createElement('script');
@@ -1559,8 +2038,10 @@ export default function App() {
   }, [
     gatewayConfig.gaMeasurementId,
     gatewayConfig.cloudflareAnalyticsToken,
+    kvkkConsent.status,
     kvkkConsent.analytics,
     kvkkConsent.externalTelemetry,
+    kvkkConsent.externalFonts,
   ]);
 
   // Client-Side Zero-Trust DOM & Canonical Tamper-Proof Guardian (MutationObserver + Object.freeze)
@@ -3274,6 +3755,7 @@ export default function App() {
     const isOpening = !expandedArticleIds[id];
     setExpandedArticleIds((prev) => ({ ...prev, [id]: !prev[id] }));
     if (isOpening) {
+      recordPersonalRead(id);
       const targetArt = articles.find((a) => a.id === id);
       const readMins = Math.max(1, targetArt?.readTimeMinutes || 5);
       handleRecordAnalyticsMeasurement(
@@ -3295,7 +3777,9 @@ export default function App() {
     setSelectedCategory('ALL');
     setSearchQuery('');
     setSourceFilter('ALL');
+    setGroupMultilingualWorks(false);
     setExpandedArticleIds((prev) => ({ ...prev, [articleId]: true }));
+    recordPersonalRead(articleId);
 
     const targetArt = articles.find((a) => a.id === articleId);
     const readMins = Math.max(1, targetArt?.readTimeMinutes || 6);
@@ -3785,12 +4269,36 @@ export default function App() {
     const normQ = normalizeSearchText(searchQuery.trim());
     const tokens = normQ.split(/\s+/).filter(Boolean);
 
+    // When the user applies a Topic Separator Content-Continuation sequence, honor that exact sequence first
+    if (activeContinuationTopic && activeContinuationTopic.orderedArticleIds.length > 0 && tokens.length === 0) {
+      const articleMap = new Map(articles.map((a) => [a.id, a]));
+      const ordered: Article[] = [];
+      for (const id of activeContinuationTopic.orderedArticleIds) {
+        const found = articleMap.get(id);
+        if (!found) continue;
+        if (sourceFilter === 'BLOGGER_LIVE' && found.sourceOrigin !== 'blogger-live') continue;
+        if (showOnlyBookmarked && !bookmarkedArticleIds.includes(found.id)) continue;
+        ordered.push(found);
+      }
+      if (ordered.length > 0) return ordered;
+    }
+
     const scored: Array<{ art: Article; score: number }> = [];
+    const seenClusters = new Set<string>();
     for (const art of articles) {
       if (sourceFilter === 'BLOGGER_LIVE' && art.sourceOrigin !== 'blogger-live') continue;
       if (showOnlyBookmarked && !bookmarkedArticleIds.includes(art.id)) continue;
 
-      if (!showAllLanguagesCorpus && !normQ && !showOnlyBookmarked) {
+      if (groupMultilingualWorks) {
+        const cluster = workClustersData.clusterByArticleId[art.id];
+        if (cluster) {
+          if (seenClusters.has(cluster.clusterId)) continue;
+          const preferred =
+            cluster.byLang[language] || cluster.byLang.tr || cluster.byLang.en || cluster.articles[0];
+          if (preferred && preferred.id !== art.id && !normQ) continue;
+          seenClusters.add(cluster.clusterId);
+        }
+      } else if (!showAllLanguagesCorpus && !normQ && !showOnlyBookmarked) {
         const artLang =
           art.sourceLang ||
           detectEntrySourceLanguage(
@@ -3817,7 +4325,8 @@ export default function App() {
       const findingsStr = normalizeSearchText(getLocalizedArray(art.keyFindings, language).join(' '));
       const catStr = normalizeSearchText(art.category || '');
       const figStr = normalizeSearchText(art.figureNumber || '');
-      const combined = `${titleStr} ${absStr} ${findingsStr} ${catStr} ${figStr} ${bodyStr}`;
+      const eqStr = normalizeSearchText(art.simulation?.equationLatex || '');
+      const combined = `${titleStr} ${absStr} ${findingsStr} ${catStr} ${figStr} ${eqStr} ${bodyStr}`;
 
       if (!tokens.every((tok) => combined.includes(tok))) continue;
 
@@ -3828,7 +4337,7 @@ export default function App() {
         if (titleStr.includes(tok)) score += 4;
         if (absStr.includes(tok)) score += 2.5;
         if (findingsStr.includes(tok)) score += 2;
-        if (catStr.includes(tok) || figStr.includes(tok)) score += 1.5;
+        if (catStr.includes(tok) || figStr.includes(tok) || eqStr.includes(tok)) score += 1.5;
         if (bodyStr.includes(tok)) score += 1;
       }
       scored.push({ art, score });
@@ -3838,9 +4347,12 @@ export default function App() {
     return scored.sort((a, b) => b.score - a.score).map((s) => s.art);
   }, [
     articles,
+    activeContinuationTopic,
     sourceFilter,
     showOnlyBookmarked,
     bookmarkedArticleIds,
+    groupMultilingualWorks,
+    workClustersData,
     showAllLanguagesCorpus,
     nativeLanguageArticleCount,
     primaryClusterArticleIds,
@@ -3864,7 +4376,7 @@ export default function App() {
     return articles
       .filter((a) => {
         const hay = normalizeSearchText(
-          `${getLocalizedText(a.title, language)} ${getLocalizedText(a.abstract, language)} ${getLocalizedArray(a.contentParagraphs, language).join(' ')} ${a.category} ${a.figureNumber}`
+          `${getLocalizedText(a.title, language)} ${getLocalizedText(a.abstract, language)} ${getLocalizedArray(a.contentParagraphs, language).join(' ')} ${a.category} ${a.figureNumber} ${a.simulation?.equationLatex || ''}`
         );
         return tokens.every((tok) => hay.includes(tok));
       })
@@ -3874,7 +4386,9 @@ export default function App() {
   const featuredHeroArticle = articles[0] || INITIAL_BLOGGER_ARTICLES[0];
 
   const surfaceThemeClass =
-    uxReadingTheme === 'stark'
+    uxReadingTheme === 'dark'
+      ? 'theme-dark-reader bg-[#0B1120] text-slate-100'
+      : uxReadingTheme === 'stark'
       ? 'bg-white text-stone-950'
       : uxReadingTheme === 'sepia'
       ? 'bg-[#F4ECD8] text-[#2A2218]'
@@ -3888,16 +4402,43 @@ export default function App() {
       : 'text-base';
 
   const isKvkkBannerVisible = kvkkConsent.status === 'pending' || kvkkManageOpen;
+  paginatedArticlesRef.current = paginatedArticles;
+
+  const activeMobileArticle = useMemo(() => {
+    const firstExpanded = paginatedArticles.find((a) => expandedArticleIds[a.id]);
+    return firstExpanded || paginatedArticles[0] || articles[0] || null;
+  }, [paginatedArticles, expandedArticleIds, articles]);
 
   return (
     <div
       id="top"
       data-active-tab={activeTab}
       dir={currentLangMeta.dir}
-      className={`min-h-screen max-w-full overflow-x-clip ${surfaceThemeClass} ${typographyScaleClass} flex flex-col transition-colors duration-200 ${
-        isKvkkBannerVisible ? 'pb-24' : 'pb-6'
+      className={`min-h-screen max-w-full overflow-x-clip ${surfaceThemeClass} ${typographyScaleClass} ${
+        focusReadingMode ? 'ux-focus-mode' : ''
+      } flex flex-col transition-colors duration-200 ${
+        isKvkkBannerVisible ? 'pb-28' : 'pb-14 md:pb-6'
       }`}
     >
+      {/* UX1: Minimal Top-Right Exit Control When Focus / Zen Reading Mode Is Active */}
+      {focusReadingMode && (
+        <div className="no-print fixed top-3 right-4 z-50 flex items-center gap-2 bg-[#0F172A]/95 text-white border border-slate-700 px-3 py-1.5 shadow-lg text-xs font-mono">
+          <span className="text-slate-300 hidden sm:inline">
+            {language === 'tr' ? 'Odak (Zen) Okuma Modu' : 'Focus Reading Mode'} · %{readingProgress}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setFocusReadingMode(false);
+              showToast(language === 'tr' ? 'Standart görünüme dönüldü.' : 'Exited Focus Mode.');
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xs transition-colors cursor-pointer"
+          >
+            <EyeOff aria-hidden="true" className="w-3.5 h-3.5" />
+            <span>{language === 'tr' ? 'Odaktan Çık (Esc)' : 'Exit Focus (Esc)'}</span>
+          </button>
+        </div>
+      )}
       {/* Top Viewport Live Reading Progress Bar (0% - 100%) */}
       <div
         role="progressbar"
@@ -4206,6 +4747,31 @@ export default function App() {
 
         {/* Zone 3: Primary actions (wrapping cleanly on narrow screens so Kontrol & Bulut / buttons never clip) */}
         <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
+          <button
+            type="button"
+            onClick={() => setCommandPaletteOpen(true)}
+            title="Hızlı Arama & Komut Paleti (Ctrl+K / ⌘K)"
+            className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-mono font-semibold text-stone-800 bg-white hover:bg-stone-100 border border-stone-300 rounded-sm transition-colors cursor-pointer"
+          >
+            <Search aria-hidden="true" className="w-3.5 h-3.5 text-[#1E3A8A]" />
+            <span className="hidden sm:inline">Ara</span>
+            <kbd className="px-1 py-0.5 text-[10px] bg-stone-100 border border-stone-300 rounded-xs">⌘K</kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => setUxReadingTheme((prev) => (prev === 'dark' ? 'archival' : 'dark'))}
+            title={uxReadingTheme === 'dark' ? 'Gündüz / Arşiv Kremi Moduna Geç' : 'Gece Moduna Geç (Koyu Okuma Yüzeyi)'}
+            aria-label={uxReadingTheme === 'dark' ? 'Gündüz Moduna Geç' : 'Gece Moduna Geç'}
+            className={`inline-flex items-center gap-1 px-2.5 py-2 text-xs font-mono font-semibold rounded-sm border transition-colors cursor-pointer ${
+              uxReadingTheme === 'dark'
+                ? 'bg-amber-400 text-slate-950 border-amber-500'
+                : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
+            }`}
+          >
+            <Moon aria-hidden="true" className="w-3.5 h-3.5" />
+            <span className="hidden xl:inline">{uxReadingTheme === 'dark' ? 'Gece: Açık' : 'Gece'}</span>
+          </button>
+          <UserAuthButton language={language} onAuthChange={handleFirebaseAuthChange} />
           <PWAInstallButton
             totalArticlesCount={corpusArticlesCount}
             onDownloadInteraction={({ action, summary }) => {
@@ -4307,7 +4873,7 @@ export default function App() {
       <div
         id="top"
         data-nosnippet
-        className="bg-[#F2EFE7] border-b border-stone-300 px-6 py-2.5 text-xs text-stone-700"
+        className="no-print bg-[#F2EFE7] border-b border-stone-300 px-6 py-2.5 text-xs text-stone-700"
       >
         <div className="max-w-[1380px] mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
@@ -4778,12 +5344,14 @@ export default function App() {
         </section>
 
         {/* Collapsible / Dropdown CV & Exclusive Authorship Menu Section */}
-        <EmrePelitCVMenu
-          language={language}
-          isOpen={cvSectionOpen}
-          onToggleOpen={() => setCvSectionOpen((prev) => !prev)}
-          totalArticlesCount={corpusArticlesCount}
-        />
+        <Suspense fallback={<div className="no-print p-4 text-xs font-mono text-stone-500">Özgeçmiş modülü yükleniyor…</div>}>
+          <EmrePelitCVMenu
+            language={language}
+            isOpen={cvSectionOpen}
+            onToggleOpen={() => setCvSectionOpen((prev) => !prev)}
+            totalArticlesCount={corpusArticlesCount}
+          />
+        </Suspense>
 
         {/* Unified 10-Node Architecture, Headless CMS Synchronization & 1:1 HTTP 301 / Canonical Consolidation Matrix */}
         <section
@@ -4884,7 +5452,7 @@ export default function App() {
                     ✓ {corpusArticlesCount} MAKALENİN TAMAMI CANLI ANA HUB + BLOGGER ÜZERİNDE YAYINDA ({(corpusArticlesCount * 12).toLocaleString('tr-TR')} KANONİK URL)
                   </span>
                   <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-200 border border-emerald-400/60 font-bold rounded-xs">
-                    ✓ 15 SN + SSE CANLI BLOGGER SENKRONU AKTİF (emrepelit7337.blogspot.com → Ana Hub)
+                    ✓ 5 DK + WEBHOOK &amp; SSE CANLI BLOGGER SENKRONU AKTİF (emrepelit7337.blogspot.com → Ana Hub)
                   </span>
                   <span className="px-2.5 py-0.5 bg-sky-500/20 text-sky-200 border border-sky-400/60 font-bold rounded-xs">
                     ★ 8 ESKİ ALAN ADI YAYINDAN KALDIRILDI (TEK-ADIM HTTP 301 → emrepelit-sciphi.ai.studio)
@@ -4897,7 +5465,7 @@ export default function App() {
                   Tek Kanonik Ana Hub &amp; Canlı Blogger Senkronizasyonu: {distinctWorksCount} Özgün Makale · {corpusArticlesCount} Çok Dilli Metin × 12 Dil (emrepelit-sciphi.ai.studio + emrepelit7337.blogspot.com)
                 </h4>
                 <p className="text-xs text-emerald-200/95 leading-relaxed max-w-4xl">
-                  Ekosistem yalnızca <strong>2 canlı web sitesine</strong> (<strong>emrepelit-sciphi.ai.studio</strong> Ana Hub + <strong>emrepelit7337.blogspot.com</strong> Blogger kaynağı) konsolide edilmiştir; ağdaki diğer 8 eski alan adı yayından kaldırılarak tek-adım <code>HTTP 301</code> ile bu Ana Hub&apos;a yönlendirilmiştir. Blogger&apos;a eklenen her yeni makale 15 saniyelik senkron ve SSE kanalıyla anında Ana Hub&apos;a aktarılır ve 12 dünya dilinin tamamında <code>HTTP 200 OK</code> kanonik olarak indekslenir.
+                  Ekosistem yalnızca <strong>2 canlı web sitesine</strong> (<strong>emrepelit-sciphi.ai.studio</strong> Ana Hub + <strong>emrepelit7337.blogspot.com</strong> Blogger kaynağı) konsolide edilmiştir; ağdaki diğer 8 eski alan adı yayından kaldırılarak tek-adım <code>HTTP 301</code> ile bu Ana Hub&apos;a yönlendirilmiştir. Blogger&apos;a eklenen her yeni makale 5 dakikalık arka plan kontrolü + anlık webhook ve SSE kanalıyla Ana Hub&apos;a aktarılır ve 12 dünya dilinin tamamında <code>HTTP 200 OK</code> kanonik olarak indekslenir.
                 </p>
               </div>
 
@@ -5058,7 +5626,7 @@ export default function App() {
                 {bloggerSyncState.blogTitle} — 2 Canlı Web Sitesi (Ana Hub <code className="text-xs font-mono bg-stone-100 px-1.5 py-0.5 border border-stone-300 rounded-xs">HTTP 200</code> + Blogger <code className="text-xs font-mono bg-stone-100 px-1.5 py-0.5 border border-stone-300 rounded-xs">HTTP 200</code>) + 8 Emekli 301 Alan Adı ({corpusArticlesCount} Makale · 12 Dil Kanonik)
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed">
-                Bu sitedeki <strong>{corpusArticlesCount} makalenin tamamı</strong> ve Blogger&apos;a (<strong>emrepelit7337.blogspot.com</strong>) eklenen her yeni yazı gerçek zamanlı SSE ve 15 saniyelik senkronla otomatik olarak Ana Hub&apos;a aktarılır. Eski 8 alan adı yayından kaldırılarak tek-adım <code>HTTP 301</code> ve <code>rel=&quot;canonical&quot;</code> ile yalnızca <strong>emrepelit-sciphi.ai.studio</strong> merkezine bağlanmıştır.
+                Bu sitedeki <strong>{corpusArticlesCount} makalenin tamamı</strong> ve Blogger&apos;a (<strong>emrepelit7337.blogspot.com</strong>) eklenen her yeni yazı gerçek zamanlı SSE, anlık webhook ve 5 dakikalık arka plan kontrolüyle otomatik olarak Ana Hub&apos;a aktarılır. Eski 8 alan adı yayından kaldırılarak tek-adım <code>HTTP 301</code> ve <code>rel=&quot;canonical&quot;</code> ile yalnızca <strong>emrepelit-sciphi.ai.studio</strong> merkezine bağlanmıştır.
               </p>
             </div>
 
@@ -5480,10 +6048,11 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setShowAllLanguagesCorpus(false);
+                    setGroupMultilingualWorks(false);
                     setCurrentPage(1);
                   }}
                   className={`px-3 py-1.5 text-xs font-mono font-semibold rounded-sm border transition-colors cursor-pointer ${
-                    !showAllLanguagesCorpus
+                    !showAllLanguagesCorpus && !groupMultilingualWorks
                       ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
                       : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
                   }`}
@@ -5495,15 +6064,31 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setShowAllLanguagesCorpus(true);
+                    setGroupMultilingualWorks(false);
                     setCurrentPage(1);
                   }}
                   className={`px-3 py-1.5 text-xs font-mono font-semibold rounded-sm border transition-colors cursor-pointer ${
-                    showAllLanguagesCorpus
+                    showAllLanguagesCorpus && !groupMultilingualWorks
                       ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
                       : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
                   }`}
                 >
                   Tüm Çok Dilli Edisyonları Göster ({corpusArticlesCount} Metin)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGroupMultilingualWorks((prev) => !prev);
+                    setCurrentPage(1);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-semibold rounded-sm border transition-colors cursor-pointer ${
+                    groupMultilingualWorks
+                      ? 'bg-emerald-700 text-white border-emerald-700'
+                      : 'bg-white text-stone-800 border-stone-300 hover:border-emerald-600'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Aynı Eserleri Dil Rozetiyle Grupla ({distinctWorksCount} Özgün Eser)</span>
                 </button>
                 <button
                   type="button"
@@ -5515,15 +6100,19 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowKnowledgeGraph((prev) => !prev)}
+                  onClick={() => setShowTopicSeparatorMap((prev) => !prev)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono font-bold rounded-sm border transition-colors cursor-pointer ${
-                    showKnowledgeGraph
-                      ? 'bg-[#047857] text-white border-[#047857]'
+                    showTopicSeparatorMap
+                      ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
                       : 'bg-white text-stone-800 border-stone-300 hover:border-[#1E3A8A]'
                   }`}
                 >
                   <Network className="w-3.5 h-3.5" />
-                  <span>{showKnowledgeGraph ? 'Kavram Grafiğini Gizle' : 'Kavram Grafiği (Knowledge Graph)'}</span>
+                  <span>
+                    {showTopicSeparatorMap
+                      ? 'Konu Ayıracı & Kavram Haritasını Gizle'
+                      : 'Konu Ayıracı & Kapsamlı Kavram Haritası'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -5547,9 +6136,12 @@ export default function App() {
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      setActiveContinuationTopic(null);
+                      setSelectedCategory(cat);
+                    }}
                     className={`px-2.5 py-1 text-xs font-medium rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                      selectedCategory === cat
+                      selectedCategory === cat && !activeContinuationTopic
                         ? 'bg-white text-stone-900 shadow-2xs'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
@@ -5561,114 +6153,276 @@ export default function App() {
             </div>
           </div>
 
-          {/* Maximized UX & Reading Experience Comfort Toolbar (10 301-Connected Websites UX 100/100 Standard) */}
-          {showKnowledgeGraph && (
-            <KnowledgeGraph
-              articles={articles}
-              language={language}
-              onSelectArticle={(artId) => {
-                setShowKnowledgeGraph(false);
-                handleJumpToArticle(artId);
-              }}
-            />
+          {/* Comprehensive Thematic Topic Separator, Multi-Layer Concept Atlas & Content Continuation Sequence */}
+          {showTopicSeparatorMap && (
+            <Suspense
+              fallback={
+                <div className="no-print p-6 bg-white border border-stone-300 text-xs font-mono text-stone-500">
+                  Konu Ayıracı ve Kapsamlı Kavram Haritası hazırlanıyor…
+                </div>
+              }
+            >
+              <TopicSeparatorConceptMap
+                articles={articles}
+                language={language}
+                activeAppliedTopicId={activeContinuationTopic?.topicId || null}
+                onSelectArticle={(artId) => handleJumpToArticle(artId)}
+                onApplyContinuationToCorpus={(topicId, topicLabel, orderedArticleIds) => {
+                  setSelectedCategory('ALL');
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                  setActiveContinuationTopic({ topicId, topicLabel, orderedArticleIds });
+                  showToast(
+                    `${topicLabel} devamlılık sırası (${orderedArticleIds.length} makale) külliyata uygulandı.`
+                  );
+                }}
+                onClearAppliedContinuation={() => {
+                  setActiveContinuationTopic(null);
+                  showToast('Varsayılan külliyat sıralamasına dönüldü.');
+                }}
+              />
+            </Suspense>
           )}
 
-          <div className="bg-[#0F172A] text-white border border-slate-800 p-4 rounded-xs flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xs font-bold">
-                UX MAKSİMİZASYON SÜİTİ (100/100 · WCAG 2.1 AAA · LCP 0.6s · INP 24ms)
-              </span>
-              <button
-                type="button"
-                onClick={() => setCommandPaletteOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xs transition-colors cursor-pointer"
-              >
-                <Search className="w-3.5 h-3.5" />
-                <span>⌘K / Ctrl+K Anında Komut &amp; {corpusArticlesCount} Makale / 10 Site Arama</span>
-              </button>
+          {/* Active Topic Continuation Sequence Indicator Banner */}
+          {activeContinuationTopic && (
+            <div className="no-print bg-[#FBF9F5] border border-[#1E3A8A]/40 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex flex-wrap items-center gap-2 text-stone-800">
+                <Compass aria-hidden="true" className="w-4 h-4 text-[#1E3A8A] shrink-0" />
+                <span>
+                  <strong>Konu Ayıracı Devamlılık Sırası Aktif:</strong>{' '}
+                  <span className="text-[#1E3A8A] font-semibold">{activeContinuationTopic.topicLabel}</span>
+                </span>
+                <span aria-hidden="true" className="text-stone-400">·</span>
+                <span className="tabular-nums text-stone-600">
+                  {filteredArticles.length} makale içerik akışına göre birbirinin devamı niteliğinde sıralandı
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => {
-                  setShowOnlyBookmarked((prev) => !prev);
-                  setCurrentPage(1);
+                  setActiveContinuationTopic(null);
+                  showToast('Varsayılan külliyat sıralamasına dönüldü.');
                 }}
-                className={`px-2.5 py-1 rounded-xs border transition-colors cursor-pointer ${
-                  showOnlyBookmarked
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold'
-                    : 'bg-slate-900 text-slate-200 border-slate-700 hover:border-amber-400'
-                }`}
+                className="px-3 py-1 bg-white border border-stone-300 hover:border-[#1E3A8A] text-stone-800 hover:text-[#1E3A8A] transition-colors cursor-pointer"
               >
-                ★ Kaydedilen Makalelerim ({bookmarkedArticleIds.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const allOnPageExpanded = paginatedArticles.every((a) => expandedArticleIds[a.id]);
-                  const nextMap = { ...expandedArticleIds };
-                  paginatedArticles.forEach((a) => {
-                    nextMap[a.id] = !allOnPageExpanded;
-                  });
-                  setExpandedArticleIds(nextMap);
-                }}
-                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 rounded-xs transition-colors cursor-pointer"
-              >
-                Sayfadaki Makaleleri Tümünü Aç / Kapat
+                Sıralamayı Sıfırla
               </button>
             </div>
+          )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2 py-1 rounded-xs">
-                <span className="text-[10px] text-slate-400">Tipografi:</span>
-                {(
-                  [
-                    { id: 'normal', label: 'A (Standart)' },
-                    { id: 'large', label: 'A+ (Geniş)' },
-                    { id: 'xl', label: 'A++ (Akademik XL)' },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setUxFontScale(item.id)}
-                    className={`px-2 py-0.5 text-[11px] rounded-xs cursor-pointer ${
-                      uxFontScale === item.id
-                        ? 'bg-emerald-600 text-white font-bold'
-                        : 'text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+          {showKnowledgeGraph && (
+            <Suspense fallback={<div className="no-print p-4 text-xs font-mono text-stone-500">Kavram grafiği yükleniyor…</div>}>
+              <KnowledgeGraph
+                articles={articles}
+                language={language}
+                onSelectArticle={(artId) => {
+                  setShowKnowledgeGraph(false);
+                  handleJumpToArticle(artId);
+                }}
+              />
+            </Suspense>
+          )}
+
+          <div className="no-print bg-[#0F172A] text-white border border-slate-800 p-4 rounded-xs space-y-3 text-xs font-mono">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xs font-bold">
+                  UX MAKSİMİZASYON SÜİTİ (WCAG 2.1 AA · KİŞİSEL OKUMA TAKİBİ)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCommandPaletteOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xs transition-colors cursor-pointer"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>⌘K / Ctrl+K Hızlı Arama ({corpusArticlesCount} Makale &amp; Denklem)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBroadcastAll12LanguagesNow}
+                  disabled={isBroadcasting12Langs}
+                  title="Tüm makaleleri 12 dilde eşzamanlı olarak IndexNow (Bing, Yandex, Seznam, Naver) ve WebSub ağlarına gönder"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xs transition-colors cursor-pointer"
+                >
+                  <Globe className={`w-3.5 h-3.5 ${isBroadcasting12Langs ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isBroadcasting12Langs
+                      ? '12 Dilde İndeksleniyor…'
+                      : `12 Dilde Tüm Tarayıcılarda İndeksle (${(corpusArticlesCount * 12).toLocaleString('tr-TR')} URL)`}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOnlyBookmarked((prev) => !prev);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-2.5 py-1 rounded-xs border transition-colors cursor-pointer ${
+                    showOnlyBookmarked
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold'
+                      : 'bg-slate-900 text-slate-200 border-slate-700 hover:border-amber-400'
+                  }`}
+                >
+                  ★ Kaydedilenler ({bookmarkedArticleIds.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportBookmarksJson}
+                  title="Yer imlerini ve okuma geçmişini JSON olarak dışa aktar"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-sky-300 border border-sky-500/40 rounded-xs transition-colors cursor-pointer"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>JSON Dışa Aktar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => bookmarkImportInputRef.current?.click()}
+                  title="JSON yer imi ve okuma listesini içe aktar"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 rounded-xs transition-colors cursor-pointer"
+                >
+                  <Upload className="w-3 h-3" />
+                  <span>JSON İçe Aktar</span>
+                </button>
+                <input
+                  ref={bookmarkImportInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleImportBookmarksJson}
+                  className="hidden"
+                  aria-label="Yer imleri JSON dosyası içe aktar"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allOnPageExpanded = paginatedArticles.every((a) => expandedArticleIds[a.id]);
+                    const nextMap = { ...expandedArticleIds };
+                    paginatedArticles.forEach((a) => {
+                      nextMap[a.id] = !allOnPageExpanded;
+                    });
+                    setExpandedArticleIds(nextMap);
+                  }}
+                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 rounded-xs transition-colors cursor-pointer"
+                >
+                  Sayfadakileri Aç / Kapat
+                </button>
               </div>
 
-              <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2 py-1 rounded-xs">
-                <span className="text-[10px] text-slate-400">Okuma Yüzeyi:</span>
-                {(
-                  [
-                    { id: 'archival', label: 'Arşiv Kremi' },
-                    { id: 'stark', label: 'Galeri Beyazı' },
-                    { id: 'sepia', label: 'Göz Dostu Sepya' },
-                  ] as const
-                ).map((themeItem) => (
-                  <button
-                    key={themeItem.id}
-                    type="button"
-                    onClick={() => setUxReadingTheme(themeItem.id)}
-                    className={`px-2 py-0.5 text-[11px] rounded-xs cursor-pointer ${
-                      uxReadingTheme === themeItem.id
-                        ? 'bg-amber-400 text-slate-950 font-bold'
-                        : 'text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    {themeItem.label}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2 py-1 rounded-xs">
+                  <span className="text-[10px] text-slate-400">Tipografi:</span>
+                  {(
+                    [
+                      { id: 'normal', label: 'A' },
+                      { id: 'large', label: 'A+' },
+                      { id: 'xl', label: 'A++' },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setUxFontScale(item.id)}
+                      className={`px-2 py-0.5 text-[11px] rounded-xs cursor-pointer ${
+                        uxFontScale === item.id
+                          ? 'bg-emerald-600 text-white font-bold'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2 py-1 rounded-xs">
+                  <span className="text-[10px] text-slate-400">Okuma Yüzeyi:</span>
+                  {(
+                    [
+                      { id: 'archival', label: 'Arşiv Kremi' },
+                      { id: 'stark', label: 'Beyaz' },
+                      { id: 'sepia', label: 'Sepya' },
+                      { id: 'dark', label: '☾ Gece Modu' },
+                    ] as const
+                  ).map((themeItem) => (
+                    <button
+                      key={themeItem.id}
+                      type="button"
+                      onClick={() => setUxReadingTheme(themeItem.id)}
+                      className={`px-2 py-0.5 text-[11px] rounded-xs cursor-pointer ${
+                        uxReadingTheme === themeItem.id
+                          ? 'bg-amber-400 text-slate-950 font-bold'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      {themeItem.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusReadingMode((prev) => {
+                      const next = !prev;
+                      showToast(
+                        next
+                          ? language === 'tr'
+                            ? 'Odak (Zen) Okuma Modu aktif (Esc ile çıkın).'
+                            : 'Focus Reading Mode active (Press Esc to exit).'
+                          : language === 'tr'
+                            ? 'Standart görünüme dönüldü.'
+                            : 'Standard view restored.'
+                      );
+                      return next;
+                    });
+                  }}
+                  title="Odak (Zen) okuma modunu aç/kapat (Kısayol: F)"
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] border rounded-xs transition-colors cursor-pointer ${
+                    focusReadingMode
+                      ? 'bg-amber-400 text-slate-950 border-amber-400 font-bold'
+                      : 'bg-slate-900 hover:bg-slate-800 text-amber-200 border-amber-500/40'
+                  }`}
+                >
+                  {focusReadingMode ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  <span>{focusReadingMode ? 'Odaktan Çık' : 'Odak Modu (F)'}</span>
+                </button>
               </div>
             </div>
+
+            {/* E7: Personal Reading Progress, "Kaldığın Yerden Devam Et" & Live 12-Language Indexing Status Bar */}
+            {(lastReadArticle || readArticleIds.length > 0 || bookmarkTransferNotice || broadcast12LangsStatus) && (
+              <div className="pt-2.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <span className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-emerald-300 rounded-xs shrink-0">
+                    Okunan Makalelerim: <strong>{readArticleIds.length}</strong> / {distinctWorksCount}
+                  </span>
+                  {lastReadArticle && (
+                    <button
+                      type="button"
+                      onClick={() => handleJumpToArticle(lastReadArticle.id)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-400/60 text-indigo-100 rounded-xs cursor-pointer max-w-full truncate"
+                    >
+                      <BookOpen className="w-3 h-3 text-amber-300 shrink-0" />
+                      <span className="truncate">
+                        Kaldığın Yerden Devam Et ({lastReadArticle.updatedAt}): <strong>{lastReadArticle.title}</strong> →
+                      </span>
+                    </button>
+                  )}
+                </div>
+                {broadcast12LangsStatus && (
+                  <span className="px-2.5 py-0.5 bg-sky-950 border border-sky-500/50 text-sky-200 rounded-xs">
+                    {broadcast12LangsStatus}
+                  </span>
+                )}
+                {bookmarkTransferNotice && (
+                  <span className="px-2 py-0.5 bg-emerald-950 border border-emerald-500/50 text-emerald-200 rounded-xs">
+                    {bookmarkTransferNotice}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Top Pagination & Page Size Bar */}
-          <div className="bg-[#F2EFE7] border border-stone-300 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div className="no-print bg-[#F2EFE7] border border-stone-300 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
             <div>
               Gösterilen:{' '}
               <strong>
@@ -5760,11 +6514,16 @@ export default function App() {
               );
 
               const articleAnalysisSummary = computeArticleScientificAnalysis(article, language);
+              const workCluster = workClustersData.clusterByArticleId[article.id];
+              const siblingLangEntries = workCluster
+                ? (Object.entries(workCluster.byLang) as [LanguageCode, Article][]).filter(([, a]) => Boolean(a))
+                : [];
 
               return (
                 <article
                   key={article.id}
                   id={article.id}
+                  data-print-target={printingArticleId === article.id ? 'true' : undefined}
                   className="bg-white border border-stone-300 p-6 lg:p-8 space-y-6 scroll-mt-24"
                 >
                   {/* Unboxed Clean Academic Metadata Header */}
@@ -5802,6 +6561,18 @@ export default function App() {
                       >
                         <Volume2 className="w-3.5 h-3.5 text-amber-300" />
                         <span>Sesli Dinle (12 Dil)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document
+                            .getElementById(`article-qa-${article.id}`)
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold text-white bg-emerald-700 hover:bg-emerald-600 border border-emerald-700 rounded-xs transition-colors cursor-pointer"
+                      >
+                        <MessageSquareText className="w-3.5 h-3.5 text-emerald-200" />
+                        <span>Soru-Cevap</span>
                       </button>
                       <button
                         type="button"
@@ -5864,8 +6635,41 @@ export default function App() {
                           {subtitle}
                         </p>
 
+                        {/* E5: Multilingual Sibling Edition Switcher Badges */}
+                        {siblingLangEntries.length > 1 && (
+                          <div className="no-print flex flex-wrap items-center gap-1.5 pt-1 text-[11px] font-mono">
+                            <span className="text-stone-500 inline-flex items-center gap-1">
+                              <Layers className="w-3 h-3 text-emerald-700" />
+                              <span>Bu Eserin Çok Dilli Edisyonları ({siblingLangEntries.length}):</span>
+                            </span>
+                            {siblingLangEntries.map(([langCode, siblingArt]) => {
+                              const isCurrentEdition = siblingArt.id === article.id;
+                              return (
+                                <button
+                                  key={`${article.id}-sib-${langCode}`}
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isCurrentEdition) {
+                                      setLanguage(langCode);
+                                      handleJumpToArticle(siblingArt.id);
+                                    }
+                                  }}
+                                  className={`px-2 py-0.5 rounded-xs border uppercase transition-colors cursor-pointer ${
+                                    isCurrentEdition
+                                      ? 'bg-emerald-700 text-white border-emerald-700 font-bold'
+                                      : 'bg-[#FBF9F5] text-stone-800 border-stone-300 hover:border-[#1E3A8A] hover:text-[#1E3A8A]'
+                                  }`}
+                                  title={`${langCode.toUpperCase()} edisyonuna geç`}
+                                >
+                                  {langCode.toUpperCase()}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
                         {/* Prominent Per-Article 12-Language Audio Narration + Live Synchronized Transcript */}
-                        <div id={`article-audio-${article.id}`} className="scroll-mt-24 pt-1">
+                        <div id={`article-audio-${article.id}`} className="no-print scroll-mt-24 pt-1">
                           <ArticleAudioPlayer
                             article={article}
                             language={language}
@@ -6160,45 +6964,57 @@ export default function App() {
                         </p>
                       </div>
                       {/* Article-Specific Unrestricted Comprehensive-Summary Animated-Entity HTML5 Video (12 Languages · Cultural Narrators) */}
-                      <ArticleExplainerVideo
-                        article={article}
-                        language={language}
-                        articleVideoStats={{
-                          plays: articleStatsBoosts[article.id]?.videoPlays || 0,
-                          watchSeconds: articleStatsBoosts[article.id]?.videoWatchSeconds || 0,
-                          completions: articleStatsBoosts[article.id]?.videoCompletions || 0,
-                          maxPositionSec: articleStatsBoosts[article.id]?.maxVideoPositionSec || 0,
-                          videoDurationSec: articleStatsBoosts[article.id]?.videoDurationSec || 0,
-                        }}
-                        onVideoWatchProgress={handleArticleVideoWatchProgress}
-                      />
+                      <div id={`article-video-${article.id}`} className="no-print scroll-mt-24">
+                        <Suspense
+                          fallback={
+                            <div className="bg-[#0F172A] text-slate-300 border border-slate-700 p-6 text-xs font-mono rounded-sm">
+                              12 Dilli Video Anlatım Stüdyosu yükleniyor…
+                            </div>
+                          }
+                        >
+                          <ArticleExplainerVideo
+                            article={article}
+                            language={language}
+                            articleVideoStats={{
+                              plays: articleStatsBoosts[article.id]?.videoPlays || 0,
+                              watchSeconds: articleStatsBoosts[article.id]?.videoWatchSeconds || 0,
+                              completions: articleStatsBoosts[article.id]?.videoCompletions || 0,
+                              maxPositionSec: articleStatsBoosts[article.id]?.maxVideoPositionSec || 0,
+                              videoDurationSec: articleStatsBoosts[article.id]?.videoDurationSec || 0,
+                            }}
+                            onVideoWatchProgress={handleArticleVideoWatchProgress}
+                          />
+                        </Suspense>
+                      </div>
                     </div>
 
                     {/* Right 5 Cols: Prominent Side-by-Side Question/Objection Box + Visual Plate & Key Findings */}
                     <div className="lg:col-span-5 space-y-4">
                       {/* Prominent Side-by-Side Question & Objection Box Beside Every Article */}
-                      <ArticleQuestionModule
-                        article={article}
-                        allArticles={articles}
-                        language={language}
-                        defaultExpanded={true}
-                        variant="sidebar"
-                        onJumpToArticle={(artId) => handleJumpToArticle(artId)}
-                        onQuestionAskedMeasured={(artId) =>
-                          handleRecordAnalyticsMeasurement(
-                            'emrepelit-sciphi.ai.studio',
-                            {
-                              readsDelta: 1,
-                              viewsDelta: 1,
-                              readingMinutesDelta: 2,
-                              targetArticleId: artId,
-                            },
-                            'QA_OBJECTOR',
-                            `Uygulama Etkileşimi (Makale Yanı Soru/İtiraz Kutusu #${artId}): +1 Soru/İtiraz Sorgusu, +1 Okunma`,
-                            'QA_OBJECTION'
-                          )
-                        }
-                      />
+                      <div id={`article-qa-${article.id}`} className="no-print scroll-mt-24">
+                        <ArticleQuestionModule
+                          article={article}
+                          allArticles={articles}
+                          language={language}
+                          defaultExpanded={true}
+                          variant="sidebar"
+                          onJumpToArticle={(artId) => handleJumpToArticle(artId)}
+                          onQuestionAskedMeasured={(artId) =>
+                            handleRecordAnalyticsMeasurement(
+                              'emrepelit-sciphi.ai.studio',
+                              {
+                                readsDelta: 1,
+                                viewsDelta: 1,
+                                readingMinutesDelta: 2,
+                                targetArticleId: artId,
+                              },
+                              'QA_OBJECTOR',
+                              `Uygulama Etkileşimi (Makale Yanı Soru/İtiraz Kutusu #${artId}): +1 Soru/İtiraz Sorgusu, +1 Okunma`,
+                              'QA_OBJECTION'
+                            )
+                          }
+                        />
+                      </div>
 
                       <ScientificPlate article={article} language={language} />
 
@@ -6218,7 +7034,7 @@ export default function App() {
                   {/* Article-Specific Interactive Simulation (Always paired specifically with this article) */}
                   <div
                     id={index === 0 ? 'featured-simulator-container' : `simulator-${article.id}`}
-                    className="scroll-mt-24"
+                    className="no-print scroll-mt-24"
                   >
                     <ArticleSimulation
                       article={article}
@@ -6238,22 +7054,24 @@ export default function App() {
                   </div>
 
                   {/* Article-Specific Interactive Test Questions (Comprehension Check & Freedom of Thought) */}
-                  <ArticleQuizModule
-                    article={article}
-                    language={language}
-                    onQuizCompletedMeasured={(artId, correctCount, totalCount) =>
-                      handleRecordAnalyticsMeasurement(
-                        'emrepelit-sciphi.ai.studio',
-                        {
-                          viewsDelta: 1,
-                          readsDelta: 1,
-                          targetArticleId: artId,
-                        },
-                        'ARTICLE_READER',
-                        `Etkileşimli Makale Testi Tamamlandı (#${artId} · ${correctCount}/${totalCount} Doğru): +1 Okunma`
-                      )
-                    }
-                  />
+                  <div className="no-print">
+                    <ArticleQuizModule
+                      article={article}
+                      language={language}
+                      onQuizCompletedMeasured={(artId, correctCount, totalCount) =>
+                        handleRecordAnalyticsMeasurement(
+                          'emrepelit-sciphi.ai.studio',
+                          {
+                            viewsDelta: 1,
+                            readsDelta: 1,
+                            targetArticleId: artId,
+                          },
+                          'ARTICLE_READER',
+                          `Etkileşimli Makale Testi Tamamlandı (#${artId} · ${correctCount}/${totalCount} Doğru): +1 Okunma`
+                        )
+                      }
+                    />
+                  </div>
 
                   {/* Action Bar: Expand Full Paper / Pop-up Full Analysis / AI Translate / BibTeX Download */}
                   <div className="pt-2 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
@@ -6306,6 +7124,37 @@ export default function App() {
                       >
                         <Download aria-hidden="true" className="w-3.5 h-3.5" />
                         <span>{t.article.downloadCitation}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePrintArticle(article)}
+                        title="Bu makaleyi temiz akademik PDF / baskı düzeninde yazdır"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono text-stone-700 bg-white border border-stone-300 hover:border-[#1E3A8A] hover:text-[#1E3A8A] rounded-sm transition-colors cursor-pointer"
+                      >
+                        <Printer aria-hidden="true" className="w-3.5 h-3.5" />
+                        <span>Yazdır / PDF</span>
+                      </button>
+
+                      {/* UX3: One-Click Academic Share & Citation Menu */}
+                      <ArticleShareMenu
+                        article={article}
+                        language={language}
+                        onNotify={showToast}
+                      />
+
+                      {/* UX5: 100% Browser-Local Personal Reading Notes Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNotesTargetArticle({ id: article.id, title });
+                          setNotesDrawerOpen(true);
+                        }}
+                        title="Bu makale için cihaz içi kişisel not ekle (Kısayol: N)"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono text-stone-700 bg-white border border-stone-300 hover:border-[#1E3A8A] hover:text-[#1E3A8A] rounded-sm transition-colors cursor-pointer"
+                      >
+                        <BookMarked aria-hidden="true" className="w-3.5 h-3.5" />
+                        <span>{language === 'tr' ? 'Notlarım' : 'Notes'}</span>
                       </button>
                     </div>
 
@@ -6386,8 +7235,14 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Right Margin Rail: Academic References & 10-Website 301 Network Incoming Backlinks */}
+                      {/* Right Margin Rail: Sticky TOC + Remaining Reading Time (G5), Academic References & 10-Website Network */}
                       <aside id={`citations-${article.id}`} className="lg:col-span-4 space-y-5 text-xs scroll-mt-24">
+                        <ArticleStickyToc
+                          articleId={article.id}
+                          paragraphs={paragraphs}
+                          readTimeMinutes={article.readTimeMinutes}
+                          language={language}
+                        />
                         <div className="bg-[#FBF9F5] border border-stone-200 p-4 space-y-2.5">
                           <div className="font-mono uppercase tracking-wider text-stone-600 font-semibold">
                             {t.article.citations}
@@ -6469,6 +7324,16 @@ export default function App() {
                     <p className="pt-3 border-t border-stone-200 font-editorial italic text-sm text-stone-700">
                       {mersinColophonText}
                     </p>
+                  )}
+
+                  {/* UX2: Smart Conceptual Reading Path / Related Articles Strip */}
+                  {isExpanded && (
+                    <RelatedArticlesStrip
+                      currentArticle={article}
+                      allArticles={articles}
+                      language={language}
+                      onSelectArticle={(relId) => handleJumpToArticle(relId)}
+                    />
                   )}
                 </article>
               );
@@ -6588,159 +7453,171 @@ export default function App() {
         </section>
 
         {/* Dedicated Analytics Modal (#analytics / #analytics-panel): Only visible when the "Analitik" button is clicked */}
-        <Network301Hub
-          nodes={networkNodes}
-          articles={articles}
-          language={language}
-          onSelectArticleFromBacklink={handleSelectArticleFromBacklink}
-          onSyncBloggerAcrossSites={(domain) => handleSyncBlogger(false, true, domain)}
-          analyticsMeasurements={analyticsMeasurements}
-          analyticsEventLog={analyticsEventLog}
-          appInteractionTotals={appInteractionTotals}
-          sessionInteractionTotals={sessionInteractionTotals}
-          onRecordAnalyticsMeasurement={handleRecordAnalyticsMeasurement}
-          lastStatsSyncEvent={lastStatsSyncEvent}
-          bloggerSyncing={bloggerSyncState.syncing}
-          bloggerSyncedCount={bloggerArticlesList.length || bloggerSyncState.liveCount}
-          lastBloggerSyncAt={bloggerSyncState.lastSyncedAt}
-          analyticsPanelOpen={analyticsPanelOpen}
-          onToggleAnalyticsPanel={(open) =>
-            setAnalyticsPanelOpen(typeof open === 'boolean' ? open : !analyticsPanelOpen)
-          }
-          onForceLiveSync={() => syncCloudAnalyticsState(false)}
-          articleStatsBoosts={articleStatsBoosts}
-          kvkkAnalyticsGranted={true}
-        />
-
-        {/* SECTION 02B: Interactive Science, Physics & Philosophy Applications Suite */}
-        <InteractiveAppsSuite
-          articles={articles}
-          language={language}
-          onJumpToArticle={(artId) => handleJumpToArticle(artId)}
-          onAppInteractionMeasured={(appId, summary) =>
-            handleRecordAnalyticsMeasurement(
-              'emrepelit-sciphi.ai.studio',
-              {
-                simulatorRunsDelta: 1,
-              },
-              'SIMULATION_LAB',
-              `İnteraktif Web Uygulaması (${appId}): ${summary}`
-            )
-          }
-        />
-
-        {/* SECTION 02C: Simultaneous 12-Language Browser & Academic Indexing + Social Media Promotion Hub */}
-        <div id="indexing-social" className="scroll-mt-24 pt-6 border-t border-stone-300">
-          <GlobalIndexingAndSocialHub
+        <Suspense fallback={null}>
+          <Network301Hub
+            nodes={networkNodes}
             articles={articles}
             language={language}
-            externalTriggerCount={indexingTriggerCount}
-            externalQueueAllTriggerCount={queueAllTriggerCount}
-            externalSingleArticleToQueue={singleArticleQueueTarget}
-            onPerArticleIndexedUpdate={(artId, receiptHash, indexedAt) =>
-              setPerArticleIndexedMap((prev) => ({
-                ...prev,
-                [artId]: { receiptHash, indexedAt },
-              }))
+            onSelectArticleFromBacklink={handleSelectArticleFromBacklink}
+            onSyncBloggerAcrossSites={(domain) => handleSyncBlogger(false, true, domain)}
+            analyticsMeasurements={analyticsMeasurements}
+            analyticsEventLog={analyticsEventLog}
+            appInteractionTotals={appInteractionTotals}
+            sessionInteractionTotals={sessionInteractionTotals}
+            onRecordAnalyticsMeasurement={handleRecordAnalyticsMeasurement}
+            lastStatsSyncEvent={lastStatsSyncEvent}
+            bloggerSyncing={bloggerSyncState.syncing}
+            bloggerSyncedCount={bloggerArticlesList.length || bloggerSyncState.liveCount}
+            lastBloggerSyncAt={bloggerSyncState.lastSyncedAt}
+            analyticsPanelOpen={analyticsPanelOpen}
+            onToggleAnalyticsPanel={(open) =>
+              setAnalyticsPanelOpen(typeof open === 'boolean' ? open : !analyticsPanelOpen)
             }
+            onForceLiveSync={() => syncCloudAnalyticsState(false)}
+            articleStatsBoosts={articleStatsBoosts}
+            kvkkAnalyticsGranted={true}
           />
+        </Suspense>
+
+        {/* SECTION 02B: Interactive Science, Physics & Philosophy Applications Suite */}
+        <div id="interactive-apps-suite" className="no-print">
+          <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">İnteraktif bilim uygulamaları yükleniyor…</div>}>
+            <InteractiveAppsSuite
+              articles={articles}
+              language={language}
+              onJumpToArticle={(artId) => handleJumpToArticle(artId)}
+              onAppInteractionMeasured={(appId, summary) =>
+                handleRecordAnalyticsMeasurement(
+                  'emrepelit-sciphi.ai.studio',
+                  {
+                    simulatorRunsDelta: 1,
+                  },
+                  'SIMULATION_LAB',
+                  `İnteraktif Web Uygulaması (${appId}): ${summary}`
+                )
+              }
+            />
+          </Suspense>
+        </div>
+
+        {/* SECTION 02C: Simultaneous 12-Language Browser & Academic Indexing + Social Media Promotion Hub */}
+        <div id="indexing-social" className="no-print scroll-mt-24 pt-6 border-t border-stone-300">
+          <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Küresel indeksleme merkezi yükleniyor…</div>}>
+            <GlobalIndexingAndSocialHub
+              articles={articles}
+              language={language}
+              externalTriggerCount={indexingTriggerCount}
+              externalQueueAllTriggerCount={queueAllTriggerCount}
+              externalSingleArticleToQueue={singleArticleQueueTarget}
+              onPerArticleIndexedUpdate={(artId, receiptHash, indexedAt) =>
+                setPerArticleIndexedMap((prev) => ({
+                  ...prev,
+                  [artId]: { receiptHash, indexedAt },
+                }))
+              }
+            />
+          </Suspense>
         </div>
 
         {/* SECTION 03: AI-Powered Content Generation & Epistemological Analysis Studio */}
         <section
           id="ai-studio"
           aria-label="YZ Üretim ve Analiz Laboratuvarı"
-          className="scroll-mt-28 pt-6 border-t border-stone-300"
+          className="no-print scroll-mt-28 pt-6 border-t border-stone-300"
         >
-          <AIContentLab
-            articles={articles}
-            language={language}
-            gatewayConfig={gatewayConfig}
-            onPublishNewArticle={handlePublishNewArticle}
-            onOpenFullAnalysisModal={(art) => handleOpenAnalysisModal(art)}
-            onAnalyticsMeasured={(metricSummary, simRunsDelta, readsDelta) =>
-              handleRecordAnalyticsMeasurement(
-                'emrepelit-sciphi.ai.studio',
-                {
-                  readsDelta,
-                  simulatorRunsDelta: simRunsDelta,
-                },
-                'AI_ANALYSIS_LAB',
-                metricSummary
-              )
-            }
-          />
+          <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Analiz stüdyosu yükleniyor…</div>}>
+            <AIContentLab
+              articles={articles}
+              language={language}
+              gatewayConfig={gatewayConfig}
+              onPublishNewArticle={handlePublishNewArticle}
+              onOpenFullAnalysisModal={(art) => handleOpenAnalysisModal(art)}
+              onAnalyticsMeasured={(metricSummary, simRunsDelta, readsDelta) =>
+                handleRecordAnalyticsMeasurement(
+                  'emrepelit-sciphi.ai.studio',
+                  {
+                    readsDelta,
+                    simulatorRunsDelta: simRunsDelta,
+                  },
+                  'AI_ANALYSIS_LAB',
+                  metricSummary
+                )
+              }
+            />
+          </Suspense>
         </section>
 
         {/* SECTION 04: Personalized Control Panel, Dynamic API Gateway, Cloud Storage & Security */}
         <section
           id="control-cloud"
           aria-label="Kontrol ve Bulut Yönetimi"
-          className="scroll-mt-28 pt-6 border-t border-stone-300"
+          className="no-print scroll-mt-28 pt-6 border-t border-stone-300"
         >
-          <ControlAndCloudPanel
-            config={gatewayConfig}
-            snapshots={snapshots}
-            articles={articles}
-            nodes={networkNodes}
-            language={language}
-            onUpdateConfig={handleUpdateGatewayConfig}
-            onCreateSnapshot={handleCreateCloudSnapshot}
-            onTriggerBloggerSync={() => handleSyncBlogger(false, true)}
-            onOwnerUnlockChange={(unlocked, sessionToken) => {
-              setAdminModeUnlocked(unlocked);
-              setOwnerSessionToken(unlocked ? sessionToken || '' : '');
-            }}
-          />
+          <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Kontrol paneli yükleniyor…</div>}>
+            <ControlAndCloudPanel
+              config={gatewayConfig}
+              snapshots={snapshots}
+              articles={articles}
+              nodes={networkNodes}
+              language={language}
+              onUpdateConfig={handleUpdateGatewayConfig}
+              onCreateSnapshot={handleCreateCloudSnapshot}
+              onTriggerBloggerSync={() => handleSyncBlogger(false, true)}
+              onOwnerUnlockChange={(unlocked, sessionToken) => {
+                setAdminModeUnlocked(unlocked);
+                setOwnerSessionToken(unlocked ? sessionToken || '' : '');
+              }}
+            />
+          </Suspense>
         </section>
       </main>
 
       {/* Pop-up Window (Modal) for Full Article Content Analysis, Scientific Score & Audio Narration */}
-      <ArticleAnalysisModal
-        article={activeModalAnalysisArticle}
-        language={language}
-        gatewayConfig={gatewayConfig}
-        totalArticlesCount={corpusArticlesCount}
-        onClose={() => setActiveModalAnalysisArticle(null)}
-        onAudioMeasured={(artId, minsDelta) =>
-          handleRecordAnalyticsMeasurement(
-            'emrepelit-sciphi.ai.studio',
-            {
-              readsDelta: 1,
-              viewsDelta: 1,
-              targetArticleId: artId,
-              audioMinutesDelta: minsDelta,
-            },
-            'AUDIO_NARRATOR',
-            `Analitik Ölçüm (Açılır Pencere Makale Analizi Sesli Dinleme #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
-          )
-        }
-        onAnalysisMeasured={(artId) =>
-          handleRecordAnalyticsMeasurement(
-            'emrepelit-sciphi.ai.studio',
-            {
-              readsDelta: 1,
-              viewsDelta: 1,
-              targetArticleId: artId,
-              simulatorRunsDelta: 1,
-            },
-            'AI_ANALYSIS_LAB',
-            `Analitik Ölçüm (Açılır Pencere Tam Makale Analizi & Bilimsel Skor #${artId}): +1 Görüntülenme, +1 Okunma, +1 Analiz & Simülasyon`
-          )
-        }
-        onVideoWatchProgress={handleArticleVideoWatchProgress}
-        articleVideoStats={
-          activeModalAnalysisArticle
-            ? {
-                plays: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoPlays || 0,
-                watchSeconds: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoWatchSeconds || 0,
-                completions: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoCompletions || 0,
-                maxPositionSec: articleStatsBoosts[activeModalAnalysisArticle.id]?.maxVideoPositionSec || 0,
-                videoDurationSec: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoDurationSec || 0,
-              }
-            : undefined
-        }
-      />
+      {activeModalAnalysisArticle && (
+        <Suspense fallback={null}>
+          <ArticleAnalysisModal
+            article={activeModalAnalysisArticle}
+            language={language}
+            gatewayConfig={gatewayConfig}
+            totalArticlesCount={corpusArticlesCount}
+            onClose={() => setActiveModalAnalysisArticle(null)}
+            onAudioMeasured={(artId, minsDelta) =>
+              handleRecordAnalyticsMeasurement(
+                'emrepelit-sciphi.ai.studio',
+                {
+                  readsDelta: 1,
+                  viewsDelta: 1,
+                  targetArticleId: artId,
+                  audioMinutesDelta: minsDelta,
+                },
+                'AUDIO_NARRATOR',
+                `Analitik Ölçüm (Açılır Pencere Makale Analizi Sesli Dinleme #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
+              )
+            }
+            onAnalysisMeasured={(artId) =>
+              handleRecordAnalyticsMeasurement(
+                'emrepelit-sciphi.ai.studio',
+                {
+                  readsDelta: 1,
+                  viewsDelta: 1,
+                  targetArticleId: artId,
+                  simulatorRunsDelta: 1,
+                },
+                'AI_ANALYSIS_LAB',
+                `Analitik Ölçüm (Açılır Pencere Tam Makale Analizi & Bilimsel Skor #${artId}): +1 Görüntülenme, +1 Okunma, +1 Analiz & Simülasyon`
+              )
+            }
+            onVideoWatchProgress={handleArticleVideoWatchProgress}
+            articleVideoStats={{
+              plays: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoPlays || 0,
+              watchSeconds: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoWatchSeconds || 0,
+              completions: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoCompletions || 0,
+              maxPositionSec: articleStatsBoosts[activeModalAnalysisArticle.id]?.maxVideoPositionSec || 0,
+              videoDurationSec: articleStatsBoosts[activeModalAnalysisArticle.id]?.videoDurationSec || 0,
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Quiet Academic Footer */}
       <footer className="bg-[#F2EFE7] border-t border-stone-300 px-6 py-8 mt-16 text-xs text-stone-600">
@@ -6907,11 +7784,11 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Floating Quick-Action & Back-to-Top UX Dock */}
+      {/* Floating Quick-Action & Back-to-Top UX Dock (Desktop) */}
       <div
-        className={`fixed ${
+        className={`no-print hidden md:flex fixed ${
           isKvkkBannerVisible ? 'bottom-[88px]' : 'bottom-6'
-        } right-4 z-40 flex items-center gap-1.5 bg-[#0F172A]/95 backdrop-blur-xs text-white border border-slate-700 px-3 py-2 rounded-xs shadow-lg text-xs font-mono transition-all`}
+        } right-4 z-40 items-center gap-1.5 bg-[#0F172A]/95 backdrop-blur-xs text-white border border-slate-700 px-3 py-2 rounded-xs shadow-lg text-xs font-mono transition-all`}
       >
         <button
           type="button"
@@ -6928,7 +7805,49 @@ export default function App() {
         >
           {APP_CHROME_I18N[language].searchPlaceholderPrefix}
         </button>
-        <span className="px-2 py-1 bg-slate-900 text-emerald-300 border border-slate-700 rounded-xs">
+        <button
+          type="button"
+          onClick={() => {
+            setFocusReadingMode((prev) => {
+              const next = !prev;
+              showToast(next ? 'Odak (Zen) Okuma Modu aktif (Esc ile çıkın).' : 'Standart görünüme dönüldü.');
+              return next;
+            });
+          }}
+          title="Odak / Zen Okuma Modu (F)"
+          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-200 border border-slate-600 rounded-xs transition-colors cursor-pointer inline-flex items-center gap-1"
+        >
+          {focusReadingMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          <span>Odak</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeMobileArticle) {
+              setNotesTargetArticle({
+                id: activeMobileArticle.id,
+                title: getLocalizedText(activeMobileArticle.title, language),
+              });
+            }
+            setNotesDrawerOpen(true);
+          }}
+          title="Kişisel Okuma Notları (N)"
+          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 rounded-xs transition-colors cursor-pointer inline-flex items-center gap-1"
+        >
+          <BookMarked className="w-3.5 h-3.5" />
+          <span>Not</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setShortcutsModalOpen(true)}
+          title="Klavye Kısayolları (?)"
+          aria-label="Klavye Kısayolları"
+          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xs transition-colors cursor-pointer inline-flex items-center gap-1"
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>?</span>
+        </button>
+        <span className="px-2 py-1 bg-slate-900 text-emerald-300 border border-slate-700 rounded-xs tabular-nums">
           Okuma: %{readingProgress}
         </span>
         <button
@@ -6941,13 +7860,137 @@ export default function App() {
         </button>
       </div>
 
-      {/* Instant Command & Search Palette Modal (Ctrl+K / ⌘K) */}
+      {/* UX4: Compact Mobile 1-Thumb Article Quick-Action Bar (< md, <= 48px height, respects KVKK banner) */}
+      <nav
+        aria-label="Mobil Makale Hızlı Gezinme"
+        className={`no-print md:hidden fixed ${
+          isKvkkBannerVisible ? 'bottom-[78px]' : 'bottom-2'
+        } left-2 right-2 z-40 grid grid-cols-5 gap-1 bg-[#0F172A]/95 backdrop-blur-xs text-white border border-slate-700 p-1 rounded-xs shadow-xl text-[10px] font-mono`}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            if (activeMobileArticle) {
+              document
+                .getElementById(`article-audio-${activeMobileArticle.id}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          className="flex items-center justify-center gap-1 py-2 bg-slate-800 text-amber-300 border border-slate-700 rounded-xs cursor-pointer whitespace-nowrap"
+        >
+          <Volume2 className="w-3.5 h-3.5 shrink-0" />
+          <span>Ses</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeMobileArticle) {
+              document
+                .getElementById(`article-video-${activeMobileArticle.id}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          className="flex items-center justify-center gap-1 py-2 bg-slate-800 text-sky-300 border border-slate-700 rounded-xs cursor-pointer whitespace-nowrap"
+        >
+          <Film className="w-3.5 h-3.5 shrink-0" />
+          <span>Video</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeMobileArticle) {
+              const simEl =
+                document.getElementById(`simulator-${activeMobileArticle.id}`) ||
+                document.getElementById('featured-simulator-container');
+              simEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          className="flex items-center justify-center gap-1 py-2 bg-slate-800 text-emerald-300 border border-slate-700 rounded-xs cursor-pointer whitespace-nowrap"
+        >
+          <Compass className="w-3.5 h-3.5 shrink-0" />
+          <span>Sim</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeMobileArticle) {
+              document
+                .getElementById(`article-qa-${activeMobileArticle.id}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          className="flex items-center justify-center gap-1 py-2 bg-emerald-600 text-white font-bold rounded-xs cursor-pointer whitespace-nowrap"
+        >
+          <MessageSquareText className="w-3.5 h-3.5 shrink-0" />
+          <span>Soru</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeMobileArticle) {
+              setNotesTargetArticle({
+                id: activeMobileArticle.id,
+                title: getLocalizedText(activeMobileArticle.title, language),
+              });
+            }
+            setNotesDrawerOpen(true);
+          }}
+          className="flex items-center justify-center gap-1 py-2 bg-amber-400 text-slate-950 font-bold rounded-xs cursor-pointer whitespace-nowrap"
+        >
+          <BookMarked className="w-3.5 h-3.5 shrink-0" />
+          <span>Not</span>
+        </button>
+      </nav>
+
+      {/* UX3: Non-Intrusive Toast Feedback Notification */}
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`no-print fixed left-1/2 -translate-x-1/2 ${
+            isKvkkBannerVisible ? 'bottom-36' : 'bottom-20 md:bottom-16'
+          } z-50 bg-[#0F172A] text-white border border-amber-400/70 px-4 py-2.5 text-xs font-mono shadow-xl max-w-[92vw] text-center`}
+        >
+          {toastMessage}
+        </div>
+      )}
+
+      {/* UX5: 100% Browser-Local Personal Reading Notes Drawer */}
+      {notesDrawerOpen && (
+        <Suspense fallback={null}>
+          <ReaderNotesDrawer
+            isOpen={notesDrawerOpen}
+            onClose={() => setNotesDrawerOpen(false)}
+            activeArticleId={notesTargetArticle.id || activeMobileArticle?.id || ''}
+            activeArticleTitle={
+              notesTargetArticle.title ||
+              (activeMobileArticle ? getLocalizedText(activeMobileArticle.title, language) : 'Sci-Phil Arşivi')
+            }
+            language={language}
+            onNotify={showToast}
+            onJumpToArticle={(artId) => handleJumpToArticle(artId)}
+          />
+        </Suspense>
+      )}
+
+      {/* UX6: Researcher Keyboard Shortcuts Cheatsheet Modal (?) */}
+      {shortcutsModalOpen && (
+        <Suspense fallback={null}>
+          <KeyboardShortcutsModal
+            isOpen={shortcutsModalOpen}
+            onClose={() => setShortcutsModalOpen(false)}
+            language={language}
+          />
+        </Suspense>
+      )}
+
+      {/* Instant Command & Search Palette Modal (Ctrl+K / ⌘K with Keyboard Navigation & Formula Search) */}
       {commandPaletteOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`Hızlı Komut, ${Math.max(316, articles.length)} Makale, 10 301 Web Sitesi ve 12 Dil Gezgini`}
-          className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-start justify-center p-4 pt-16"
+          aria-label={`Hızlı Komut, ${Math.max(316, articles.length)} Makale, Denklem ve 12 Dil Gezgini`}
+          className="no-print fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-start justify-center p-4 pt-16"
           onClick={() => setCommandPaletteOpen(false)}
         >
           <div
@@ -6958,16 +8001,19 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
                 <span className="font-bold">
-                  EMRE PELİT UX HIZLI KOMUT &amp; ARAMA PALETİ ({Math.max(316, articles.length)} MAKALE · 10 301 SİTE · 12 DİL)
+                  EMRE PELİT HIZLI KOMUT &amp; ARAMA PALETİ ({Math.max(316, articles.length)} MAKALE · DENKLEM · 12 DİL)
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setCommandPaletteOpen(false)}
-                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xs cursor-pointer"
-              >
-                ESC Kapat ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline text-[10px] text-slate-400">↑↓ Gezin · ↵ Aç · Shift+↵ Analiz</span>
+                <button
+                  type="button"
+                  onClick={() => setCommandPaletteOpen(false)}
+                  className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xs cursor-pointer"
+                >
+                  ESC Kapat ✕
+                </button>
+              </div>
             </div>
 
             <div className="p-4 border-b border-stone-200 bg-[#FBF9F5]">
@@ -6978,7 +8024,30 @@ export default function App() {
                   autoFocus
                   value={commandQuery}
                   onChange={(e) => setCommandQuery(e.target.value)}
-                  placeholder={`${Math.max(316, articles.length)} makale başlığı, arşiv kodu, kavram, 10 301 web sitesi veya dil ara...`}
+                  onKeyDown={(e) => {
+                    if (commandPaletteArticles.length === 0) return;
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setActiveCommandIndex((prev) => (prev + 1) % commandPaletteArticles.length);
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setActiveCommandIndex(
+                        (prev) => (prev - 1 + commandPaletteArticles.length) % commandPaletteArticles.length
+                      );
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const chosen = commandPaletteArticles[activeCommandIndex] || commandPaletteArticles[0];
+                      if (chosen) {
+                        setCommandPaletteOpen(false);
+                        if (e.shiftKey) {
+                          handleOpenAnalysisModal(chosen);
+                        } else {
+                          handleJumpToArticle(chosen.id);
+                        }
+                      }
+                    }
+                  }}
+                  placeholder={`${Math.max(316, articles.length)} makale başlığı, denklem/formül, arşiv kodu, kavram veya dil ara...`}
                   className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-stone-300 focus:outline-none focus:border-[#1E3A8A] rounded-xs font-sans"
                 />
               </div>
@@ -7008,14 +8077,25 @@ export default function App() {
             <div className="max-h-[380px] overflow-y-auto divide-y divide-stone-200">
               {commandPaletteArticles.map((art, idx) => {
                 const artTitle = getLocalizedText(art.title, language);
+                const isActiveRow = idx === activeCommandIndex;
                 return (
                   <div
                     key={art.id}
-                    className="p-3 hover:bg-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors"
+                    onMouseEnter={() => setActiveCommandIndex(idx)}
+                    className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors ${
+                      isActiveRow ? 'bg-blue-50 border-l-4 border-l-[#1E3A8A]' : 'hover:bg-stone-100'
+                    }`}
                   >
-                    <div className="space-y-0.5">
-                      <div className="text-[11px] font-mono text-stone-500">
-                        #{idx + 1} · {art.category} · Arşiv: SCIPHIL-#{art.figureNumber.replace(/[^0-9]/g, '') || idx + 1} · Kanonik İndeksli
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-[11px] font-mono text-stone-500 flex flex-wrap items-center gap-1.5">
+                        <span>
+                          #{idx + 1} · {art.category} · Arşiv: SCIPHIL-#{art.figureNumber.replace(/[^0-9]/g, '') || idx + 1}
+                        </span>
+                        {art.simulation?.equationLatex && (
+                          <span className="text-[10px] text-[#1E3A8A] truncate max-w-[220px]">
+                            · {art.simulation.equationLatex}
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm font-editorial font-semibold text-stone-900">
                         {artTitle}
@@ -7054,39 +8134,65 @@ export default function App() {
                   </div>
                 );
               })}
+              {commandPaletteArticles.length === 0 && (
+                <div className="p-6 text-center text-xs font-mono text-stone-500">
+                  Aramanızla eşleşen makale veya denklem bulunamadı.
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Governance, Privacy, KVKK (6698), Scientific Disclaimer & AI/Telemetry Methodology Modal */}
-      <GovernanceLegalModal
-        isOpen={governanceModalOpen}
-        activeTab={governanceTab}
-        onSelectTab={setGovernanceTab}
-        onClose={() => setGovernanceModalOpen(false)}
-        language={language}
-        totalArticlesCount={corpusArticlesCount}
-      />
+      {/* Governance, Privacy, KVKK (6698), GDPR (2016/679), Scientific Disclaimer & AI/Telemetry Methodology Modal */}
+      {governanceModalOpen && (
+        <Suspense fallback={null}>
+          <GovernanceLegalModal
+            isOpen={governanceModalOpen}
+            activeTab={governanceTab}
+            onSelectTab={setGovernanceTab}
+            onClose={() => setGovernanceModalOpen(false)}
+            language={language}
+            totalArticlesCount={corpusArticlesCount}
+            kvkkConsent={kvkkConsent}
+            getAuthToken={() => firebaseIdTokenRef.current}
+            onWithdrawConsent={() => {
+              handleSaveKvkkConsent({
+                status: 'rejected',
+                analytics: false,
+                externalTelemetry: false,
+                externalFonts: false,
+                gpcHonored: Boolean(kvkkConsent.gpcHonored),
+                updatedAt: new Date().toISOString(),
+              });
+            }}
+            onOpenConsentBanner={() => {
+              setGovernanceModalOpen(false);
+              setKvkkManageOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
 
-      {/* 6698 Sayılı KVKK & Çerez Mevzuatı Açık Rıza (Opt-In) Onay Bandı */}
-      <KvkkConsentBanner
-        consent={kvkkConsent}
-        forceManageOpen={kvkkManageOpen}
-        onUpdateConsent={handleSaveKvkkConsent}
-        onCloseManage={() => setKvkkManageOpen(false)}
-        onOpenLegalTab={(tab) => {
-          setGovernanceTab(tab);
-          setGovernanceModalOpen(true);
-        }}
-        language={language}
-      />
+      {/* 6698 Sayılı KVKK & Çerez Mevzuatı Açık Rıza (Opt-In) Onay Bandı + PWA Offline Pill */}
+      <div className="no-print">
+        <KvkkConsentBanner
+          consent={kvkkConsent}
+          forceManageOpen={kvkkManageOpen}
+          onUpdateConsent={handleSaveKvkkConsent}
+          onCloseManage={() => setKvkkManageOpen(false)}
+          onOpenLegalTab={(tab) => {
+            setGovernanceTab(tab);
+            setGovernanceModalOpen(true);
+          }}
+          language={language}
+        />
 
-      {/* PWA Offline Network Status Pill */}
-      <OfflineIndicator
-        kvkkBannerVisible={isKvkkBannerVisible}
-        hasCachedArticles={articles.length > 0}
-      />
+        <OfflineIndicator
+          kvkkBannerVisible={isKvkkBannerVisible}
+          hasCachedArticles={articles.length > 0}
+        />
+      </div>
     </div>
   );
 }

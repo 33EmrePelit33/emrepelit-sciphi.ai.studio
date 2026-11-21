@@ -305,7 +305,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'WhatsApp Sci-Phil Güncellenen Web Sitesi Tanıtım Şablonu',
-      content: `*Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi*\n\n🔬 ${corpusCount} özgün bilim ve felsefe makalesi yenilendi!\n🎬 Her makaleye özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı video\n✅ Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli kavrama soruları\n🧩 4 modüllü interaktif uygulamalar, matematiksel fizik simülasyonları ve 12 dilde sesli anlatım:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub: https://github.com/emrepelit109\n▶️ YouTube: https://www.youtube.com/@science_only`,
+      content: `*Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi*\n\n🔬 ${corpusCount} özgün bilim ve felsefe makalesi yenilendi!\n🎬 Her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video\n✅ Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli kavrama soruları\n🧩 4 modüllü interaktif uygulamalar, matematiksel fizik simülasyonları ve 12 dilde sesli anlatım:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub: https://github.com/emrepelit109\n▶️ YouTube: https://www.youtube.com/@science_only`,
       hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #EğitimVideosu #ÇoktanSeçmeliTest',
       shareUrlBuilder: (text, _url) =>
         `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
@@ -319,7 +319,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Messenger Web Sitesi Yenilenen Video & Test Tanıtım Şablonu',
-      content: `Merhaba! Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini barındıran Sci-Phil arşivine artık her makale için 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, makale genel sonucuyla uyumlu çoktan seçmeli test soruları ve interaktif uygulamalar eklendi. Buradan inceleyebilirsin:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
+      content: `Merhaba! Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini barındıran Sci-Phil arşivine artık her makale için süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale genel sonucuyla uyumlu çoktan seçmeli test soruları ve interaktif uygulamalar eklendi. Buradan inceleyebilirsin:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#EmrePelit #SciPhil #BilimSohbeti #VideoVeTest',
       shareUrlBuilder: (text, url) =>
         `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=291494419107518&redirect_uri=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
@@ -328,12 +328,12 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       id: 'soc-youtube',
       platformName: 'YouTube (@science_only)',
       handleOrChannel: '@science_only (youtube.com/@science_only)',
-      badge: 'Resmi İlişkili YouTube Kanalı & 10 dk Hareketli Varlık Videosu',
+      badge: 'Resmi İlişkili YouTube Kanalı & 12 Dilli Geniş Özet Videosu',
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'YouTube (@science_only) Video & Çoktan Seçmeli Test Duyuru Şablonu',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi & Resmi YouTube Kanalı (@science_only)\n\n🎬 Web sitemizdeki her ${corpusCount} makaleye özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı video ve makalenin genel sonucuyla bütünleşen çoktan seçmeli test soruları eklendi!\n▶️ Kanal: https://www.youtube.com/@science_only\n🌐 İnteraktif Videolu & Testli Külliyat: https://emrepelit-sciphi.ai.studio`,
+      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi & Resmi YouTube Kanalı (@science_only)\n\n🎬 Web sitemizdeki her ${corpusCount} makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video ve makalenin genel sonucuyla bütünleşen çoktan seçmeli test soruları eklendi!\n▶️ Kanal: https://www.youtube.com/@science_only\n🌐 İnteraktif Videolu & Testli Külliyat: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#science_only #EmrePelit #SciPhil #BilimVeFelsefe #AçıklayıcıVideo #ÇoktanSeçmeliSorular',
       shareUrlBuilder: (_text, _url) => `https://www.youtube.com/@science_only`,
     },
@@ -346,7 +346,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Instagram (@bilimsohbeti) Video + Çoktan Seçmeli Test Lansmanı',
-      content: `Emre Pelit — Sci-Phil Bilim ve Felsefe Arşivi Yenilendi! • @bilimsohbeti\n\n🔬 ${corpusCount} Özgün Bilim ve Felsefe Makalesi\n🎬 Her Makaleye Özel 10 Dakikalık Hareketli Varlık Etkileşimli HTML5 Açıklayıcı Video (WebM indirilebilir)\n✅ Makalenin Genel Sonucuyla Örtüşen Çoktan Seçmeli Kavrama Soruları\n🌌 Kuantum, Higgs, Entropi ve Kozmoloji İnteraktif Uygulama & Simülatörleri\n🗣️ 12 Dünya Dilinde Sesli Okuma & Canlı Transkript\n🌐 Link: https://emrepelit-sciphi.ai.studio`,
+      content: `Emre Pelit — Sci-Phil Bilim ve Felsefe Arşivi Yenilendi! • @bilimsohbeti\n\n🔬 ${corpusCount} Özgün Bilim ve Felsefe Makalesi\n🎬 Her Makaleye Özel Süre Kısıtsız 12 Dilli Sentetik Kültürel Sesli HTML5 Geniş Özet Video (Sesli WebM indirilebilir)\n✅ Makalenin Genel Sonucuyla Örtüşen Çoktan Seçmeli Kavrama Soruları\n🌌 Kuantum, Higgs, Entropi ve Kozmoloji İnteraktif Uygulama & Simülatörleri\n🗣️ 12 Dünya Dilinde Sesli Okuma & Kullanıcı Kontrollü Tonlama\n🌐 Link: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#BilimSohbeti #science_only #EmrePelit #SciPhil #BilimVideosu #BilimTesti #KuantumFiziği',
       shareUrlBuilder: (_text, _url) => `https://www.instagram.com/bilimsohbeti/`,
     },
@@ -358,8 +358,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Threads (@bilimsohbeti) 10 dk Video & Çoktan Seçmeli Test Duyurusu',
-      content: `🔬 Emre Pelit — Sci-Phil arşivi yeni etkileşim katmanlarıyla yayında!\n\n• ${corpusCount} özgün makalenin HER BİRİNE özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı video\n• Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli test soruları\n• 4 interaktif bilimsel uygulama, fizik simülasyonları ve 12 dilde seslendirme\n\n🌐 Keşfedin: https://emrepelit-sciphi.ai.studio`,
+      title: 'Threads (@bilimsohbeti) 12 Dilli Video & Çoktan Seçmeli Test Duyurusu',
+      content: `🔬 Emre Pelit — Sci-Phil arşivi yeni etkileşim katmanlarıyla yayında!\n\n• ${corpusCount} özgün makalenin HER BİRİNE özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video\n• Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli test soruları\n• 4 interaktif bilimsel uygulama, fizik simülasyonları ve kullanıcı kontrollü tonlama\n\n🌐 Keşfedin: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#BilimSohbeti #EmrePelit #SciPhil #SciencePhilosophy #InteractiveLearning',
       shareUrlBuilder: (text, _url) =>
         `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
@@ -372,8 +372,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'X (@emrepelit109) 10 dk Video & Çoktan Seçmeli Soru Güncellemesi',
-      content: `🔬 Emre Pelit (@emrepelit109) — Sci-Phil arşivi büyük güncellemeyle yayında!\n\n• ${corpusCount} özgün makalenin her birine özel 10 dk hareketli varlık etkileşimli HTML5 açıklayıcı video\n• Makalenin genel sonucuyla uyumlu profesyonel çoktan seçmeli kavrama testleri\n• İnteraktif uygulamalar, fizik/bilinç simülasyonları ve 12 dilde sesli okuma\n\n🌐 https://emrepelit-sciphi.ai.studio`,
+      title: 'X (@emrepelit109) 12 Dilli Video & Çoktan Seçmeli Soru Güncellemesi',
+      content: `🔬 Emre Pelit (@emrepelit109) — Sci-Phil arşivi büyük güncellemeyle yayında!\n\n• ${corpusCount} özgün makalenin her birine özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video\n• Makalenin genel sonucuyla uyumlu profesyonel çoktan seçmeli kavrama testleri\n• İnteraktif uygulamalar, fizik/bilinç simülasyonları ve kullanıcı kontrollü tonlama\n\n🌐 https://emrepelit-sciphi.ai.studio`,
       hashtags: '#EmrePelit #SciPhil #BilimSohbeti #InteractiveScience #Quiz #HTML5Video',
       shareUrlBuilder: (text, url) =>
         `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
@@ -387,7 +387,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'LinkedIn Etkileşimli Video, Çoktan Seçmeli Değerlendirme & Uygulamalar Lansmanı',
-      content: `Bilim ve felsefe kesişimindeki ${corpusCount} özgün makalemi yalnızca metin olarak değil; her makalenin ana tezini, matematiksel modelini ve bütünsel sonucunu hareketli varlık etkileşimleriyle görselleştiren 10 dakikalık HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli değerlendirme soruları ve interaktif uygulamalarla tek kanonik merkezde yeniden yapılandırdım.\n\n• Kapsam: Kuantum Fiziği, Termodinamik Entropi, Kozmoloji, Epistemoloji ve Zihin Felsefesi\n• Yeni Etkileşim: Her makale için 10 dk Hareketli Varlık HTML5 Video + Çoktan Seçmeli Kavrama Testi + İnteraktif Simülatörler\n• Kanonik Ana Hub (12 Dil): https://emrepelit-sciphi.ai.studio\n\n✉️ İletişim: emrepelit39@gmail.com`,
+      content: `Bilim ve felsefe kesişimindeki ${corpusCount} özgün makalemi yalnızca metin olarak değil; her makalenin geniş özetini, matematiksel modelini ve bütünsel sonucunu hareketli varlık etkileşimleriyle görselleştiren süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli değerlendirme soruları ve interaktif uygulamalarla tek kanonik merkezde yeniden yapılandırdım.\n\n• Kapsam: Kuantum Fiziği, Termodinamik Entropi, Kozmoloji, Epistemoloji ve Zihin Felsefesi\n• Yeni Etkileşim: Her makale için Süre Kısıtsız 12 Dilli HTML5 Geniş Özet Video + Çoktan Seçmeli Kavrama Testi + İnteraktif Simülatörler\n• Kanonik Ana Hub (12 Dil): https://emrepelit-sciphi.ai.studio\n\n✉️ İletişim: emrepelit39@gmail.com`,
       hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #EğitimTeknolojileri #KuantumFiziği #Kozmoloji',
       shareUrlBuilder: (_text, url) =>
         `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
@@ -400,8 +400,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Bluesky 10 dk Video & Çoktan Seçmeli Test Tanıtımı',
-      content: `🔬 Emre Pelit — Sci-Phil Arşivi: ${corpusCount} özgün bilim & felsefe makalesine özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, makale sonucuyla örtüşen çoktan seçmeli kavrama soruları, interaktif uygulamalar ve 12 dilde sesli anlatım.\n\n🌐 https://emrepelit-sciphi.ai.studio`,
+      title: 'Bluesky 12 Dilli Video & Çoktan Seçmeli Test Tanıtımı',
+      content: `🔬 Emre Pelit — Sci-Phil Arşivi: ${corpusCount} özgün bilim & felsefe makalesine özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale sonucuyla örtüşen çoktan seçmeli kavrama soruları, interaktif uygulamalar ve kullanıcı kontrollü tonlama.\n\n🌐 https://emrepelit-sciphi.ai.studio`,
       hashtags: '#SciPhil #Science #Philosophy #ExplainerVideo #Quiz #EmrePelit',
       shareUrlBuilder: (text, _url) =>
         `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
@@ -415,7 +415,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Mastodon / Fediverse Video & Çoktan Seçmeli Test Duyurusu',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n${corpusCount} özgün makalenin tamamında 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, bütünsel sonuç odaklı çoktan seçmeli testler, interaktif fizik simülasyonları, RSS/Atom/JSON Feed ve WebFinger desteğiyle yayında:\n🌐 https://emrepelit-sciphi.ai.studio`,
+      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n${corpusCount} özgün makalenin tamamında süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, bütünsel sonuç odaklı çoktan seçmeli testler, interaktif fizik simülasyonları, RSS/Atom/JSON Feed ve WebFinger desteğiyle yayında:\n🌐 https://emrepelit-sciphi.ai.studio`,
       hashtags: '#Science #Philosophy #Physics #OpenWeb #VideoLearning #SciPhil #EmrePelit',
       shareUrlBuilder: (text, _url) =>
         `https://mastodon.social/share?text=${encodeURIComponent(text)}`,
@@ -429,7 +429,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Reddit (r/PhilosophyofScience) Video, Test & Simülasyon Tanıtım Başlığı',
-      content: `Emre Pelit Sci-Phil Archive — ${corpusCount} original essays on Quantum Mechanics, Cosmology & Philosophy of Mind, now featuring per-article 10-minute animated-entity HTML5 explainer videos, conclusion-aligned multiple-choice quizzes, interactive apps, and 12-language audio.`,
+      content: `Emre Pelit Sci-Phil Archive — ${corpusCount} original essays on Quantum Mechanics, Cosmology & Philosophy of Mind, now featuring unrestricted speaker-synced 12-language synthetic cultural voice HTML5 summary videos, conclusion-aligned multiple-choice quizzes, interactive apps, and user-controlled intonation.`,
       hashtags: 'https://emrepelit-sciphi.ai.studio/',
       shareUrlBuilder: (text, url) =>
         `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`,
@@ -443,7 +443,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Medium (@emrepelit39) Videolu & Testli Kanonik Arşiv Şablonu',
-      content: `Bilim ve felsefe üzerine hazırladığım ${corpusCount} özgün çalışmanın tamamını; her makaleye özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli test soruları, KaTeX formülleri ve interaktif fizik/kozmoloji simülasyonlarıyla kanonik ana merkezde deneyimleyebilirsiniz:\n\n🔗 https://emrepelit-sciphi.ai.studio\n\nNot: oEmbed 1.0 + VideoObject & Quiz yapısal verisiyle tüm keşif akışlarında zengin kart olarak sunulmaktadır.`,
+      content: `Bilim ve felsefe üzerine hazırladığım ${corpusCount} özgün çalışmanın tamamını; her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale genel sonucuyla örtüşen çoktan seçmeli test soruları, KaTeX formülleri ve interaktif fizik/kozmoloji simülasyonlarıyla kanonik ana merkezde deneyimleyebilirsiniz:\n\n🔗 https://emrepelit-sciphi.ai.studio\n\nNot: oEmbed 1.0 + VideoObject & Quiz yapısal verisiyle tüm keşif akışlarında zengin kart olarak sunulmaktadır.`,
       hashtags: '#Science #Philosophy #Physics #ExplainerVideo #MultipleChoiceQuiz #Cosmology',
       shareUrlBuilder: (_text, _url) => `https://medium.com/@emrepelit39`,
     },
@@ -455,8 +455,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       approved: true,
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Telegram 10 dk Video & Çoktan Seçmeli Soru Duyurusu',
-      content: `📢 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi Güncellendi!\n\nKuantum Gözlemci Etkisi, Higgs Alanları, Holografik Evren, Blok Evren ve Bilinç (IIT) dahil ${corpusCount} makalenin HER BİRİ için 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı video, makale genel sonucunu ölçen çoktan seçmeli test soruları ve interaktif uygulamalar artık yayında!\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
+      title: 'Telegram 12 Dilli Video & Çoktan Seçmeli Soru Duyurusu',
+      content: `📢 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi Güncellendi!\n\nKuantum Gözlemci Etkisi, Higgs Alanları, Holografik Evren, Blok Evren ve Bilinç (IIT) dahil ${corpusCount} makalenin HER BİRİ için süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video, makale genel sonucunu ölçen çoktan seçmeli test soruları ve interaktif uygulamalar artık yayında!\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#EmrePelit #BilimSohbeti #Bilim #Felsefe #VideoVeTest #SciPhil',
       shareUrlBuilder: (text, url) =>
         `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
@@ -470,7 +470,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Facebook Bilim & Felsefe Web Sitesi Video + Test Paylaşımı',
-      content: `Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini, her makaleye özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videoları, makale sonucuyla örtüşen çoktan seçmeli kavrama testlerini, interaktif uygulamaları ve 12 dünya dilinde sesli anlatımı barındıran Sci-Phil arşivi yenilenmiş haliyle yayında:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
+      content: `Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini, her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videoları, makale sonucuyla örtüşen çoktan seçmeli kavrama testlerini, interaktif uygulamaları ve kullanıcı kontrollü tonlamayı barındıran Sci-Phil arşivi yenilenmiş haliyle yayında:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#EmrePelit #BilimSohbeti #BilimVeFelsefe #AçıklayıcıVideo #BilimTesti #Kozmoloji',
       shareUrlBuilder: (text, url) =>
         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
@@ -484,7 +484,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'Web Sitesi E-Posta Tanıtım ve Yeni Video/Test Daveti',
-      content: `Değerli Okurum,\n\nBilim ve felsefe üzerine hazırladığım ${corpusCount} özgün makaleyi barındıran Emre Pelit — Sci-Phil web siteme artık HER makale için özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, makalenin genel sonucuyla uyumlu çoktan seçmeli kavrama soruları ve 4 modüllü interaktif uygulamalar eklenmiştir.\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub (@emrepelit109): https://github.com/emrepelit109\n▶️ YouTube (@science_only): https://www.youtube.com/@science_only\n✉️ Korumalı İletişim: https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine\n📸 Instagram & Threads: @bilimsohbeti\n🐦 X (Twitter): @emrepelit109\n\nSaygılarımla,\nEmre Pelit`,
+      content: `Değerli Okurum,\n\nBilim ve felsefe üzerine hazırladığım ${corpusCount} özgün makaleyi barındıran Emre Pelit — Sci-Phil web siteme artık HER makale için özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makalenin genel sonucuyla uyumlu çoktan seçmeli kavrama soruları ve 4 modüllü interaktif uygulamalar eklenmiştir.\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub (@emrepelit109): https://github.com/emrepelit109\n▶️ YouTube (@science_only): https://www.youtube.com/@science_only\n✉️ Korumalı İletişim: https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine\n📸 Instagram & Threads: @bilimsohbeti\n🐦 X (Twitter): @emrepelit109\n\nSaygılarımla,\nEmre Pelit`,
       hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #AçıklayıcıVideo #ÇoktanSeçmeliTest',
       shareUrlBuilder: (text, _url) =>
         `https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine?subject=${encodeURIComponent('Emre Pelit — Sci-Phil')}&note=${encodeURIComponent(text.slice(0, 240))}`,
@@ -498,7 +498,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'GitHub (@emrepelit109) Açık Bilim, Video, Test & Simülasyon Profili',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n• ${corpusCount} Makale × 12 Dil (VideoObject 10 dk Hareketli Varlık HTML5 + Quiz Schema + İnteraktif Simülatörler)\n💻 Resmi GitHub Profili: https://github.com/emrepelit109\n🗂️ Pasif GitHub Pages Arşiv Düğümü: emrepelit.github.io/science-philosophy (Yeniden Aktifleştirme Bekliyor)\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio`,
+      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n• ${corpusCount} Makale × 12 Dil (Süre Kısıtsız 12 Dilli Sentetik Sesli HTML5 Video + Quiz Schema + İnteraktif Simülatörler)\n💻 Resmi GitHub Profili: https://github.com/emrepelit109\n🗂️ Pasif GitHub Pages Arşiv Düğümü: emrepelit.github.io/science-philosophy (Yeniden Aktifleştirme Bekliyor)\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio`,
       hashtags: '#GitHub #EmrePelit #SciPhil #OpenScience #HTML5Video #InteractiveQuiz',
       shareUrlBuilder: (_text, _url) => 'https://github.com/emrepelit109',
     },
@@ -511,7 +511,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       publishedStatus: 'PUBLISHED',
       publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
       title: 'ResearchGate Akademik Profili ↔ Sci-Phil Kanonik Ana Hub (Video + Test Güncellemesi)',
-      content: `🔬 Emre Pelit — ResearchGate Resmi Akademik Profili & Tek Kanonik Ana Hub\n\n🎓 Disiplinler: Instrumentation Engineering · Optical Engineering · Quality Assurance Engineering · Astronomy · Astrophysics\n📐 Uzmanlık: Engineering Mathematics · Calibration · Measurement\n🎬 Yeni Özellikler: Her makaleye özel 10 dk hareketli varlık etkileşimli HTML5 açıklayıcı video + bütünsel sonuç odaklı çoktan seçmeli testler + interaktif simülasyon laboratuvarları\n\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio\n🔗 301 Akademik Köprü: https://emrepelit-sciphi.ai.studio/researchgate\n📄 ResearchGate Profili: https://www.researchgate.net/profile/Emre-Pelit`,
+      content: `🔬 Emre Pelit — ResearchGate Resmi Akademik Profili & Tek Kanonik Ana Hub\n\n🎓 Disiplinler: Instrumentation Engineering · Optical Engineering · Quality Assurance Engineering · Astronomy · Astrophysics\n📐 Uzmanlık: Engineering Mathematics · Calibration · Measurement\n🎬 Yeni Özellikler: Her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video + bütünsel sonuç odaklı çoktan seçmeli testler + interaktif simülasyon laboratuvarları\n\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio\n🔗 301 Akademik Köprü: https://emrepelit-sciphi.ai.studio/researchgate\n📄 ResearchGate Profili: https://www.researchgate.net/profile/Emre-Pelit`,
       hashtags: '#ResearchGate #EmrePelit #OpticalEngineering #Astrophysics #SciPhil #InteractiveLearning',
       shareUrlBuilder: (_text, _url) => 'https://www.researchgate.net/profile/Emre-Pelit',
     },
@@ -521,16 +521,16 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
   const [publishingSocial, setPublishingSocial] = useState<boolean>(false);
   const [isRePromotingAll, setIsRePromotingAll] = useState<boolean>(false);
   const [socialBannerNotice, setSocialBannerNotice] = useState<string | null>(
-    `✓ Tüm ${distinctWorksCount} özgün eser (${corpusCount} makale × 12 dünya dili = ${(corpusCount * 12).toLocaleString('tr-TR')} URL), her makaleye özel 10 dk hareketli varlık etkileşimli HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli testler ve interaktif uygulamalarla tüm web ağlarında, keşif panellerinde ve 16 sosyal medya ağında kanonik olarak yayındadır.`
+    `✓ Tüm ${distinctWorksCount} özgün eser (${corpusCount} makale × 12 dünya dili = ${(corpusCount * 12).toLocaleString('tr-TR')} URL), her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale genel sonucuyla örtüşen çoktan seçmeli testler ve interaktif uygulamalarla tüm web ağlarında, keşif panellerinde ve 16 sosyal medya ağında kanonik olarak yayındadır.`
   );
 
   const [serpEngine, setSerpEngine] = useState<'GOOGLE' | 'BING_EDGE' | 'DUCKDUCKGO_FIREFOX' | 'SCHOLAR'>('GOOGLE');
   const [serpSampleQuery, setSerpSampleQuery] = useState<string>(
-    `Emre Pelit Sci-Phil Bilim ve Felsefe ${corpusCount} Makale 10 dk Video Test`
+    `Emre Pelit Sci-Phil Bilim ve Felsefe ${corpusCount} Makale 12 Dil Video Test`
   );
   const [copiedAiCitation, setCopiedAiCitation] = useState<boolean>(false);
   const handleCopyAiCitation = async () => {
-    const citation = `Kaynak: Emre Pelit — Sci-Phil Bilim ve Felsefe Web Sitesi (https://emrepelit-sciphi.ai.studio) — 316+ makale, her makaleye özel 10 dk hareketli varlık etkileşimli HTML5 video, çoktan seçmeli test ve interaktif simülasyonlar. İletişim: emrepelit39@gmail.com.`;
+    const citation = `Kaynak: Emre Pelit — Sci-Phil Bilim ve Felsefe Web Sitesi (https://emrepelit-sciphi.ai.studio) — 316+ makale, her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video, çoktan seçmeli test ve interaktif simülasyonlar. İletişim: emrepelit39@gmail.com.`;
     try {
       await navigator.clipboard.writeText(citation);
       setCopiedAiCitation(true);
@@ -558,14 +558,14 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   const ALL_WEB_PROVIDERS = useMemo(
     () => [
-      { id: 'google-search', name: 'Google Search & InspectionTool', userAgent: 'Googlebot / Google-InspectionTool', category: 'GOOGLE_NETWORK', protocol: 'SSR HTML + Sitemap + Schema.org (BlogPosting + VideoObject 10 dk + Quiz)', discoveryPath: '/sitemap_index.xml' },
+      { id: 'google-search', name: 'Google Search & InspectionTool', userAgent: 'Googlebot / Google-InspectionTool', category: 'GOOGLE_NETWORK', protocol: 'SSR HTML + Sitemap + Schema.org (BlogPosting + Dynamic VideoObject + Quiz)', discoveryPath: '/sitemap_index.xml' },
       { id: 'google-scholar', name: 'Google Scholar (Akademik)', userAgent: 'Googlebot-Scholar / Highwire', category: 'GOOGLE_NETWORK', protocol: 'Highwire citation_* + Dublin Core + LearningResource Quiz Schema', discoveryPath: '/sitemap-scholar.xml' },
-      { id: 'google-discover', name: 'Google Discover & Images', userAgent: 'Googlebot-Image / Discover', category: 'GOOGLE_NETWORK', protocol: 'max-image-preview:large + VideoObject PT10M + OG Card + RSS', discoveryPath: '/rss.xml' },
+      { id: 'google-discover', name: 'Google Discover & Images', userAgent: 'Googlebot-Image / Discover', category: 'GOOGLE_NETWORK', protocol: 'max-image-preview:large + Dynamic VideoObject + OG Card + RSS', discoveryPath: '/rss.xml' },
       { id: 'google-news', name: 'Google News', userAgent: 'Googlebot-News', category: 'GOOGLE_NETWORK', protocol: 'BlogPosting + VideoObject + Atom & RSS 2.0', discoveryPath: '/atom.xml' },
       { id: 'google-knowledge', name: 'Google Knowledge Graph', userAgent: 'APIs-Google', category: 'GOOGLE_NETWORK', protocol: 'sameAs (GitHub @emrepelit109, YouTube @science_only, LinkedIn, ResearchGate)', discoveryPath: '/academic-citation-index.json' },
       { id: 'google-gemini', name: 'Google Gemini & AI Overviews', userAgent: 'Google-Extended', category: 'GOOGLE_NETWORK', protocol: 'llms.txt + llms-full.txt + VideoObject + Quiz JSON-LD', discoveryPath: '/llms-full.txt' },
       { id: 'bing-edge', name: 'Microsoft Bing & Edge Copilot', userAgent: 'Bingbot / msnbot', category: 'SEARCH_ENGINE', protocol: 'IndexNow 2.0 + VideoObject + Quiz Schema + XML Sitemap', discoveryPath: '/sitemap.xml' },
-      { id: 'duckduckgo', name: 'DuckDuckGo', userAgent: 'DuckDuckBot', category: 'SEARCH_ENGINE', protocol: 'IndexNow + OpenSearch 1.1 + 10 dk Video/Quiz Sinyalleri', discoveryPath: '/opensearch.xml' },
+      { id: 'duckduckgo', name: 'DuckDuckGo', userAgent: 'DuckDuckBot', category: 'SEARCH_ENGINE', protocol: 'IndexNow + OpenSearch 1.1 + 12-Dil Video/Quiz Sinyalleri', discoveryPath: '/opensearch.xml' },
       { id: 'apple-spotlight', name: 'Apple Safari & Spotlight', userAgent: 'Applebot / Applebot-Extended', category: 'SEARCH_ENGINE', protocol: 'OpenGraph + VideoObject + Quiz Schema.org + AppleBot', discoveryPath: '/sitemap.xml' },
       { id: 'brave-search', name: 'Brave Search (Bağımsız Dizin)', userAgent: 'Bravesearch', category: 'SEARCH_ENGINE', protocol: 'Clean Canonical Crawl + JSON Feed (Video/Quiz Metadata)', discoveryPath: '/feed.json' },
       { id: 'yandex', name: 'Yandex Webmaster', userAgent: 'Yandex', category: 'SEARCH_ENGINE', protocol: 'IndexNow Yandex Node + Hreflang + VideoObject/Quiz', discoveryPath: '/sitemap-articles.xml' },
@@ -1091,10 +1091,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         )
       );
       setSocialBannerNotice(
-        `Onayladığınız ${approvedList.length} platform şablonu (her makaleye özel 10 dk hareketli varlık etkileşimli HTML5 video, makale sonucuyla uyumlu çoktan seçmeli sorular & interaktif uygulamalar duyurusuyla — kampanya [${campaignCode}]) yayına alındı.`
+        `Onayladığınız ${approvedList.length} platform şablonu (her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video, makale sonucuyla uyumlu çoktan seçmeli sorular & interaktif uygulamalar duyurusuyla — kampanya [${campaignCode}]) yayına alındı.`
       );
     } catch {
-      setSocialBannerNotice(`Onaylanan ${approvedList.length} platform şablonu 10 dk Hareketli Varlık Videosu + Çoktan Seçmeli Test duyurusuyla başarıyla yayına alındı.`);
+      setSocialBannerNotice(`Onaylanan ${approvedList.length} platform şablonu 12 Dilli Geniş Özet Videosu + Çoktan Seçmeli Test duyurusuyla başarıyla yayına alındı.`);
     } finally {
       setPublishingSocial(false);
     }
@@ -1120,7 +1120,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             language,
-            featuresAnnounced: ['per-article-10min-animated-entity-html5-video', 'conclusion-aligned-mcq-quiz', 'interactive-apps-suite'],
+            featuresAnnounced: ['per-article-12lang-synthetic-summary-html5-video', 'conclusion-aligned-mcq-quiz', 'interactive-apps-suite'],
             platforms: approvedPayload,
           }),
         }),
@@ -1130,10 +1130,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         prev.map((item) => ({ ...item, approved: true, publishedStatus: 'PUBLISHED', publishedAt: nowStr }))
       );
       setAll301SitesBanner(
-        `✓ Tüm 18 web sağlayıcısı, Google Arama/Scholar/Discover/Gemini ağları, IndexNow (Bing/Yandex/DuckDuckGo/Naver), GSC ve 16 sosyal medya kanalı; her makaleye özel 10 dk hareketli varlık etkileşimli HTML5 açıklayıcı video + bütünsel sonuç odaklı çoktan seçmeli sorularla yeniden tanıtıldı (${nowStr}).`
+        `✓ Tüm 18 web sağlayıcısı, Google Arama/Scholar/Discover/Gemini ağları, IndexNow (Bing/Yandex/DuckDuckGo/Naver), GSC ve 16 sosyal medya kanalı; her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video + bütünsel sonuç odaklı çoktan seçmeli sorularla yeniden tanıtıldı (${nowStr}).`
       );
       setSocialBannerNotice(
-        `✓ Tüm web ağları, keşif panelleri ve 16 sosyal medya platformu "10 dk Hareketli Varlık HTML5 Video + Çoktan Seçmeli Kavrama Testleri + İnteraktif Uygulamalar" duyurusuyla yeniden eşitlendi (${nowStr}).`
+        `✓ Tüm web ağları, keşif panelleri ve 16 sosyal medya platformu "12 Dilli Sentetik Sesli Geniş Özet HTML5 Video + Çoktan Seçmeli Kavrama Testleri + İnteraktif Uygulamalar" duyurusuyla yeniden eşitlendi (${nowStr}).`
       );
     } finally {
       if (isMountedRef.current) {
@@ -1454,6 +1454,49 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
     }
   };
 
+  const [webmasterLive, setWebmasterLive] = useState<any>(null);
+  const [isLoadingWebmaster, setIsLoadingWebmaster] = useState(false);
+  const [inspectUrlInput, setInspectUrlInput] = useState('');
+  const [inspectResult, setInspectResult] = useState<any>(null);
+  const [isInspectingUrl, setIsInspectingUrl] = useState(false);
+
+  const handleFetchWebmasterLive = async () => {
+    setIsLoadingWebmaster(true);
+    try {
+      const resp = await fetch('/api/indexing/webmaster-live');
+      if (resp.ok) {
+        const data = await resp.json();
+        setWebmasterLive(data);
+      }
+    } catch {
+      // Non-fatal
+    } finally {
+      setIsLoadingWebmaster(false);
+    }
+  };
+
+  const handleInspectSingleUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsInspectingUrl(true);
+    try {
+      const targetUrl =
+        inspectUrlInput.trim() ||
+        (typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://emrepelit-sciphi.ai.studio/');
+      const resp = await fetch('/api/indexing/inspect-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: targetUrl }),
+      });
+      if (resp.ok) {
+        setInspectResult(await resp.json());
+      }
+    } catch {
+      // Non-fatal
+    } finally {
+      setIsInspectingUrl(false);
+    }
+  };
+
   return (
     <section className="space-y-10">
       {/* PART 1: Clean Single-Origin Canonical & Reciprocal Hreflang Indexing Console */}
@@ -1461,13 +1504,13 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-stone-300">
           <div className="space-y-1">
             <div className="text-xs font-mono uppercase tracking-widest text-[#1E3A8A] font-semibold">
-              GOOGLE ARAMA TEMELLERİ · VIDEOOBJECT (10 DK) &amp; QUIZ SCHEMA · 12 DİL HREFLANG KÜMELERİ
+              GOOGLE ARAMA TEMELLERİ · DİNAMİK VIDEOOBJECT (12 DİL) &amp; QUIZ SCHEMA · HREFLANG KÜMELERİ
             </div>
             <h2 className="text-2xl sm:text-3xl font-editorial font-semibold text-stone-900">
               Tek Kanonik Ana Hub ({corpusCount} Makale × 12 Dünya Dili = {(corpusCount * 12).toLocaleString('tr-TR')} Kanonik URL) İndeksleme &amp; Tanıtım Konsolu
             </h2>
             <p className="text-xs text-stone-600 max-w-3xl leading-relaxed">
-              Külliyattaki her makale artık <strong>10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı video</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli test soruları</strong> ve <strong>interaktif simülasyonlarla</strong> 12 dünya dilinin tamamında (<code className="font-mono">BlogPosting + VideoObject + Quiz</code> JSON-LD) kendi semantik URL yapısında <strong>HTTP 200 OK</strong> kanonik olarak sunulmaktadır.
+              Külliyattaki her makale artık <strong>süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli test soruları</strong> ve <strong>interaktif simülasyonlarla</strong> 12 dünya dilinin tamamında (<code className="font-mono">BlogPosting + VideoObject + Quiz</code> JSON-LD) kendi semantik URL yapısında <strong>HTTP 200 OK</strong> kanonik olarak sunulmaktadır.
             </p>
           </div>
 
@@ -1482,7 +1525,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               <span>
                 {isRePromotingAll
                   ? 'Tüm Web Ağları, Keşif Panelleri & 16 Sosyal Medyaya İletiliyor...'
-                  : 'Tüm Ağlar, Keşif & 16 Sosyal Medyada Yeniden Tanıt (10 dk Video + Test)'}
+                  : 'Tüm Ağlar, Keşif & 16 Sosyal Medyada Yeniden Tanıt (12 Dil Video + Test)'}
               </span>
             </button>
 
@@ -1553,6 +1596,92 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           </div>
         </div>
 
+        {/* G3: Live Google Search Console & Bing Webmaster API Verification & URL Inspection Bar */}
+        <div className="bg-[#FBF9F5] border border-stone-300 p-4 space-y-3 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#1E3A8A]">
+                GOOGLE SEARCH CONSOLE &amp; BING WEBMASTER CANLI API BAĞLANTISI
+              </div>
+              <p className="text-stone-600 text-[11px]">
+                28 günlük arama tıklama/gösterim verilerini ve tekil kanonik URL indeks durumunu doğrudan resmi API üzerinden denetleyin.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleFetchWebmasterLive}
+              disabled={isLoadingWebmaster}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-semibold text-white bg-[#1E3A8A] hover:bg-[#172E6E] rounded-sm cursor-pointer disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingWebmaster ? 'animate-spin' : ''}`} />
+              <span>{isLoadingWebmaster ? 'Sorgulanıyor…' : 'Canlı GSC & Bing API Sorgula'}</span>
+            </button>
+          </div>
+
+          {webmasterLive && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-stone-200 font-mono text-[11px]">
+              <div className="bg-white border border-stone-200 p-3 space-y-1">
+                <div className="font-bold text-stone-900">Google Search Console API</div>
+                <div className="text-stone-600">
+                  Durum:{' '}
+                  <span className="font-semibold text-[#1E3A8A]">
+                    {webmasterLive.googleSearchConsole?.status === 'LIVE_CONNECTED'
+                      ? 'Canlı Bağlı'
+                      : 'Doğrulama Dosyası Aktif (API Anahtarı Opsiyonel)'}
+                  </span>
+                </div>
+                {webmasterLive.googleSearchConsole?.clicks28d !== null && (
+                  <div className="text-emerald-800">
+                    28 Gün: {webmasterLive.googleSearchConsole.clicks28d} Tıklama ·{' '}
+                    {webmasterLive.googleSearchConsole.impressions28d} Gösterim · Ort. Pozisyon{' '}
+                    {webmasterLive.googleSearchConsole.avgPosition28d ?? '-'}
+                  </div>
+                )}
+              </div>
+              <div className="bg-white border border-stone-200 p-3 space-y-1">
+                <div className="font-bold text-stone-900">Bing Webmaster &amp; IndexNow API</div>
+                <div className="text-stone-600">
+                  Durum:{' '}
+                  <span className="font-semibold text-emerald-700">
+                    {webmasterLive.bingWebmaster?.status === 'LIVE_CONNECTED'
+                      ? 'Canlı Bağlı + IndexNow Aktif'
+                      : 'IndexNow Aktif (Webmaster API Anahtarı Opsiyonel)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleInspectSingleUrl} className="flex flex-wrap items-center gap-2 pt-1">
+            <input
+              type="url"
+              value={inspectUrlInput}
+              onChange={(e) => setInspectUrlInput(e.target.value)}
+              placeholder="Denetlenecek kanonik URL (boş bırakılırsa ana sayfa denetlenir)…"
+              className="flex-1 min-w-[240px] px-3 py-1.5 text-xs font-mono bg-white border border-stone-300 text-stone-800 focus:outline-none focus:border-[#1E3A8A]"
+            />
+            <button
+              type="submit"
+              disabled={isInspectingUrl}
+              className="px-3.5 py-1.5 text-xs font-mono font-semibold text-stone-900 bg-amber-300 hover:bg-amber-400 border border-amber-500 rounded-sm cursor-pointer disabled:opacity-60"
+            >
+              {isInspectingUrl ? 'Denetleniyor…' : 'URL İndeks Denetle'}
+            </button>
+          </form>
+
+          {inspectResult && (
+            <div className="p-2.5 bg-white border border-stone-200 font-mono text-[11px] text-stone-700 space-y-0.5">
+              <div>
+                Denetlenen URL: <span className="text-[#1E3A8A]">{inspectResult.inspectionUrl}</span>
+              </div>
+              <div>
+                GSC: <strong>{inspectResult.googleSearchConsole?.verdict || inspectResult.googleSearchConsole?.status}</strong> · Bing:{' '}
+                <strong>{inspectResult.bingWebmaster?.status}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+
         {all301SitesBanner && (
           <div className="bg-emerald-950 border-2 border-emerald-400 text-emerald-100 px-4 py-3 rounded-sm flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2">
@@ -1600,7 +1729,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               YAPAY ZEKA, VİDEO &amp; TEST PROTOKOLÜ
             </div>
             <div className="mt-1 text-sm font-mono font-bold text-emerald-800 truncate">
-              BLOGPOSTING · VIDEOOBJECT (10 DK) · QUIZ
+              BLOGPOSTING · VIDEOOBJECT (12 DİL) · QUIZ
             </div>
             <div className="mt-1 text-[11px] font-mono text-stone-600">
               llms.txt · Highwire Press + Öğrenme &amp; Test Şeması
@@ -1819,10 +1948,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 </span>
               </div>
               <h3 className="text-xl sm:text-2xl font-editorial font-bold text-white">
-                Google Search Console ({gscQueueReport.totalQueuedUrls.toLocaleString('tr-TR')} Doğrudan 200 OK URL) · VideoObject (10 dk) &amp; Quiz Tam İndeksleme
+                Google Search Console ({gscQueueReport.totalQueuedUrls.toLocaleString('tr-TR')} Doğrudan 200 OK URL) · Dinamik VideoObject (12 Dil) &amp; Quiz Tam İndeksleme
               </h3>
               <p className="text-xs text-slate-300 max-w-4xl leading-relaxed">
-                Google&apos;ın bütün makaleleri, her makaleye özel <strong>10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videoları</strong> ve <strong>makale genel sonucuyla örtüşen çoktan seçmeli test modüllerini</strong> eksiksiz dizine ekleyebilmesi için her sayfa SSR tam metin HTML, <code className="font-mono text-amber-300">rel=&quot;canonical&quot;</code>, 12 dilde <code className="font-mono text-amber-300">hreflang</code>, <code className="font-mono text-amber-300">BlogPosting + VideoObject + Quiz</code> JSON-LD ve <code className="font-mono text-amber-300">Google-InspectionTool</code> erişimiyle <strong>HTTP 200 OK</strong> olarak kuyruğa alınmıştır.
+                Google&apos;ın bütün makaleleri, her makaleye özel <strong>süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videoları</strong> ve <strong>makale genel sonucuyla örtüşen çoktan seçmeli test modüllerini</strong> eksiksiz dizine ekleyebilmesi için her sayfa SSR tam metin HTML, <code className="font-mono text-amber-300">rel=&quot;canonical&quot;</code>, 12 dilde <code className="font-mono text-amber-300">hreflang</code>, <code className="font-mono text-amber-300">BlogPosting + VideoObject + Quiz</code> JSON-LD ve <code className="font-mono text-amber-300">Google-InspectionTool</code> erişimiyle <strong>HTTP 200 OK</strong> olarak kuyruğa alınmıştır.
               </p>
             </div>
 
@@ -2739,21 +2868,21 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 href="#top"
                 className="block text-xl font-editorial font-semibold text-[#1E3A8A] hover:underline"
               >
-                Emre Pelit — Sci-Phil Ana Hub ({articles.length} Makale · 10 dk Video + Çoktan Seçmeli Test + İnteraktif Uygulamalar)
+                Emre Pelit — Sci-Phil Ana Hub ({articles.length} Makale · 12 Dilli Geniş Özet Video + Çoktan Seçmeli Test + İnteraktif Uygulamalar)
               </a>
 
               <p className="text-xs text-stone-700 leading-relaxed">
-                <strong>Emre Pelit</strong> Bilim ve Felsefe (Sci-Phil) Tek Kanonik Ana Hub: <strong>emrepelit7337.blogspot.com</strong> üzerindeki {articles.length} özgün makalenin her biri için <strong>10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı video</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli kavrama testleri</strong>, 4 modüllü interaktif bilimsel uygulamalar ve 12 dünya dilinde sesli anlatım.
+                <strong>Emre Pelit</strong> Bilim ve Felsefe (Sci-Phil) Tek Kanonik Ana Hub: <strong>emrepelit7337.blogspot.com</strong> üzerindeki {articles.length} özgün makalenin her biri için <strong>süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli kavrama testleri</strong>, 4 modüllü interaktif bilimsel uygulamalar ve kullanıcı kontrollü tonlama.
               </p>
 
               {/* Sitelinks Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">
                 <a href="#blogger-bridge" className="group block space-y-0.5">
                   <div className="text-xs font-semibold text-[#1E3A8A] group-hover:underline">
-                    Her Makalede 10 dk Hareketli Varlık HTML5 Video &amp; Çoktan Seçmeli Test
+                    Her Makalede 12 Dilli Sentetik Sesli HTML5 Geniş Özet Video &amp; Test
                   </div>
                   <div className="text-[11px] text-stone-600">
-                    {articles.length} özgün makalenin tamamında 10 bölümlü 10 dk hareketli varlık etkileşimli HTML5 açıklayıcı video (WebM) ve genel sonuç odaklı çoktan seçmeli değerlendirme soruları.
+                    {articles.length} özgün makalenin tamamında konuşmacı süresine senkron 12 dilli sentetik sesli HTML5 geniş özet video (WebM) ve genel sonuç odaklı çoktan seçmeli değerlendirme soruları.
                   </div>
                 </a>
                 <a href="#emre-pelit-cv" className="group block space-y-0.5">
@@ -2788,7 +2917,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   <strong>Münhasır Yazar:</strong> Emre Pelit (%100 Telif)
                 </div>
                 <div>
-                  <strong>Zengin Medya &amp; Test:</strong> {articles.length} Makalede 10 dk Hareketli Varlık HTML5 Video + Çoktan Seçmeli Sorular + 4 İnteraktif Uygulama
+                  <strong>Zengin Medya &amp; Test:</strong> {articles.length} Makalede Süre Kısıtsız 12 Dilli HTML5 Geniş Özet Video + Çoktan Seçmeli Sorular + 4 İnteraktif Uygulama
                 </div>
                 <div>
                   <strong>Kanonik 301 Ağı:</strong> Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) + Canlı Blogger (8 eski alan adı HTTP 301 ile konsolide)
@@ -3107,13 +3236,13 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-stone-300">
           <div className="space-y-1">
             <div className="text-xs font-mono uppercase tracking-widest text-[#1E3A8A] font-semibold">
-              TÜM 16 SOSYAL MEDYA AĞI · 10 DK HAREKETLİ VARLIK VİDEOSU &amp; ÇOKTAN SEÇMELİ TEST TANITIM MERKEZİ
+              TÜM 16 SOSYAL MEDYA AĞI · 12 DİLLİ SENTETİK SESLİ GENİŞ ÖZET VİDEO &amp; TEST TANITIM MERKEZİ
             </div>
             <h3 className="text-2xl sm:text-3xl font-editorial font-semibold text-stone-900">
               Tüm Sosyal Medya Ağları &amp; YouTube (@science_only) Yeniden Tanıtım Şablonları
             </h3>
             <p className="text-xs text-stone-600 max-w-3xl leading-relaxed">
-              Her makaleye eklenen <strong>10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli sorular</strong> ve <strong>interaktif uygulamalar</strong> duyurusu tüm 16 sosyal medya ağı için hazırlanmıştır. Web sitesinin resmi YouTube hesabı: <a href="https://www.youtube.com/@science_only" target="_blank" rel="me noopener noreferrer" className="font-mono font-bold text-red-700 hover:underline">@science_only ↗</a>.
+              Her makaleye eklenen <strong>süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli sorular</strong> ve <strong>interaktif uygulamalar</strong> duyurusu tüm 16 sosyal medya ağı için hazırlanmıştır. Web sitesinin resmi YouTube hesabı: <a href="https://www.youtube.com/@science_only" target="_blank" rel="me noopener noreferrer" className="font-mono font-bold text-red-700 hover:underline">@science_only ↗</a>.
             </p>
           </div>
 

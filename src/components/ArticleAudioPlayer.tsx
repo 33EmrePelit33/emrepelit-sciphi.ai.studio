@@ -33,6 +33,10 @@ import {
   saveUserIntonationConfig,
   buildTtsIntonationDirective,
   selectBestCulturalVoice,
+  estimateSpeechDurationSec,
+  sanitizeTextForUninterruptedSpeech,
+  splitSafeUtteranceChunks,
+  toPlainSpokenFallback,
 } from '../utils/culturalVoiceEngine';
 
 interface ArticleAudioPlayerProps {
@@ -93,6 +97,10 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const activeSentenceRef = useRef<HTMLButtonElement | null>(null);
   const queueTimerRef = useRef<number | null>(null);
+  const speakDelayRef = useRef<number | null>(null);
+  const utteranceWatchdogRef = useRef<number | null>(null);
+  const utteranceHeartbeatRef = useRef<number | null>(null);
+  const speakSessionIdRef = useRef<number>(0);
   const isPlayingQueueRef = useRef<boolean>(false);
   const currentSegmentIndexRef = useRef<number>(0);
 
@@ -128,24 +136,46 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
     ).toFixed(2)
   );
 
-  const stopNarration = useCallback(() => {
-    isPlayingQueueRef.current = false;
-    if (queueTimerRef.current !== null && typeof window !== 'undefined') {
-      window.clearTimeout(queueTimerRef.current);
-      queueTimerRef.current = null;
+  const clearAudioGuards = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (utteranceWatchdogRef.current !== null) {
+      window.clearTimeout(utteranceWatchdogRef.current);
+      utteranceWatchdogRef.current = null;
     }
+    if (utteranceHeartbeatRef.current !== null) {
+      window.clearInterval(utteranceHeartbeatRef.current);
+      utteranceHeartbeatRef.current = null;
+    }
+  }, []);
+
+  const stopNarration = useCallback(() => {
+    speakSessionIdRef.current += 1;
+    isPlayingQueueRef.current = false;
+    if (typeof window !== 'undefined') {
+      if (queueTimerRef.current !== null) {
+        window.clearTimeout(queueTimerRef.current);
+        queueTimerRef.current = null;
+      }
+      if (speakDelayRef.current !== null) {
+        window.clearTimeout(speakDelayRef.current);
+        speakDelayRef.current = null;
+      }
+    }
+    clearAudioGuards();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
     }
     setStatus('idle');
     setProgressPercent(0);
     setActiveSentenceIndex(0);
     currentSegmentIndexRef.current = 0;
-  }, []);
+  }, [clearAudioGuards]);
 
   // Sync audio language when site language changes
   useEffect(() => {
@@ -153,7 +183,7 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
     setAudioLang(language);
   }, [language, stopNarration]);
 
-  // Warm up browser voices & prevent Chrome 15s speechSynthesis freeze during long full-article narration
+  // Warm up browser voices
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const warmVoices = () => {
@@ -171,38 +201,43 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
 
   useEffect(() => {
     if (status !== 'playing' || typeof window === 'undefined') return;
-    const keepAliveId = window.setInterval(() => {
-      if ('speechSynthesis' in window && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+    // Only recover accidental browser pause — NEVER call pause() mid-utterance
+    const recoveryId = window.setInterval(() => {
+      if (isPlayingQueueRef.current && 'speechSynthesis' in window && window.speechSynthesis.paused) {
         try {
-          window.speechSynthesis.pause();
           window.speechSynthesis.resume();
         } catch {}
       }
-    }, 10000);
+    }, 2500);
     const minuteMeterId = window.setInterval(() => {
       onAudioMeasured?.(article.id, 1);
     }, 60000);
     return () => {
-      window.clearInterval(keepAliveId);
+      window.clearInterval(recoveryId);
       window.clearInterval(minuteMeterId);
     };
   }, [status, article.id, onAudioMeasured]);
 
   useEffect(() => {
     return () => {
+      speakSessionIdRef.current += 1;
       isPlayingQueueRef.current = false;
-      if (queueTimerRef.current !== null && typeof window !== 'undefined') {
-        window.clearTimeout(queueTimerRef.current);
+      if (typeof window !== 'undefined') {
+        if (queueTimerRef.current !== null) window.clearTimeout(queueTimerRef.current);
+        if (speakDelayRef.current !== null) window.clearTimeout(speakDelayRef.current);
       }
+      clearAudioGuards();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+        try {
+          window.speechSynthesis.cancel();
+        } catch {}
       }
     };
-  }, []);
+  }, [clearAudioGuards]);
 
   // Resolve localized content in the chosen audio language (from native bundle or dynamic AI translation cache)
   const resolvedContent = useMemo(() => {
@@ -388,9 +423,9 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
   };
 
   /**
-   * Sequential segment-by-segment narration engine that guarantees the ENTIRE article
-   * (every paragraph and sentence from startIdx to transcriptSegments.length - 1) is
-   * narrated without browser utterance length cutoffs, using the article's tailored prosody profile.
+   * Uninterrupted sequential narration engine: normalizes all alphanumeric codes, equations, symbols,
+   * and unicode characters into natural spoken sub-chunks with post-cancel settling delay, silent-drop
+   * heartbeat recovery, and automatic plain-text fallback retry so narration never stalls.
    */
   const speakSegmentQueue = useCallback(
     (segmentsList: TranscriptSegment[], startIdx: number, targetLangCode: LanguageCode) => {
@@ -399,6 +434,23 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
         return;
       }
 
+      speakSessionIdRef.current += 1;
+      const mySessionId = speakSessionIdRef.current;
+
+      if (queueTimerRef.current !== null) {
+        window.clearTimeout(queueTimerRef.current);
+        queueTimerRef.current = null;
+      }
+      if (speakDelayRef.current !== null) {
+        window.clearTimeout(speakDelayRef.current);
+        speakDelayRef.current = null;
+      }
+      clearAudioGuards();
+
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+
       if (startIdx >= segmentsList.length) {
         isPlayingQueueRef.current = false;
         setStatus('idle');
@@ -406,80 +458,219 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
         return;
       }
 
-      window.speechSynthesis.cancel();
       isPlayingQueueRef.current = true;
-      currentSegmentIndexRef.current = startIdx;
-      setActiveSentenceIndex(startIdx);
+      setStatus('playing');
+      setShowTranscript(true);
 
-      const totalCount = Math.max(1, segmentsList.length);
-      setProgressPercent(Math.min(99, Math.round((startIdx / totalCount) * 100)));
-
-      const currentSeg = segmentsList[startIdx];
       const targetCultural = getCulturalVoiceProfile(targetLangCode);
       const targetPersona =
         targetCultural.personas[culturalPersonaIndex] || targetCultural.personas[0];
-      const utterance = new SpeechSynthesisUtterance(currentSeg.text);
-      utterance.lang = targetCultural.bcp47;
-      utterance.rate = Number(
-        Math.min(
-          2.0,
-          Math.max(0.55, targetPersona.rateMultiplier * userIntonation.rate * speedMultiplier)
-        ).toFixed(2)
-      );
-      utterance.pitch = Number(
-        Math.min(1.8, Math.max(0.5, targetPersona.pitch * userIntonation.pitch)).toFixed(2)
-      );
-      utterance.volume = Math.min(1.0, Math.max(0.15, userIntonation.volume));
 
-      const voices =
-        browserVoices.length > 0 ? browserVoices : window.speechSynthesis.getVoices();
-      const culturalPick = selectBestCulturalVoice(voices, targetLangCode, culturalPersonaIndex);
-      if (culturalPick.voice) {
-        utterance.voice = culturalPick.voice;
-      }
+      const speakSegAt = (segIdx: number) => {
+        if (!isPlayingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+        if (segIdx >= segmentsList.length) {
+          isPlayingQueueRef.current = false;
+          clearAudioGuards();
+          setStatus('idle');
+          setProgressPercent(100);
+          return;
+        }
 
-      utterance.onend = () => {
-        if (!isPlayingQueueRef.current) return;
-        const nextIdx = startIdx + 1;
-        if (nextIdx < segmentsList.length) {
+        currentSegmentIndexRef.current = segIdx;
+        setActiveSentenceIndex(segIdx);
+        const totalCount = Math.max(1, segmentsList.length);
+        setProgressPercent(Math.min(99, Math.round((segIdx / totalCount) * 100)));
+
+        const currentSeg = segmentsList[segIdx];
+        const subChunks = splitSafeUtteranceChunks(currentSeg.text, targetLangCode);
+
+        const advanceToNextSeg = () => {
+          if (!isPlayingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+          clearAudioGuards();
+          const nextIdx = segIdx + 1;
+          if (nextIdx >= segmentsList.length) {
+            speakSegAt(nextIdx);
+            return;
+          }
           const nextSeg = segmentsList[nextIdx];
           const pauseMs = Math.max(
-            100,
-            Math.round(
-              (nextSeg.isSectionStart ? voiceProfile.sectionPauseMs : voiceProfile.sentencePauseMs) *
-                userIntonation.pauseScale
+            85,
+            Math.min(
+              1800,
+              Math.round(
+                (nextSeg.isSectionStart
+                  ? voiceProfile.sectionPauseMs
+                  : voiceProfile.sentencePauseMs) * userIntonation.pauseScale
+              )
             )
           );
           queueTimerRef.current = window.setTimeout(() => {
-            if (isPlayingQueueRef.current) {
-              speakSegmentQueue(segmentsList, nextIdx, targetLangCode);
+            if (isPlayingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+              speakSegAt(nextIdx);
             }
           }, pauseMs);
-        } else {
-          isPlayingQueueRef.current = false;
-          setStatus('idle');
-          setProgressPercent(100);
+        };
+
+        if (subChunks.length === 0) {
+          queueTimerRef.current = window.setTimeout(advanceToNextSeg, 50);
+          return;
         }
+
+        const speakSub = (subIdx: number, attempt: number) => {
+          if (!isPlayingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+          if (subIdx >= subChunks.length) {
+            advanceToNextSeg();
+            return;
+          }
+          clearAudioGuards();
+
+          const spokenText =
+            attempt === 0 ? subChunks[subIdx] : toPlainSpokenFallback(subChunks[subIdx]);
+          if (!spokenText) {
+            speakSub(subIdx + 1, 0);
+            return;
+          }
+
+          const effectiveRate = Number(
+            Math.min(
+              2.0,
+              Math.max(0.55, targetPersona.rateMultiplier * userIntonation.rate * speedMultiplier)
+            ).toFixed(2)
+          );
+
+          const utterance = new SpeechSynthesisUtterance(spokenText);
+          utterance.lang = targetCultural.bcp47;
+          utterance.rate = effectiveRate;
+          utterance.pitch = Number(
+            Math.min(1.8, Math.max(0.5, targetPersona.pitch * userIntonation.pitch)).toFixed(2)
+          );
+          utterance.volume = Math.min(1.0, Math.max(0.15, userIntonation.volume));
+
+          if (attempt === 0) {
+            const voices =
+              browserVoices.length > 0 ? browserVoices : window.speechSynthesis.getVoices();
+            const culturalPick = selectBestCulturalVoice(
+              voices,
+              targetLangCode,
+              culturalPersonaIndex
+            );
+            if (culturalPick.voice) {
+              utterance.voice = culturalPick.voice;
+            }
+          }
+
+          let settled = false;
+          let hasStarted = false;
+          let quietAfterStart = 0;
+          let quietBeforeStart = 0;
+
+          const settle = (retryCurrent: boolean) => {
+            if (settled) return;
+            settled = true;
+            clearAudioGuards();
+            if (!isPlayingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+
+            if (retryCurrent && attempt < 1) {
+              try {
+                window.speechSynthesis.cancel();
+              } catch {}
+              queueTimerRef.current = window.setTimeout(() => {
+                if (isPlayingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+                  speakSub(subIdx, attempt + 1);
+                }
+              }, 85);
+              return;
+            }
+
+            if (subIdx + 1 < subChunks.length) {
+              queueTimerRef.current = window.setTimeout(() => {
+                if (isPlayingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+                  speakSub(subIdx + 1, 0);
+                }
+              }, 55);
+            } else {
+              advanceToNextSeg();
+            }
+          };
+
+          utterance.onstart = () => {
+            hasStarted = true;
+            quietAfterStart = 0;
+          };
+
+          utterance.onend = () => settle(false);
+
+          utterance.onerror = (ev) => {
+            if (!isPlayingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+            if (ev.error === 'canceled' || ev.error === 'interrupted') {
+              if (attempt < 1) settle(true);
+              return;
+            }
+            settle(attempt < 1);
+          };
+
+          const estSec = Math.max(
+            2,
+            estimateSpeechDurationSec(spokenText, targetLangCode, effectiveRate, 1.0)
+          );
+          utteranceWatchdogRef.current = window.setTimeout(() => {
+            if (settled) return;
+            try {
+              window.speechSynthesis.cancel();
+            } catch {}
+            settle(false);
+          }, Math.max(7500, Math.round(estSec * 2200 + 4500)));
+
+          utteranceHeartbeatRef.current = window.setInterval(() => {
+            if (settled || !isPlayingQueueRef.current || speakSessionIdRef.current !== mySessionId) {
+              clearAudioGuards();
+              return;
+            }
+            try {
+              if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                return;
+              }
+              const busy = window.speechSynthesis.speaking || window.speechSynthesis.pending;
+              if (hasStarted) {
+                if (!busy) {
+                  quietAfterStart += 1;
+                  if (quietAfterStart >= 2) settle(false);
+                } else {
+                  quietAfterStart = 0;
+                }
+              } else {
+                if (!busy) {
+                  quietBeforeStart += 1;
+                  if (quietBeforeStart >= 3) settle(attempt < 1);
+                } else {
+                  hasStarted = true;
+                }
+              }
+            } catch {}
+          }, 850);
+
+          utteranceRef.current = utterance;
+          try {
+            window.speechSynthesis.speak(utterance);
+          } catch {
+            settle(attempt < 1);
+          }
+        };
+
+        speakSub(0, 0);
       };
 
-      utterance.onerror = () => {
-        if (!isPlayingQueueRef.current) return;
-        const nextIdx = startIdx + 1;
-        if (nextIdx < segmentsList.length) {
-          speakSegmentQueue(segmentsList, nextIdx, targetLangCode);
-        } else {
-          isPlayingQueueRef.current = false;
-          setStatus('idle');
+      // 55ms post-cancel settling delay prevents Chrome/Safari from dropping the initial utterance
+      speakDelayRef.current = window.setTimeout(() => {
+        if (isPlayingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+          speakSegAt(startIdx);
         }
-      };
-
-      utteranceRef.current = utterance;
-      setStatus('playing');
-      setShowTranscript(true);
-      window.speechSynthesis.speak(utterance);
+      }, 55);
     },
     [
       browserVoices,
+      clearAudioGuards,
       culturalPersonaIndex,
       speedMultiplier,
       userIntonation,
@@ -507,10 +698,13 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
 
     // Fallback to server Gemini TTS if browser lacks speechSynthesis
     try {
-      const remainingText = freshSegments
-        .slice(segmentIndex)
-        .map((s) => s.text)
-        .join(' ');
+      const remainingText = sanitizeTextForUninterruptedSpeech(
+        freshSegments
+          .slice(segmentIndex)
+          .map((s) => s.text)
+          .join(' '),
+        targetLang
+      );
       const response = await fetch('/api/ai/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

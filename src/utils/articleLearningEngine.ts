@@ -514,22 +514,61 @@ function cleanSentence(text: string): string {
     .trim();
 }
 
+function protectNonSentenceDots(text: string): string {
+  const DOT_TOKEN = '\uE000';
+  return text
+    // Protect decimal numbers (e.g. 3.14, 10.5281)
+    .replace(/(\d)\.(\d)/g, `$1${DOT_TOKEN}$2`)
+    // Protect alphanumeric figure/version/domain dots and Unicode abbreviations (e.g. FIG. BLG.316, ör., doç., v2.1, ai.studio)
+    .replace(/(^|[\s([{"'“«])(FIG|BLG|NO|DR|PROF|DOÇ|YRD|VB|VS|ÖR|BKZ|DK|SN|ST|YY|E\.G|I\.E|ETC|MR|MRS|MS|VOL|CH)\./gi, `$1$2${DOT_TOKEN}`)
+    .replace(/([A-Za-z0-9])\.([A-Za-z0-9])/g, `$1${DOT_TOKEN}$2`);
+}
+
+function restoreNonSentenceDots(text: string): string {
+  return text.replace(/\uE000/g, '.');
+}
+
 export function splitNarrationSentences(text: string): string[] {
   const cleaned = cleanSentence(text);
   if (!cleaned) return [];
-  const rawMatches = cleaned.match(/[^.!?。！？؟]+[.!?。！？؟]+|[^.!?。！？؟]+$/g);
-  const segments = (rawMatches || [cleaned]).map((s) => s.trim()).filter((s) => s.length > 0);
-  // Ensure no individual utterance exceeds ~240 characters so Chrome/Safari speechSynthesis never truncates
+
+  const protectedText = protectNonSentenceDots(cleaned);
+  const rawMatches = protectedText.match(/[^.!?。！？؟]+[.!?。！？؟]+|[^.!?。！？؟]+$/g);
+  const segments = (rawMatches || [protectedText])
+    .map((s) => restoreNonSentenceDots(s).trim())
+    .filter((s) => s.length > 0 && /[0-9A-Za-zÀ-ÿğĞıİöÖüÜşŞçÇ\u0400-\u04FF\u0600-\u06FF\u3040-\u9FFF\uAC00-\uD7AF]/.test(s));
+
+  // Ensure no individual sentence exceeds ~165 characters so Chrome/Edge/Safari speechSynthesis never truncates
   const bounded: string[] = [];
-  for (const seg of segments) {
-    if (seg.length <= 240) {
+  const pushBounded = (seg: string) => {
+    if (seg.length <= 165) {
       bounded.push(seg);
-      continue;
+      return;
     }
     const clauses = seg.split(/(?<=[,;،、；:])\s+/);
     let acc = '';
     for (const c of clauses) {
-      if (acc && acc.length + c.length + 1 > 220) {
+      if (c.length > 165) {
+        if (acc.trim()) {
+          bounded.push(acc.trim());
+          acc = '';
+        }
+        // Hard word-boundary split for long unpunctuated clauses
+        const words = c.split(/\s+/).filter(Boolean);
+        let wAcc = '';
+        for (const w of words) {
+          const test = wAcc ? `${wAcc} ${w}` : w;
+          if (test.length > 155 && wAcc) {
+            bounded.push(wAcc.trim());
+            wAcc = w;
+          } else {
+            wAcc = test;
+          }
+        }
+        if (wAcc.trim()) bounded.push(wAcc.trim());
+        continue;
+      }
+      if (acc && acc.length + c.length + 1 > 160) {
         bounded.push(acc.trim());
         acc = c;
       } else {
@@ -537,14 +576,19 @@ export function splitNarrationSentences(text: string): string[] {
       }
     }
     if (acc.trim()) bounded.push(acc.trim());
+  };
+
+  for (const seg of segments) {
+    pushBounded(seg);
   }
   return bounded;
 }
 
 function splitCleanSentences(text: string): string[] {
-  return cleanSentence(text)
+  const protectedText = protectNonSentenceDots(cleanSentence(text));
+  return protectedText
     .split(/(?<=[.!?。！？؟])\s+/)
-    .map((s) => s.trim())
+    .map((s) => restoreNonSentenceDots(s).trim())
     .filter((s) => s.length > 18);
 }
 

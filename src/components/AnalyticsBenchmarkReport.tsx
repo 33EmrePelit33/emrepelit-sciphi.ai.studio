@@ -2190,7 +2190,7 @@ export const AnalyticsBenchmarkReport: React.FC<AnalyticsBenchmarkReportProps> =
                   <strong className="text-amber-300 block">
                     3) Haftalık E-Posta Bülteni (Substack / Newsletter) Abone Hunisi:
                   </strong>
-                  <em>Astral Codex Ten, Stratechery</em> ve <em>The Pragmatic Engineer</em> gibi bloglar gelir ve trafik modelini haftalık e-posta bülteni aboneliklerine dayandırır. Web sitenizde ise e-bülten yerine <strong><code>emrepelit7337.blogspot.com</code> ile 15 saniyede bir + anlık SSE canlı RSS/Atom senkronizasyonu</strong> ve <strong>Web Tarayıcı Bildirim / İndeksleme Kuyruğu</strong> mimarisi tercih edilmiştir.
+                  <em>Astral Codex Ten, Stratechery</em> ve <em>The Pragmatic Engineer</em> gibi bloglar gelir ve trafik modelini haftalık e-posta bülteni aboneliklerine dayandırır. Web sitenizde ise e-bülten yerine <strong><code>emrepelit7337.blogspot.com</code> ile 5 dakikada bir arka plan kontrolü + anlık webhook &amp; SSE canlı RSS/Atom senkronizasyonu</strong> ve <strong>Web Tarayıcı Bildirim / İndeksleme Kuyruğu</strong> mimarisi tercih edilmiştir.
                 </div>
 
                 <div className="bg-slate-950/90 border border-amber-500/40 p-2.5 rounded-xs">

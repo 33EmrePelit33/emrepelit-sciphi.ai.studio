@@ -2,8 +2,24 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import zlib from 'zlib';
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 import type { ThinkingLevel as ThinkingLevelType } from '@google/genai';
+import { requireAuth, type AuthRequest } from './src/middleware/auth.ts';
+import {
+  deleteUserPersonalDataDb,
+  exportUserPersonalDataDb,
+  getCachedArticleTranslation,
+  getRecentIndexingSnapshotsDb,
+  getTranslationCacheStats,
+  getUserBookmarksDb,
+  recordAnalyticsEventDb,
+  saveIndexingSnapshotDb,
+  saveQaEscalation,
+  upsertArticleTranslation,
+  upsertUserBookmarkDb,
+} from './src/db/repository.ts';
 
 dotenv.config();
 
@@ -1299,9 +1315,9 @@ const SSR_12_LANG_LABELS: Record<
     recentArticlesTitle: 'Aktuelle Sci-Phil-Artikel (Emre Pelit)',
     homeTitle: () => 'Emre Pelit Sci-Phil — Wissenschaft, Philosophie, Videos, Quiz & Simulation',
     homeDesc: (t) =>
-      `Entdecken Sie ${t} Originalartikel von Emre Pelit mit eigenen 10-Minuten-HTML5-Erklärvideos mit bewegten Akteuren, Multiple-Choice-Tests passend zum Gesamtfazit, interaktiven Apps und Audio in 12 Sprachen.`,
+      `Entdecken Sie ${t} Originalartikel von Emre Pelit mit unbegrenzten sprechersynchronen HTML5-Erklärvideos mit synthetischer Kulturstimme in 12 Sprachen, Multiple-Choice-Tests, interaktiven Apps und Audio.`,
     archiveTitle: (t, l) => `Emre Pelit Sci-Phil — Gesamtarchiv mit Video & Quiz (${t} Artikel · ${l})`,
-    archiveDesc: (t) => `Vollständiges Verzeichnis der ${t} Artikel mit 10-Minuten-HTML5-Erklärvideos mit bewegten Akteuren und Multiple-Choice-Tests in 12 Sprachen.`,
+    archiveDesc: (t) => `Vollständiges Verzeichnis der ${t} Artikel mit sprechersynchronen 12-Sprachen-HTML5-Erklärvideos und Multiple-Choice-Tests.`,
     backToHub: '← Zurück zum Haupt-Hub',
     governanceBadge: 'Unabhängiges Autorenarchiv · Keine Peer-Review-Zeitschrift',
   },
@@ -1730,19 +1746,31 @@ function renderSsrGovernanceHtml(
   const isTr = lang === 'tr';
   const bodies: Record<string, { heading: string; sections: { h: string; p: string }[] }> = {
     privacy: {
-      heading: isTr ? 'Gizlilik Politikası ve Veri İşleme İlkeleri' : 'Privacy Policy & Data Processing Principles',
+      heading: isTr
+        ? 'Gizlilik Politikası, 6698 Sayılı KVKK & AB GDPR (2016/679) Uyumluluk Beyanı'
+        : 'Privacy Policy, KVKK (Law No. 6698) & EU GDPR (2016/679) Compliance Notice',
       sections: [
         {
           h: isTr ? '1. Veri Sorumlusu ve Kapsam' : '1. Data Controller & Scope',
           p: isTr
-            ? 'emrepelit-sciphi.ai.studio, bağımsız yazar Emre Pelit tarafından yönetilen çok dilli bilim, felsefe ve simülasyon arşividir (İletişim: emrepelit39@gmail.com). Ziyaretçilerden okuma amacıyla üyelik veya zorunlu kişisel kimlik bilgisi talep edilmez.'
-            : 'emrepelit-sciphi.ai.studio is an independent science, philosophy, and simulation archive maintained by Emre Pelit (emrepelit39@gmail.com). No registration or personal identity submission is required to read articles.',
+            ? 'emrepelit-sciphi.ai.studio, bağımsız yazar Emre Pelit (Mersin, Türkiye — İletişim: emrepelit39@gmail.com) tarafından yönetilen çok dilli bilim, felsefe ve simülasyon arşividir. Ziyaretçilerden okuma amacıyla üyelik veya zorunlu kişisel veri talep edilmez. Platform 6698 sayılı KVKK ve AB Genel Veri Koruma Tüzüğü (GDPR 2016/679) ilkelerine tam uyumlu olarak tasarlanmıştır.'
+            : 'emrepelit-sciphi.ai.studio is an independent multilingual science, philosophy, and simulation archive operated by Emre Pelit (Mersin, Türkiye — Contact: emrepelit39@gmail.com). No registration or personal data submission is required to read articles. This platform complies with Turkish Law No. 6698 (KVKK) and EU Regulation 2016/679 (GDPR).',
         },
         {
-          h: isTr ? '2. Çerezler ve Açık Rıza' : '2. Cookies & Explicit Opt-In Telemetry',
+          h: isTr
+            ? '2. Açık Rıza Öncesi Sıfır Takip, Google Fonts İzolasyonu ve GPC/DNT Uyumu'
+            : '2. Zero Pre-Consent Trackers, Google Fonts Isolation & GPC/DNT Support',
           p: isTr
-            ? 'Dil seçimi ve KVKK onay durumu yalnızca tarayıcınızda yerel olarak saklanır. İsteğe bağlı analitik ve harici telemetri yalnızca ziyaretçinin açık rızasıyla etkinleştirilir.'
-            : 'Language preferences and KVKK consent status remain local to your browser. Optional analytics and external telemetry activate only after explicit opt-in consent.',
+            ? 'Ziyaretçinin açık rızası (opt-in) alınmadan hiçbir harici analitik betiği, reklam çerezi veya harici Google Fonts bağlantısı yüklenmez. Tarayıcı Global Privacy Control (GPC) ve Do Not Track (DNT) sinyalleri otomatik olarak tanınır ve saygı duyulur. Rıza bandında "Tümünü Reddet" ve "Tümünü Kabul Et" eşit ağırlıkta sunulur.'
+            : 'No external analytics scripts, advertising trackers, or external Google Fonts requests load prior to explicit opt-in consent. Browser Global Privacy Control (GPC) and Do Not Track (DNT) signals are honored automatically. Reject All and Accept All carry equal visual prominence.',
+        },
+        {
+          h: isTr
+            ? '3. Alt İşleyiciler, Saklama Süreleri ve Veri Sahibi Hakları (GDPR m.15-20 / KVKK m.11)'
+            : '3. Sub-Processors, Retention Periods & Data Subject Rights (GDPR Art. 15-20 / KVKK Art. 11)',
+          p: isTr
+            ? 'İsteğe bağlı Google ile giriş (Firebase Auth) ve yer imi/soru kayıtları Avrupa bölgesi (europe-west2) güvenli sunucularında saklanır; yapay zeka yanıtları yalnızca sunucu taraflı işlenir. Yerel tarayıcı verileri kullanıcı silene dek, gönüllü soru kayıtları en fazla 12 ay veya silme talebine dek muhafaza edilir. Kullanıcılar site içindeki Veri Sahibi Hakları Merkezi ve /api/privacy/export-my-data ile /api/privacy/delete-my-data uç noktaları üzerinden verilerini JSON olarak dışa aktarabilir veya kalıcı olarak silebilir. Şikayet mercileri: Kişisel Verileri Koruma Kurumu (kvkk.gov.tr) ve AB/AEA Ulusal Veri Koruma Otoriteleri (GDPR Madde 77).'
+            : 'Optional Google Sign-In (Firebase Auth), synced bookmarks, and voluntary Q&A submissions are hosted in the European cloud region (europe-west2); AI features execute exclusively server-side. Local preferences remain until cleared; voluntary Q&A submissions are retained for up to 12 months or until erasure is requested. Data subjects may exercise Access/Portability (GDPR Art. 15/20) via /api/privacy/export-my-data and Erasure (GDPR Art. 17 / KVKK Art. 7) via /api/privacy/delete-my-data. Supervisory authorities: Turkish KVKK Authority (kvkk.gov.tr) and EU/EEA Data Protection Authorities (GDPR Art. 77).',
         },
       ],
     },
@@ -1781,13 +1809,23 @@ function renderSsrGovernanceHtml(
       ],
     },
     kvkk: {
-      heading: isTr ? '6698 Sayılı KVKK Aydınlatma Metni' : 'KVKK (Law No. 6698) Data Protection Notice',
+      heading: isTr
+        ? '6698 Sayılı KVKK & AB GDPR (2016/679) Aydınlatma Metni'
+        : 'KVKK (Law No. 6698) & EU GDPR (2016/679) Data Protection Notice',
       sections: [
         {
-          h: isTr ? '1. Veri Sorumlusu & İşleme Amacı' : '1. Controller & Processing Purpose',
+          h: isTr ? '1. Veri Sorumlusu & Hukuki Sebepler' : '1. Data Controller & Legal Bases',
           p: isTr
-            ? '6698 sayılı KVKK uyarınca veri sorumlusu Emre Pelit’tir (emrepelit39@gmail.com). Soru/itiraz formunda paylaşılan e-posta ve mesajlar yalnızca bilimsel yanıt oluşturmak amacıyla işlenir; KVKK Madde 11 haklarınız her zaman geçerlidir.'
-            : 'Under Turkish Law No. 6698 (KVKK), the data controller is Emre Pelit (emrepelit39@gmail.com). Question/objection submissions are processed strictly to provide scholarly responses, and Article 11 data subject rights apply in full.',
+            ? '6698 sayılı KVKK ve AB GDPR (2016/679) uyarınca veri sorumlusu Emre Pelit’tir (Mersin, Türkiye · emrepelit39@gmail.com). Güvenlik WAF koruması ve temel site erişimi KVKK m.5/2-(f) & GDPR m.6(1)(f) meşru menfaat; isteğe bağlı analitik, harici yazı tipleri (Google Fonts) ve soru/itiraz formu iletimi ise KVKK m.5/1 & GDPR m.6(1)(a) açık rıza hukuki sebebine dayanır.'
+            : 'Under Turkish Law No. 6698 (KVKK) and EU GDPR (2016/679), the Data Controller is Emre Pelit (Mersin, Türkiye · emrepelit39@gmail.com). Security WAF protection relies on legitimate interest (KVKK Art. 5/2-f, GDPR Art. 6(1)(f)); optional analytics, external Google Fonts, and Q&A submissions rely strictly on explicit opt-in consent (KVKK Art. 5/1, GDPR Art. 6(1)(a)).',
+        },
+        {
+          h: isTr
+            ? '2. KVKK Madde 11 & GDPR Madde 15–22 Haklarınız ve Başvuru Yolları'
+            : '2. Your Rights under KVKK Art. 11 & GDPR Art. 15–22',
+          p: isTr
+            ? 'Kişisel verilerinizin işlenip işlenmediğini öğrenme, erişim ve taşınabilirlik (JSON dışa aktarım), düzeltme, silme/unutulma hakkı (KVKK m.7 / GDPR m.17) ve açık rızayı dilediğiniz an geri çekme (GDPR m.7(3)) haklarınızı doğrudan site içindeki Gizlilik & KVKK panelinden veya emrepelit39@gmail.com adresine başvurarak kullanabilirsiniz. Ayrıca KVKK Kurumu’na (kvkk.gov.tr) veya ikamet ettiğiniz AB üye devletindeki veri koruma otoritesine şikayette bulunma hakkınız saklıdır.'
+            : 'You have the right to access, export (JSON portability), rectify, erase (Right to be Forgotten under KVKK Art. 7 / GDPR Art. 17), and withdraw consent at any time (GDPR Art. 7(3)) directly through the in-site Privacy & KVKK Center or by emailing emrepelit39@gmail.com. You also retain the right to lodge a complaint with the Turkish Data Protection Authority (kvkk.gov.tr) or your local EU/EEA supervisory authority (GDPR Art. 77).',
         },
       ],
     },
@@ -2030,6 +2068,74 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
     hreflangLinks = siblingLinks;
 
     const pubDateSlash = (matchedEntry.publishedAt || '2026-11-01').replace(/-/g, '/');
+    const faqLabelsByLang: Record<
+      string,
+      { heading: string; q1: string; q2: string; q3: string; q4: string; a3Fallback: string }
+    > = {
+      tr: {
+        heading: 'Makale Soru-Cevap (SSS)',
+        q1: `"${matchedEntry.title}" makalesinin temel savı ve özeti nedir?`,
+        q2: 'Bu makale hangi önceki bilimsel araştırmalara ve yerleşik kabullere dayanır?',
+        q3: 'Makaleden öne çıkan temel bulgu ve sonuçlar nelerdir?',
+        q4: 'Bu çalışmaya hangi 12 dilde ve hangi etkileşimli araçlarla erişilebilir?',
+        a3Fallback: `Makale, ${matchedEntry.category} çerçevesinde kuramsal sentez ve ölçülebilir sonuçlar sunar.`,
+      },
+      en: {
+        heading: 'Article Q&A (FAQ)',
+        q1: `What is the core thesis and summary of "${matchedEntry.title}"?`,
+        q2: 'Which prior scientific studies and established consensuses ground this paper?',
+        q3: 'What are the key findings and conclusions of this article?',
+        q4: 'In which 12 languages and interactive formats is this work available?',
+        a3Fallback: `This work provides a formal theoretical synthesis within ${matchedEntry.category}.`,
+      },
+      es: {
+        heading: 'Preguntas y Respuestas del Artículo (FAQ)',
+        q1: `¿Cuál es la tesis principal y resumen de "${matchedEntry.title}"?`,
+        q2: '¿En qué investigaciones científicas previas y consensos se basa este artículo?',
+        q3: '¿Cuáles son los hallazgos y conclusiones clave?',
+        q4: '¿En qué 12 idiomas y formatos interactivos está disponible?',
+        a3Fallback: `El artículo presenta una síntesis teórica dentro de ${matchedEntry.category}.`,
+      },
+      de: {
+        heading: 'Fragen & Antworten zum Artikel (FAQ)',
+        q1: `Was ist die Kernthese und Zusammenfassung von "${matchedEntry.title}"?`,
+        q2: 'Auf welchen früheren wissenschaftlichen Studien und Konsensen basiert dieser Beitrag?',
+        q3: 'Was sind die wichtigsten Ergebnisse und Schlussfolgerungen?',
+        q4: 'In welchen 12 Sprachen und interaktiven Formaten ist der Artikel verfügbar?',
+        a3Fallback: `Der Beitrag bietet eine theoretische Synthese im Bereich ${matchedEntry.category}.`,
+      },
+      fr: {
+        heading: 'Questions & Réponses de l’article (FAQ)',
+        q1: `Quelle est la thèse principale et le résumé de « ${matchedEntry.title} » ?`,
+        q2: 'Sur quelles recherches scientifiques antérieures et consensus repose cet article ?',
+        q3: 'Quels sont les principaux résultats et conclusions ?',
+        q4: 'Dans quelles 12 langues et quels formats interactifs est-il disponible ?',
+        a3Fallback: `Cet article propose une synthèse théorique dans le domaine ${matchedEntry.category}.`,
+      },
+    };
+    const faqL = faqLabelsByLang[lang] || faqLabelsByLang.en;
+    const ssrFaqItems = [
+      {
+        q: faqL.q1,
+        a: (matchedEntry.abstract || matchedEntry.paragraphs?.[0] || matchedEntry.title).trim(),
+      },
+      {
+        q: faqL.q2,
+        a: `${priorInfo.priorScientists.join(', ')} — ${priorInfo.establishedConsensusTitle}. ${priorInfo.priorResearchesSummary}`,
+      },
+      {
+        q: faqL.q3,
+        a:
+          (matchedEntry.keyFindings || []).length > 0
+            ? matchedEntry.keyFindings.slice(0, 3).join(' • ')
+            : faqL.a3Fallback,
+      },
+      {
+        q: faqL.q4,
+        a: `TR, EN, ES, DE, FR, RU, AR, ZH, JA, PT, IT, KO (12 canonical languages) — Emre Pelit Sci-Phil (${archiveCode}) with HTML5 summary video, interactive simulation, quiz, and Q&A.`,
+      },
+    ];
+
     const articleJsonLd = {
       '@context': 'https://schema.org',
       '@graph': [
@@ -2079,6 +2185,7 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
           hasPart: [
             { '@id': `${canonicalUrl}#video` },
             { '@id': `${canonicalUrl}#quiz` },
+            { '@id': `${canonicalUrl}#faq` },
           ],
           citation: priorInfo.priorScientists,
         },
@@ -2110,6 +2217,19 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
           educationalUse: 'Self-assessment',
           about: { '@id': `${canonicalUrl}#article` },
           author: { '@id': `${appOrigin}/#emre-pelit` },
+        },
+        {
+          '@type': 'FAQPage',
+          '@id': `${canonicalUrl}#faq`,
+          inLanguage: lang,
+          mainEntity: ssrFaqItems.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: item.a,
+            },
+          })),
         },
         {
           '@type': 'BreadcrumbList',
@@ -2216,6 +2336,19 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
               <a href="${escapeHtmlChars(appOrigin)}/scholar/pdf/${escapeHtmlChars(slug)}.pdf" style="font-weight:700;color:#1e3a8a;margin-right:12px;">${escapeHtmlChars(ssrExtra.downloadPdfLabel)}</a>
               · Emre Pelit · <a href="https://github.com/emrepelit109">github.com/emrepelit109</a> · <a href="https://emrepelit.github.io/science-philosophy">emrepelit.github.io/science-philosophy (301)</a>
             </p>
+          </section>
+          <section aria-label="${escapeHtmlChars(faqL.heading)}" itemscope itemtype="https://schema.org/FAQPage" style="margin-top:20px;padding:16px;background:#fbf9f5;border:1px solid #d6d3d1;">
+            <h2 style="font-size:18px;margin:0 0 10px;">${escapeHtmlChars(faqL.heading)}</h2>
+            ${ssrFaqItems
+              .map(
+                (item) => `<div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="margin-bottom:10px;">
+              <h3 itemprop="name" style="font-size:15px;margin:0 0 4px;">${escapeHtmlChars(item.q)}</h3>
+              <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                <p itemprop="text" style="margin:0;font-size:14px;color:#44403c;">${escapeHtmlChars(item.a)}</p>
+              </div>
+            </div>`
+              )
+              .join('\n')}
           </section>
         </article>
         <section aria-label="${escapeHtmlChars(ssrL.relatedTitle)}" style="margin-top:32px;padding-top:16px;border-top:1px solid #d6d3d1;font-family:sans-serif;font-size:14px;">
@@ -2369,10 +2502,16 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
     .map((h) => `    <link rel="alternate" hreflang="${escapeHtmlChars(h.lang)}" href="${escapeHtmlChars(h.href)}" />`)
     .join('\n');
 
+  const normalizedDesc = String(pageDesc || '').replace(/\s+/g, ' ').trim();
+  const seoMetaDesc =
+    normalizedDesc.length <= 158
+      ? normalizedDesc
+      : `${normalizedDesc.slice(0, 155).replace(/\s+\S*$/, '').trim()}…`;
+
   let out = rawHtml;
   out = out.replace(/<html\b[^>]*>/i, () => `<html lang="${escapeHtmlChars(lang)}" dir="${dirAttr}">`);
   out = out.replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escapeHtmlChars(pageTitle)}</title>`);
-  out = out.replace(/<meta\s+name="description"[^>]*>/i, () => `<meta name="description" content="${escapeHtmlChars(pageDesc)}" />`);
+  out = out.replace(/<meta\s+name="description"[^>]*>/i, () => `<meta name="description" content="${escapeHtmlChars(seoMetaDesc)}" />`);
   if (isSearchOnlyNoindex) {
     out = out.replace(/<meta\s+name="robots"[^>]*>/i, () => `<meta name="robots" content="noindex, follow" />`);
     out = out.replace(/<meta\s+name="googlebot"[^>]*>/i, () => `<meta name="googlebot" content="noindex, follow" />`);
@@ -2394,12 +2533,12 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
   out = out.replace(/<meta\s+property="og:type"[^>]*>/i, () => `<meta property="og:type" content="${ogType}" />`);
   out = out.replace(/<meta\s+property="og:locale"[^>]*>/i, () => `<meta property="og:locale" content="${escapeHtmlChars(ogLocale)}" />`);
   out = out.replace(/<meta\s+property="og:title"[^>]*>/i, () => `<meta property="og:title" content="${escapeHtmlChars(pageTitle)}" />`);
-  out = out.replace(/<meta\s+property="og:description"[^>]*>/i, () => `<meta property="og:description" content="${escapeHtmlChars(pageDesc)}" />`);
+  out = out.replace(/<meta\s+property="og:description"[^>]*>/i, () => `<meta property="og:description" content="${escapeHtmlChars(seoMetaDesc)}" />`);
   out = out.replace(/<meta\s+property="og:url"[^>]*>/i, () => `<meta property="og:url" content="${escapeHtmlChars(canonicalUrl)}" />`);
   out = out.replace(/<meta\s+property="og:image"[^>]*>/i, () => `<meta property="og:image" content="${escapeHtmlChars(appOrigin)}/og-card.jpg" />`);
   out = out.replace(/<meta\s+property="og:image:secure_url"[^>]*>/i, () => `<meta property="og:image:secure_url" content="${escapeHtmlChars(appOrigin)}/og-card.jpg" />`);
   out = out.replace(/<meta\s+name="twitter:title"[^>]*>/i, () => `<meta name="twitter:title" content="${escapeHtmlChars(pageTitle)}" />`);
-  out = out.replace(/<meta\s+name="twitter:description"[^>]*>/i, () => `<meta name="twitter:description" content="${escapeHtmlChars(pageDesc)}" />`);
+  out = out.replace(/<meta\s+name="twitter:description"[^>]*>/i, () => `<meta name="twitter:description" content="${escapeHtmlChars(seoMetaDesc)}" />`);
   out = out.replace(/<meta\s+name="twitter:image"[^>]*>/i, () => `<meta name="twitter:image" content="${escapeHtmlChars(appOrigin)}/og-card.jpg" />`);
   out = out.replace(/<link\s+rel="canonical"[^>]*>/i, () => `<link rel="canonical" href="${escapeHtmlChars(canonicalUrl)}" />`);
   out = out.replace(
@@ -2850,7 +2989,7 @@ function buildJsonFeedPayload(appOrigin: string, langFilter?: string, catFilter?
       content_text: (entry.paragraphs || []).join('\n\n') || entry.abstract,
       date_published: new Date(entry.publishedIso || Date.now()).toISOString(),
       language: entryLang,
-      tags: [entry.category, '10-Minute Animated-Entity HTML5 Explainer Video', 'Multiple-Choice Quiz'],
+      tags: [entry.category, '12-Language Synthetic Voice HTML5 Summary Video', 'Multiple-Choice Quiz'],
       authors: [{ name: 'Emre Pelit' }],
     })),
   };
@@ -3300,6 +3439,16 @@ async function startServer() {
   app.disable('x-powered-by');
   app.set('trust proxy', true);
   app.use(express.json({ limit: '1mb' }));
+  app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!err) return next();
+    if (err.type === 'entity.too.large' || err.status === 413) {
+      return res.status(413).json({ error: 'Request payload too large.' });
+    }
+    if (err instanceof SyntaxError && 'body' in err) {
+      return res.status(400).json({ error: 'Invalid JSON payload.' });
+    }
+    return next(err);
+  });
 
   // Deep Recursive Sanitizer against Prototype Pollution, XSS & Script Injection in JSON bodies
   function sanitizeUntrustedPayload(input: any, depth = 0): any {
@@ -3463,6 +3612,64 @@ async function startServer() {
     return next();
   });
 
+  // E4: Built-in Zero-Dependency HTTP Brotli / Gzip Response Compression (skips SSE & small payloads)
+  app.use((req, res, next) => {
+    if (req.method === 'HEAD' || req.path === '/api/live/events' || req.path.startsWith('/api/live/')) {
+      return next();
+    }
+    const acceptEncoding = String(req.headers['accept-encoding'] || '');
+    const supportsBr = /\bbr\b/i.test(acceptEncoding);
+    const supportsGzip = /\bgzip\b/i.test(acceptEncoding);
+    if (!supportsBr && !supportsGzip) {
+      return next();
+    }
+
+    const originalSend = res.send.bind(res);
+    (res as any).send = (body?: any) => {
+      try {
+        if (res.headersSent || res.getHeader('Content-Encoding')) {
+          return originalSend(body);
+        }
+        const contentType = String(res.getHeader('Content-Type') || '');
+        const isCompressibleType =
+          !contentType ||
+          /^(text\/|application\/(json|javascript|xml|rss\+xml|atom\+xml|manifest\+json|ld\+json)|image\/svg\+xml)/i.test(
+            contentType
+          );
+        if (!isCompressibleType || body == null) {
+          return originalSend(body);
+        }
+        const buf = Buffer.isBuffer(body)
+          ? body
+          : typeof body === 'string'
+            ? Buffer.from(body, 'utf-8')
+            : Buffer.from(JSON.stringify(body), 'utf-8');
+        if (buf.length < 1024) {
+          return originalSend(body);
+        }
+        if (!contentType) {
+          if (typeof body === 'string') {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          } else if (typeof body === 'object' && !Buffer.isBuffer(body)) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          }
+        }
+        const compressed = supportsBr
+          ? zlib.brotliCompressSync(buf, {
+              params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 },
+            })
+          : zlib.gzipSync(buf, { level: 6 });
+        res.setHeader('Content-Encoding', supportsBr ? 'br' : 'gzip');
+        res.setHeader('Vary', 'Accept-Encoding');
+        res.setHeader('Content-Length', String(compressed.length));
+        return originalSend(compressed);
+      } catch {
+        return originalSend(body);
+      }
+    };
+    return next();
+  });
+
   // Cross-Browser & Search Engine Permanent Single-Hop 301 Consolidation & Zero-Trust Security Middleware
   app.use((req, res, next) => {
     const rawUrl = req.originalUrl || req.url || '';
@@ -3482,8 +3689,10 @@ async function startServer() {
       return res.redirect(301, `https://emrepelit-sciphi.ai.studio${resolvedPath || rawUrl}`);
     }
 
-    // 0. Block Unauthorized HTTP Methods (Allow only GET, HEAD, OPTIONS, POST)
-    if (!['GET', 'HEAD', 'OPTIONS', 'POST'].includes(req.method)) {
+    // 0. Block Unauthorized HTTP Methods (Allow GET, HEAD, OPTIONS, POST, plus DELETE strictly on GDPR/KVKK erasure endpoint)
+    const isPermittedPrivacyDelete =
+      req.method === 'DELETE' && req.path === '/api/privacy/delete-my-data';
+    if (!['GET', 'HEAD', 'OPTIONS', 'POST'].includes(req.method) && !isPermittedPrivacyDelete) {
       blockedExternalThreatsCount += 1;
       res.setHeader('Allow', 'GET, HEAD, OPTIONS, POST');
       return res.status(405).json({
@@ -3615,20 +3824,27 @@ async function startServer() {
       'Content-Security-Policy',
       "default-src 'self' https: http: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: blob:; worker-src 'self' blob:; manifest-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; media-src 'self' data: blob: https: http:; connect-src 'self' https: http: wss: ws:; frame-src 'self' blob: data: https:; frame-ancestors *; base-uri 'self'; form-action 'self'; object-src 'self'"
     );
-    res.setHeader(
-      'Link',
-      `<${appOrigin}${req.path}>; rel="canonical", <https://www.researchgate.net/profile/Emre-Pelit>; rel="me", <https://github.com/emrepelit109>; rel="me", <https://www.youtube.com/@science_only>; rel="me", <https://www.linkedin.com/in/emrepelit109>; rel="me", <${appOrigin}/sitemap_index.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap-turkish-12-languages.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap-12-languages.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap-scholar.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/providers-index.json>; rel="describedby"; type="application/json", <${appOrigin}/rss.xml>; rel="alternate"; type="application/rss+xml"`
-    );
+    const isApiRoute = req.path.startsWith('/api/');
+    if (!isApiRoute) {
+      res.setHeader(
+        'Link',
+        `<${appOrigin}${req.path}>; rel="canonical", <https://www.researchgate.net/profile/Emre-Pelit>; rel="me", <https://github.com/emrepelit109>; rel="me", <https://www.youtube.com/@science_only>; rel="me", <https://www.linkedin.com/in/emrepelit109>; rel="me", <${appOrigin}/sitemap_index.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap-turkish-12-languages.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap-12-languages.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/sitemap-scholar.xml>; rel="sitemap"; type="application/xml", <${appOrigin}/providers-index.json>; rel="describedby"; type="application/json", <${appOrigin}/rss.xml>; rel="alternate"; type="application/rss+xml"`
+      );
+    }
     const isReadMethod = req.method === 'GET' || req.method === 'HEAD';
     const isSearchQueryNoindex =
       isReadMethod &&
-      !req.path.startsWith('/api/') &&
+      !isApiRoute &&
       typeof req.query.q === 'string' &&
       req.query.q.trim().length > 0 &&
       !req.query.article;
     res.setHeader(
       'X-Robots-Tag',
-      isSearchQueryNoindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+      isApiRoute
+        ? 'noindex, nofollow'
+        : isSearchQueryNoindex
+          ? 'noindex, follow'
+          : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
     );
     res.setHeader('X-Author', 'Emre Pelit');
     res.setHeader('X-Author-ResearchGate', RESEARCHGATE_PROFILE_URL);
@@ -3653,7 +3869,7 @@ async function startServer() {
     );
     res.setHeader(
       'Permissions-Policy',
-      'accelerometer=(), autoplay=(self), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(self), xr-spatial-tracking=()'
+      'accelerometer=(), autoplay=(self), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(self), xr-spatial-tracking=()'
     );
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
@@ -5212,18 +5428,18 @@ async function startServer() {
       { id: 'indexnow-org', endpoint: 'https://api.indexnow.org/indexnow' },
       { id: 'bing-indexnow', endpoint: 'https://www.bing.com/indexnow' },
       { id: 'yandex-indexnow', endpoint: 'https://yandex.com/indexnow' },
+      { id: 'seznam-indexnow', endpoint: 'https://search.seznam.cz/indexnow' },
+      { id: 'naver-indexnow', endpoint: 'https://searchadvisor.naver.com/indexnow' },
     ];
 
-    const engineResults: { engine: string; endpoint: string; httpStatus: number | null; batchesSent: number; error?: string }[] = [];
-
-    for (const target of indexNowTargets) {
+    const indexNowPromises = indexNowTargets.map(async (target) => {
       let lastStatus: number | null = null;
       let batchesSent = 0;
       let errMsg: string | undefined;
       for (const batch of chunks) {
         try {
           const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), 5000);
+          const timer = setTimeout(() => ctrl.abort(), 3800);
           const resp = await fetch(target.endpoint, {
             method: 'POST',
             signal: ctrl.signal,
@@ -5242,22 +5458,22 @@ async function startServer() {
           errMsg = err?.name === 'AbortError' ? 'TIMEOUT' : String(err?.message || 'NETWORK_ERROR');
         }
       }
-      engineResults.push({
+      return {
         engine: target.id,
         endpoint: target.endpoint,
         httpStatus: lastStatus,
         batchesSent,
         ...(errMsg ? { error: errMsg } : {}),
-      });
-    }
+      };
+    });
 
-    // WebSub / PubSubHubbub Real Ping for RSS & Atom Feeds (Google FeedFetcher / Discover / Feed Readers)
-    for (const feedPath of ['/rss.xml', '/atom.xml']) {
+    // WebSub / PubSubHubbub Real Ping for RSS & Atom Feeds (Google FeedFetcher / Discover / Feed Readers) in parallel
+    const webSubPromises = ['/rss.xml', '/atom.xml'].map(async (feedPath) => {
       let webSubStatus: number | null = null;
       let webSubError: string | undefined;
       try {
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 4500);
+        const timer = setTimeout(() => ctrl.abort(), 3500);
         const bodyParams = new URLSearchParams({
           'hub.mode': 'publish',
           'hub.url': `${cleanOrigin}${feedPath}`,
@@ -5273,14 +5489,20 @@ async function startServer() {
       } catch (err: any) {
         webSubError = err?.name === 'AbortError' ? 'TIMEOUT' : String(err?.message || 'NETWORK_ERROR');
       }
-      engineResults.push({
+      return {
         engine: `websub-pubsubhubbub (${feedPath})`,
         endpoint: 'https://pubsubhubbub.appspot.com/',
         httpStatus: webSubStatus,
         batchesSent: webSubStatus !== null ? 1 : 0,
         ...(webSubError ? { error: webSubError } : {}),
-      });
-    }
+      };
+    });
+
+    const settled = await Promise.allSettled([...indexNowPromises, ...webSubPromises]);
+    const engineResults: { engine: string; endpoint: string; httpStatus: number | null; batchesSent: number; error?: string }[] =
+      settled
+        .filter((r): r is PromiseFulfilledResult<{ engine: string; endpoint: string; httpStatus: number | null; batchesSent: number; error?: string }> => r.status === 'fulfilled')
+        .map((r) => r.value);
 
     const primaryStatus =
       engineResults.find((r) => r.engine === 'indexnow-org')?.httpStatus ??
@@ -5295,7 +5517,7 @@ async function startServer() {
     };
   }
 
-  // Simultaneous 12-Language All-Academic-Index, All-Browser & All-Network Broadcast Endpoint (With Real Multi-Engine Ping)
+  // Simultaneous 12-Language All-Academic-Index, All-Browser & All-Network Broadcast Endpoint (Parallel Multi-Engine Ping across ALL 12 Languages)
   app.post('/api/indexing/broadcast-all', async (req, res) => {
     const combinedEntries = getCombined301CorpusEntries();
     const effectiveArticlesCount = Math.max(316, combinedEntries.length);
@@ -5306,17 +5528,28 @@ async function startServer() {
     } = req.body || {};
     const appOrigin = resolveRequestOrigin(req);
 
-    const langs = ['tr', 'en', 'es', 'de', 'fr', 'ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko'];
+    const langs = [...SUPPORTED_12_LANGS];
     const resolvedArticlesCount = Math.max(effectiveArticlesCount, Number(articlesCount) || 0);
-    const totalIndexedUrls =
-      (resolvedArticlesCount + Number(importantPagesCount)) * Number(languagesCount) * OFFICIAL_10_WEBSITES.length;
-    const batchHash = computeSha256(`${appOrigin}:all-academic-browsers-networks:${totalIndexedUrls}:${Date.now()}`);
+    const serverClusters = buildServerWorkClusters(combinedEntries);
+    const all12LangArticleUrls: string[] = [];
+    for (const entry of combinedEntries) {
+      const slug = buildServerSemanticSlug(entry.title, entry.id, entry.postNumber);
+      const cluster = serverClusters.entryToCluster.get(entry.id);
+      for (const l of langs) {
+        const sib = cluster?.byLang.get(l);
+        const locSlug = sib ? buildServerSemanticSlug(sib.title, sib.id, sib.postNumber) : slug;
+        all12LangArticleUrls.push(`${appOrigin}${getServerLocalizedArticlePath(l, locSlug)}`);
+      }
+    }
 
     const sitemapPayload = buildSitemapPayload(appOrigin);
     const allBroadcastUrls = [
       `${appOrigin}/sitemap_index.xml`,
+      `${appOrigin}/sitemap-12-languages.xml`,
+      `${appOrigin}/sitemap-turkish-12-languages.xml`,
       `${appOrigin}/sitemap.xml`,
       `${appOrigin}/sitemap-articles.xml`,
+      `${appOrigin}/sitemap-scholar.xml`,
       `${appOrigin}/rss.xml`,
       `${appOrigin}/atom.xml`,
       `${appOrigin}/feed.json`,
@@ -5324,11 +5557,37 @@ async function startServer() {
       `${appOrigin}/oembed.json?url=${encodeURIComponent(`${appOrigin}/`)}`,
       `${appOrigin}/llms.txt`,
       `${appOrigin}/llms-full.txt`,
+      ...langs.map((l) => (l === 'tr' ? `${appOrigin}/` : `${appOrigin}/${l}/`)),
+      ...langs.map((l) => `${appOrigin}/${l}/archive`),
       ...sitemapPayload.txt.split('\n').filter(Boolean),
+      ...all12LangArticleUrls,
     ];
 
     const dispatchReport = await dispatchSearchEngineIndexingPings(appOrigin, allBroadcastUrls);
+    const totalIndexedUrls = Math.max(
+      dispatchReport.totalUrlsSubmitted,
+      (resolvedArticlesCount + Number(importantPagesCount)) * Number(languagesCount)
+    );
+    const batchHash = computeSha256(`${appOrigin}:all-12-langs-browsers:${totalIndexedUrls}:${Date.now()}`);
     const indexNowHttpStatus = dispatchReport.primaryHttpStatus;
+
+    // Persist indexing broadcast snapshot to Cloud SQL PostgreSQL
+    try {
+      await saveIndexingSnapshotDb({
+        snapshotType: 'broadcast_all_12_langs',
+        propertyOrigin: appOrigin,
+        totalUrlsSubmitted: dispatchReport.totalUrlsSubmitted,
+        languagesCount: langs.length,
+        primaryHttpStatus: indexNowHttpStatus || 200,
+        report: {
+          batchHash,
+          articlesCount: resolvedArticlesCount,
+          engineResults: dispatchReport.engineResults,
+        },
+      });
+    } catch (dbErr) {
+      console.error('Non-fatal indexing snapshot persist error:', dbErr);
+    }
 
     return res.json({
       success: true,
@@ -6450,7 +6709,342 @@ async function startServer() {
       // non-fatal cache write
     }
 
+    try {
+      await saveIndexingSnapshotDb({
+        snapshotType: 'gsc_queue_all',
+        propertyOrigin: appOrigin,
+        totalUrlsSubmitted: dispatchReport.totalUrlsSubmitted,
+        languagesCount: 12,
+        primaryHttpStatus: dispatchReport.primaryHttpStatus || 200,
+        report: {
+          engineResults: dispatchReport.engineResults,
+          totalQueuedUrls: persistedQueueState.totalQueuedUrls,
+        },
+      });
+    } catch (dbErr) {
+      console.error('Non-fatal GSC snapshot persist error:', dbErr);
+    }
+
     return res.json(persistedQueueState);
+  });
+
+  // G3: Helper to obtain Google OAuth2 access token from Service Account JSON (RS256 JWT) or direct env token
+  async function resolveGoogleSearchConsoleAccessToken(): Promise<{
+    token: string | null;
+    authMode: 'access_token' | 'service_account' | 'none';
+  }> {
+    const directToken = String(process.env.GSC_ACCESS_TOKEN || '').trim();
+    if (directToken) {
+      return { token: directToken, authMode: 'access_token' };
+    }
+    const rawSa = String(process.env.GSC_SERVICE_ACCOUNT_JSON || '').trim();
+    if (!rawSa) {
+      return { token: null, authMode: 'none' };
+    }
+    try {
+      const sa = JSON.parse(rawSa);
+      if (!sa.client_email || !sa.private_key) {
+        return { token: null, authMode: 'none' };
+      }
+      const nowSec = Math.floor(Date.now() / 1000);
+      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+      const claimSet = Buffer.from(
+        JSON.stringify({
+          iss: sa.client_email,
+          scope: 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/indexing',
+          aud: 'https://oauth2.googleapis.com/token',
+          exp: nowSec + 3600,
+          iat: nowSec,
+        })
+      ).toString('base64url');
+      const signer = crypto.createSign('RSA-SHA256');
+      signer.update(`${header}.${claimSet}`);
+      const signature = signer.sign(sa.private_key, 'base64url');
+      const assertion = `${header}.${claimSet}.${signature}`;
+
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5000);
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          assertion,
+        }).toString(),
+      });
+      clearTimeout(timer);
+      if (!tokenRes.ok) return { token: null, authMode: 'service_account' };
+      const tokenJson: any = await tokenRes.json();
+      return { token: tokenJson.access_token || null, authMode: 'service_account' };
+    } catch (err) {
+      console.error('GSC service account token exchange failed:', err);
+      return { token: null, authMode: 'service_account' };
+    }
+  }
+
+  // G3: Live Google Search Console & Bing Webmaster API Metrics + Persistent Indexing History
+  app.get('/api/indexing/webmaster-live', async (req, res) => {
+    const appOrigin = resolveRequestOrigin(req);
+    const gscSiteUrl = String(process.env.GSC_SITE_URL || `${appOrigin}/`).trim();
+    const bingApiKey = String(process.env.BING_WEBMASTER_API_KEY || '').trim();
+    const now = new Date();
+    const endDate = now.toISOString().slice(0, 10);
+    const startDate = new Date(now.getTime() - 28 * 86400 * 1000).toISOString().slice(0, 10);
+
+    const gscResult: Record<string, any> = {
+      configured: false,
+      authMode: 'none',
+      siteUrl: gscSiteUrl,
+      verificationFileActive: true,
+      verificationFileUrl: `${appOrigin}/google5d3436c931b6024c.html`,
+      clicks28d: null,
+      impressions28d: null,
+      ctr28d: null,
+      avgPosition28d: null,
+      topQueries: [],
+      status: 'READY_FOR_CREDENTIALS',
+    };
+
+    const { token: gscToken, authMode } = await resolveGoogleSearchConsoleAccessToken();
+    gscResult.authMode = authMode;
+    if (gscToken) {
+      gscResult.configured = true;
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const gscRes = await fetch(
+          `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+          {
+            method: 'POST',
+            signal: ctrl.signal,
+            headers: {
+              Authorization: `Bearer ${gscToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              startDate,
+              endDate,
+              dimensions: ['query'],
+              rowLimit: 10,
+            }),
+          }
+        );
+        clearTimeout(timer);
+        if (gscRes.ok) {
+          const data: any = await gscRes.json();
+          const rows = Array.isArray(data.rows) ? data.rows : [];
+          const clicks = rows.reduce((acc: number, r: any) => acc + Number(r.clicks || 0), 0);
+          const impressions = rows.reduce((acc: number, r: any) => acc + Number(r.impressions || 0), 0);
+          const avgPos =
+            rows.length > 0
+              ? Number(
+                  (
+                    rows.reduce((acc: number, r: any) => acc + Number(r.position || 0), 0) / rows.length
+                  ).toFixed(2)
+                )
+              : null;
+          gscResult.clicks28d = clicks;
+          gscResult.impressions28d = impressions;
+          gscResult.ctr28d = impressions > 0 ? Number(((clicks / impressions) * 100).toFixed(2)) : 0;
+          gscResult.avgPosition28d = avgPos;
+          gscResult.topQueries = rows.map((r: any) => ({
+            query: r.keys?.[0] || '',
+            clicks: r.clicks || 0,
+            impressions: r.impressions || 0,
+            position: Number((r.position || 0).toFixed(1)),
+          }));
+          gscResult.status = 'LIVE_CONNECTED';
+        } else {
+          gscResult.status = `API_HTTP_${gscRes.status}`;
+        }
+      } catch (err: any) {
+        gscResult.status = 'API_ERROR';
+        gscResult.error = err?.message || 'GSC fetch failed';
+      }
+    }
+
+    const bingResult: Record<string, any> = {
+      configured: Boolean(bingApiKey),
+      indexNowActive: true,
+      indexNowKeyUrl: `${appOrigin}/emrepelit7337indexnow.txt`,
+      topQueries: [],
+      status: bingApiKey ? 'CHECKING' : 'INDEXNOW_ACTIVE_API_KEY_OPTIONAL',
+    };
+
+    if (bingApiKey) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const bingRes = await fetch(
+          `https://ssl.bing.com/webmaster/api.svc/json/GetQueryStats?apikey=${encodeURIComponent(
+            bingApiKey
+          )}&siteUrl=${encodeURIComponent(gscSiteUrl)}`,
+          { signal: ctrl.signal }
+        );
+        clearTimeout(timer);
+        if (bingRes.ok) {
+          const data: any = await bingRes.json();
+          const list = Array.isArray(data?.d) ? data.d.slice(0, 10) : [];
+          bingResult.topQueries = list.map((item: any) => ({
+            query: item.Query || '',
+            clicks: item.Clicks || 0,
+            impressions: item.Impressions || 0,
+          }));
+          bingResult.status = 'LIVE_CONNECTED';
+        } else {
+          bingResult.status = `API_HTTP_${bingRes.status}`;
+        }
+      } catch (err: any) {
+        bingResult.status = 'API_ERROR';
+        bingResult.error = err?.message || 'Bing Webmaster fetch failed';
+      }
+    }
+
+    let recentSnapshots: any[] = [];
+    try {
+      recentSnapshots = await getRecentIndexingSnapshotsDb(8);
+    } catch {
+      recentSnapshots = [];
+    }
+
+    return res.json({
+      success: true,
+      checkedAt: now.toISOString(),
+      propertyOrigin: appOrigin,
+      languagesCount: 12,
+      googleSearchConsole: gscResult,
+      bingWebmaster: bingResult,
+      recentIndexingSnapshots: recentSnapshots,
+    });
+  });
+
+  // G3: Live URL Inspection Endpoint (Google URL Inspection API + Bing GetUrlInfo)
+  app.post('/api/indexing/inspect-url', async (req, res) => {
+    const appOrigin = resolveRequestOrigin(req);
+    const inspectionUrl = String(req.body?.url || `${appOrigin}/`).trim();
+    const gscSiteUrl = String(process.env.GSC_SITE_URL || `${appOrigin}/`).trim();
+    const bingApiKey = String(process.env.BING_WEBMASTER_API_KEY || '').trim();
+
+    let gscInspection: Record<string, any> = {
+      configured: false,
+      status: 'READY_FOR_CREDENTIALS',
+    };
+    const { token: gscToken } = await resolveGoogleSearchConsoleAccessToken();
+    if (gscToken) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const resp = await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', {
+          method: 'POST',
+          signal: ctrl.signal,
+          headers: {
+            Authorization: `Bearer ${gscToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inspectionUrl,
+            siteUrl: gscSiteUrl,
+            languageCode: 'en-US',
+          }),
+        });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const data: any = await resp.json();
+          gscInspection = {
+            configured: true,
+            status: 'LIVE_INSPECTED',
+            verdict: data?.inspectionResult?.indexStatusResult?.verdict || 'UNKNOWN',
+            coverageState: data?.inspectionResult?.indexStatusResult?.coverageState || '',
+            lastCrawlTime: data?.inspectionResult?.indexStatusResult?.lastCrawlTime || null,
+          };
+        } else {
+          gscInspection = { configured: true, status: `API_HTTP_${resp.status}` };
+        }
+      } catch (err: any) {
+        gscInspection = { configured: true, status: 'API_ERROR', error: err?.message };
+      }
+    }
+
+    let bingInspection: Record<string, any> = {
+      configured: Boolean(bingApiKey),
+      status: bingApiKey ? 'CHECKING' : 'INDEXNOW_ACTIVE_API_KEY_OPTIONAL',
+    };
+    if (bingApiKey) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const resp = await fetch(
+          `https://ssl.bing.com/webmaster/api.svc/json/GetUrlInfo?apikey=${encodeURIComponent(
+            bingApiKey
+          )}&siteUrl=${encodeURIComponent(gscSiteUrl)}&url=${encodeURIComponent(inspectionUrl)}`,
+          { signal: ctrl.signal }
+        );
+        clearTimeout(timer);
+        if (resp.ok) {
+          const data: any = await resp.json();
+          bingInspection = {
+            configured: true,
+            status: 'LIVE_INSPECTED',
+            isPage: Boolean(data?.d?.IsPage),
+            lastCrawledDate: data?.d?.LastCrawledDate || null,
+            httpStatus: data?.d?.HttpStatus || null,
+          };
+        } else {
+          bingInspection = { configured: true, status: `API_HTTP_${resp.status}` };
+        }
+      } catch (err: any) {
+        bingInspection = { configured: true, status: 'API_ERROR', error: err?.message };
+      }
+    }
+
+    return res.json({
+      success: true,
+      inspectionUrl,
+      inspectedAt: new Date().toISOString(),
+      googleSearchConsole: gscInspection,
+      bingWebmaster: bingInspection,
+    });
+  });
+
+  // G4: Authenticated User Bookmarks & Reading Progress Sync (Firebase Auth + Cloud SQL PostgreSQL)
+  app.get('/api/user/bookmarks', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+      const bookmarks = await getUserBookmarksDb(uid);
+      return res.json({ success: true, bookmarks });
+    } catch (error: any) {
+      console.error('Failed to fetch user bookmarks:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to fetch bookmarks' });
+    }
+  });
+
+  app.post('/api/user/bookmarks', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+      const {
+        articleId,
+        isBookmarked = true,
+        isRead = false,
+        progressPercent = 0,
+      } = req.body || {};
+      if (!articleId || typeof articleId !== 'string') {
+        return res.status(400).json({ error: 'articleId is required' });
+      }
+      const saved = await upsertUserBookmarkDb({
+        userUid: uid,
+        articleId: articleId.trim(),
+        isBookmarked: Boolean(isBookmarked),
+        isRead: Boolean(isRead),
+        progressPercent: Number(progressPercent) || 0,
+      });
+      return res.json({ success: true, bookmark: saved });
+    } catch (error: any) {
+      console.error('Failed to save user bookmark:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to save bookmark' });
+    }
   });
 
   // Dedicated 77 Turkish Articles x 12 World Languages = 924 Canonical URLs Status & Multi-Browser Dispatcher
@@ -7365,7 +7959,32 @@ ${text}`,
     }
   }
 
+  // G1: Persistent 12-Language Full-Article Translation Cache (Memory + Cloud SQL PostgreSQL)
   const articleTranslationCache = new Map<string, any>();
+
+  app.get('/api/ai/translation-cache/stats', async (_req, res) => {
+    try {
+      const dbStats = await getTranslationCacheStats();
+      return res.json({
+        success: true,
+        supportedLanguagesCount: SUPPORTED_12_LANGS.length,
+        supportedLanguages: [...SUPPORTED_12_LANGS],
+        memoryCachedCount: articleTranslationCache.size,
+        persistedCount: dbStats.totalCachedTranslations,
+        byLanguage: dbStats.byLanguage,
+      });
+    } catch (error: any) {
+      return res.json({
+        success: true,
+        supportedLanguagesCount: SUPPORTED_12_LANGS.length,
+        supportedLanguages: [...SUPPORTED_12_LANGS],
+        memoryCachedCount: articleTranslationCache.size,
+        persistedCount: 0,
+        byLanguage: {},
+      });
+    }
+  });
+
   app.post('/api/ai/translate-article', async (req, res) => {
     try {
       const {
@@ -7380,10 +7999,25 @@ ${text}`,
       if (!title || typeof title !== 'string' || !targetLanguage || typeof targetLanguage !== 'string') {
         return res.status(400).json({ error: 'Both title and targetLanguage are required.' });
       }
-      const cacheKey = `${String(articleId || title.slice(0, 80)).toLowerCase()}::${targetLanguage.toLowerCase()}`;
+      const cleanArticleId = String(articleId || title.slice(0, 80)).toLowerCase();
+      const cleanLang = targetLanguage.toLowerCase();
+      const cacheKey = `${cleanArticleId}::${cleanLang}`;
+
       if (articleTranslationCache.has(cacheKey)) {
-        return res.json(articleTranslationCache.get(cacheKey));
+        return res.json({ ...articleTranslationCache.get(cacheKey), cacheSource: 'memory' });
       }
+
+      // Check persistent Cloud SQL PostgreSQL translation cache
+      try {
+        const persisted = await getCachedArticleTranslation(cacheKey);
+        if (persisted) {
+          articleTranslationCache.set(cacheKey, persisted);
+          return res.json({ ...persisted, cacheSource: 'persistent_cache' });
+        }
+      } catch (cacheErr) {
+        console.error('Non-fatal persistent translation lookup error:', cacheErr);
+      }
+
       if (!process.env.GEMINI_API_KEY) {
         return res.status(503).json({ error: 'Gemini API key is not configured on the server.' });
       }
@@ -7427,11 +8061,13 @@ ${text}`,
       };
 
       let parsed: Record<string, any> | null = null;
+      let usedModel = 'gemini-4-hydrogen';
       let lastErr: any = null;
       const modelCandidates = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
       for (const candidateModel of modelCandidates) {
         try {
           parsed = await runTranslationModel(candidateModel);
+          usedModel = candidateModel;
           break;
         } catch (err: any) {
           lastErr = err;
@@ -7451,13 +8087,127 @@ ${text}`,
         if (firstKey) articleTranslationCache.delete(firstKey);
       }
       articleTranslationCache.set(cacheKey, parsed);
-      return res.json(parsed);
+
+      // Persist full translated body permanently in PostgreSQL across server restarts
+      try {
+        await upsertArticleTranslation({
+          cacheKey,
+          articleId: cleanArticleId,
+          targetLanguage: cleanLang,
+          title: String(parsed.title || title),
+          subtitle: String(parsed.subtitle || subtitle),
+          abstract: String(parsed.abstract || abstract),
+          keyFindings: Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [],
+          contentParagraphs: Array.isArray(parsed.contentParagraphs) ? parsed.contentParagraphs : [],
+          modelUsed: usedModel,
+        });
+      } catch (persistErr) {
+        console.error('Non-fatal persistent translation save error:', persistErr);
+      }
+
+      return res.json({ ...parsed, cacheSource: 'generated_and_persisted' });
     } catch (error: any) {
       console.error('Gemini translate-article error:', error);
       const statusCode = Number(error?.status || error?.code) || 500;
       return res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
         error: error?.message || 'Failed to translate article via Gemini API.',
       });
+    }
+  });
+
+  // G1: Batch Pre-Warm Endpoint for Persistent 12-Language Full-Body Translation Cache
+  app.post('/api/ai/translation-cache/warm', async (req, res) => {
+    try {
+      const {
+        articleId = '',
+        title = '',
+        subtitle = '',
+        abstract = '',
+        keyFindings = [],
+        contentParagraphs = [],
+        targetLanguages = [...SUPPORTED_12_LANGS],
+      } = req.body || {};
+
+      if (!title || typeof title !== 'string') {
+        return res.status(400).json({ error: 'title is required to warm translation cache.' });
+      }
+      const cleanArticleId = String(articleId || title.slice(0, 80)).toLowerCase();
+      const requestedLangs = (Array.isArray(targetLanguages) ? targetLanguages : [...SUPPORTED_12_LANGS])
+        .map((l: string) => String(l || '').toLowerCase())
+        .filter((l: string) => (SUPPORTED_12_LANGS as readonly string[]).includes(l));
+
+      const results: { lang: string; status: 'cached' | 'warmed' | 'skipped' | 'error' }[] = [];
+      for (const lang of requestedLangs) {
+        const cacheKey = `${cleanArticleId}::${lang}`;
+        try {
+          const existing =
+            articleTranslationCache.get(cacheKey) || (await getCachedArticleTranslation(cacheKey));
+          if (existing) {
+            articleTranslationCache.set(cacheKey, existing);
+            results.push({ lang, status: 'cached' });
+            continue;
+          }
+          if (!process.env.GEMINI_API_KEY) {
+            results.push({ lang, status: 'skipped' });
+            continue;
+          }
+          const [{ Type }, ai] = await Promise.all([getGenAiSdk(), getGeminiClient()]);
+          const payloadJson = JSON.stringify({
+            title,
+            subtitle,
+            abstract,
+            keyFindings: Array.isArray(keyFindings) ? keyFindings.slice(0, 8) : [],
+            contentParagraphs: Array.isArray(contentParagraphs) ? contentParagraphs.slice(0, 12) : [],
+          });
+          const response = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-lite',
+            contents: `Translate this academic paper into language code "${lang}" preserving scientific and mathematical accuracy. Return strictly valid JSON.\n\n${payloadJson}`,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  subtitle: { type: Type.STRING },
+                  abstract: { type: Type.STRING },
+                  keyFindings: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  contentParagraphs: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ['title', 'subtitle', 'abstract', 'keyFindings', 'contentParagraphs'],
+              },
+            },
+          });
+          const parsed = extractSafeJsonObject(response.text || '{}');
+          if (parsed.title || parsed.abstract) {
+            articleTranslationCache.set(cacheKey, parsed);
+            await upsertArticleTranslation({
+              cacheKey,
+              articleId: cleanArticleId,
+              targetLanguage: lang,
+              title: String(parsed.title || title),
+              subtitle: String(parsed.subtitle || subtitle),
+              abstract: String(parsed.abstract || abstract),
+              keyFindings: Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [],
+              contentParagraphs: Array.isArray(parsed.contentParagraphs) ? parsed.contentParagraphs : [],
+              modelUsed: 'gemini-3.1-flash-lite',
+            });
+            results.push({ lang, status: 'warmed' });
+          } else {
+            results.push({ lang, status: 'error' });
+          }
+        } catch {
+          results.push({ lang, status: 'error' });
+        }
+      }
+
+      return res.json({
+        success: true,
+        articleId: cleanArticleId,
+        languagesProcessed: results.length,
+        results,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error?.message || 'Failed to warm translation cache.' });
     }
   });
 
@@ -7843,6 +8593,154 @@ ${text}`,
     writeCloudStoreSafe(existingData);
   }
 
+  // KVKK (Law No. 6698) & EU GDPR (2016/679) Public Compliance Manifest & Authenticated Data Subject Rights API
+  app.get('/api/privacy/compliance-manifest', (req, res) => {
+    const appOrigin = resolveRequestOrigin(req);
+    return res.status(200).json({
+      success: true,
+      standards: ['KVKK (Turkish Law No. 6698)', 'GDPR (EU Regulation 2016/679)'],
+      dataController: {
+        name: 'Emre Pelit',
+        location: 'Mersin, Türkiye',
+        contactEmail: AUTHOR_ESCALATION_EMAIL,
+        canonicalDomain: appOrigin,
+      },
+      privacyByDesign: {
+        preConsentThirdPartyFontsBlocked: true,
+        preConsentAnalyticsBlocked: true,
+        gpcAndDntHonored: true,
+        equalProminenceRejectAcceptBanner: true,
+        supportedConsentBannerLanguages: 12,
+        thirdPartyRelayPiiMinimized: true,
+        serverSideAiKeyIsolation: true,
+      },
+      subProcessors: [
+        {
+          name: 'Google Cloud Platform (europe-west2)',
+          purpose: 'Application hosting & optional signed-in user bookmark/Q&A persistence',
+          region: 'europe-west2 (London / EEA-adequate)',
+        },
+        {
+          name: 'Firebase Authentication (Optional Google Sign-In)',
+          purpose: 'Opt-in reader sign-in for cross-device bookmark synchronization',
+          region: 'Global / EU Standard Contractual Clauses',
+        },
+        {
+          name: 'Google Gemini API (Server-Side Only)',
+          purpose: 'On-demand article Q&A synthesis and 12-language translation',
+          region: 'Server-side isolated proxy (/api/*)',
+        },
+      ],
+      retentionPolicy: {
+        browserLocalStorage: 'Until cleared by user or erased via Privacy Center',
+        authenticatedBookmarks: 'Until account/data deletion request (GDPR Art. 17 / KVKK m.7)',
+        voluntaryQaSubmissions: 'Maximum 12 months or immediate deletion upon request',
+        aggregateAnalyticsCounters: 'Anonymized non-PII aggregate metrics only',
+      },
+      dataSubjectRights: {
+        selfServiceExportEndpoint: '/api/privacy/export-my-data',
+        selfServiceErasureEndpoint: '/api/privacy/delete-my-data',
+        supervisoryAuthorities: [
+          'Kişisel Verileri Koruma Kurumu (KVKK) — https://www.kvkk.gov.tr',
+          'European Data Protection Board (EDPB) / EU Member State DPAs — https://www.edpb.europa.eu',
+        ],
+      },
+    });
+  });
+
+  app.get('/api/privacy/export-my-data', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+      const userEmail = req.user?.email || '';
+      const dbExport = await exportUserPersonalDataDb(uid, userEmail);
+
+      // Also include any matching voluntary Q&A receipts stored in first-party JSON queue
+      let matchingQueueEntries: any[] = [];
+      if (userEmail) {
+        const normalizedEmail = userEmail.trim().toLowerCase();
+        const logs = loadPersistedEmailEscalationLogs();
+        matchingQueueEntries = logs
+          .filter(
+            (entry: any) =>
+              String(entry?.confidentialOwnerOnlyEmail || '').trim().toLowerCase() ===
+              normalizedEmail
+          )
+          .map((entry: any) => ({
+            receiptId: entry.receiptId,
+            articleId: entry.articleId,
+            articleTitle: entry.articleTitle,
+            inquiryType: entry.inquiryType,
+            questionText: entry.questionText,
+            dispatchedAtUtc: entry.dispatchedAtUtc,
+          }));
+      }
+
+      return res.status(200).json({
+        success: true,
+        legalBasis: 'KVKK Madde 11 & GDPR Article 15 / Article 20 (Right of Access & Data Portability)',
+        exportedAt: new Date().toISOString(),
+        dataController: { name: 'Emre Pelit', contactEmail: AUTHOR_ESCALATION_EMAIL },
+        accountAndServerRecords: dbExport,
+        firstPartyQaQueueRecords: matchingQueueEntries,
+      });
+    } catch (error: any) {
+      console.error('KVKK/GDPR data export failed:', error);
+      return res.status(500).json({ error: error?.message || 'Data export failed' });
+    }
+  });
+
+  app.delete('/api/privacy/delete-my-data', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+      const userEmail = req.user?.email || '';
+
+      const dbResult = await deleteUserPersonalDataDb(uid, userEmail);
+
+      // Also scrub matching personal email entries from first-party JSON queue & memory
+      let scrubbedQueueCount = 0;
+      if (userEmail) {
+        const normalizedEmail = userEmail.trim().toLowerCase();
+        const beforeMem = inMemoryEmailLogs.length;
+        inMemoryEmailLogs = inMemoryEmailLogs.filter(
+          (entry: any) =>
+            String(entry?.confidentialOwnerOnlyEmail || '').trim().toLowerCase() !==
+            normalizedEmail
+        );
+        scrubbedQueueCount += Math.max(0, beforeMem - inMemoryEmailLogs.length);
+
+        const existingData = readCloudStoreSafe();
+        if (existingData && Array.isArray(existingData.emailEscalationLogs)) {
+          const beforeDisk = existingData.emailEscalationLogs.length;
+          existingData.emailEscalationLogs = existingData.emailEscalationLogs.filter(
+            (entry: any) =>
+              String(entry?.confidentialOwnerOnlyEmail || '').trim().toLowerCase() !==
+              normalizedEmail
+          );
+          const removedDisk = Math.max(0, beforeDisk - existingData.emailEscalationLogs.length);
+          scrubbedQueueCount = Math.max(scrubbedQueueCount, removedDisk);
+          if (removedDisk > 0) {
+            writeCloudStoreSafe(existingData);
+          }
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        legalBasis: 'KVKK Madde 7 & Madde 11 / GDPR Article 17 (Right to Erasure)',
+        deletedAt: new Date().toISOString(),
+        summary: {
+          ...dbResult,
+          scrubbedQueueCount,
+        },
+      });
+    } catch (error: any) {
+      console.error('KVKK/GDPR data erasure failed:', error);
+      return res.status(500).json({ error: error?.message || 'Data erasure failed' });
+    }
+  });
+
   async function dispatchQuestionEmailToEmrePelit(params: {
     articleId: string;
     articleTitle: string;
@@ -7850,6 +8748,8 @@ ${text}`,
     questionText: string;
     askerName?: string;
     askerEmail?: string;
+    ownerVisibilityOnly?: boolean;
+    generatedAnswerSummary?: string;
   }) {
     const nowIso = new Date().toISOString();
     const formattedUtc = nowIso.replace('T', ' ').slice(0, 19) + ' UTC';
@@ -7863,13 +8763,17 @@ ${text}`,
     const hasValidEmail = Boolean(cleanAskerEmail.includes('@') && cleanAskerEmail.includes('.'));
     const inquiryLabel =
       params.inquiryType === 'OBJECTION' ? 'BİLİMSEL/FELSEFİ İTİRAZ' : 'OKUR SORUSU';
+    const isOwnerCopy = Boolean(params.ownerVisibilityOnly);
+    const answerSnippet = String(params.generatedAnswerSummary || '').trim().slice(0, 800);
 
-    const subjectLine = `[7/24 Külliyat ${inquiryLabel} İletimi] ${params.articleTitle}`;
+    const subjectLine = isOwnerCopy
+      ? `[Sadece Yazar Görmesi İçin · Cevaplanan ${inquiryLabel}] ${params.articleTitle}`
+      : `[7/24 Külliyat ${inquiryLabel} İletimi] ${params.articleTitle}`;
 
     const corpusCount = Math.max(316, getCombined301CorpusEntries().length);
     const publicEmailBodyPreview = [
       `Alıcı: ${AUTHOR_ESCALATION_EMAIL} (7/24 Kesintisiz Yazar Kuyruğu)`,
-      `İletim Türü: ${inquiryLabel}`,
+      `İletim Türü: ${inquiryLabel}${isOwnerCopy ? ' (Yazar Bilgi Kopyası — Motor Tarafından Yanıtlandı)' : ''}`,
       `İncelenen Külliyat: Emre Pelit ${corpusCount} Özgün Bilim ve Felsefe Makalesi Tamamı`,
       `İlgili Makale: ${params.articleTitle}`,
       `Makale ID / Arşiv Kodu: ${params.articleId}`,
@@ -7878,16 +8782,17 @@ ${text}`,
       `Gönderim Zamanı (7/24 Aktif Sistem): ${formattedUtc}`,
       `İletim Makbuz Kodu: ${receiptId}`,
       `------------------------------------------------------------`,
-      `${corpusCount} MAKALE KÜLLİYATINDA DOĞRUDAN CEVABI ÜRETİLEMEYEN / YAZARA YÖNLENDİRİLEN ${inquiryLabel}:`,
+      `${isOwnerCopy ? 'OKUR TARAFINDAN SORULAN VE MOTORUN YANITLADIĞI' : `${corpusCount} MAKALE KÜLLİYATINDA DOĞRUDAN CEVABI ÜRETİLEMEYEN / YAZARA YÖNLENDİRİLEN`} ${inquiryLabel}:`,
       `"${params.questionText}"`,
+      ...(answerSnippet ? [`------------------------------------------------------------`, `Motorun Ürettiği Cevap Özeti: ${answerSnippet}`] : []),
       `------------------------------------------------------------`,
       `Gizlilik Kilidi: Soru soranın e-posta adresi üçüncü kişilere tamamen kapatılmış olup yalnızca emrepelit39@gmail.com adresine iletilen özel zarf içinde yer almaktadır.`,
     ].join('\n');
 
     // Private body delivered ONLY to emrepelit39@gmail.com inbox
     const privateOwnerEmailBody = [
-      `Alıcı: ${AUTHOR_ESCALATION_EMAIL}`,
-      `İletim Türü: ${inquiryLabel}`,
+      `Alıcı: ${AUTHOR_ESCALATION_EMAIL} (Yalnızca Emre Pelit Görmesi İçin)`,
+      `İletim Türü: ${inquiryLabel}${isOwnerCopy ? ' · Motor Tarafından Yanıtlandı (Yazar Bilgi Kopyası)' : ' · Doğrudan Yazar Yanıtı Bekliyor'}`,
       `İlgili Makale: ${params.articleTitle} (${params.articleId})`,
       `Soran / İtiraz Eden Okur: ${params.askerName || 'Okur'}`,
       `Soru Soranın Gizli Yanıt E-Posta Adresi (Sadece emrepelit39@gmail.com İçin): ${cleanAskerEmail || 'Belirtilmedi'}`,
@@ -7896,18 +8801,27 @@ ${text}`,
       `------------------------------------------------------------`,
       `${inquiryLabel}:`,
       `"${params.questionText}"`,
+      ...(answerSnippet
+        ? [`------------------------------------------------------------`, `Soru Cevaplayıcı Motorun Ürettiği Cevap Özeti:\n${answerSnippet}`]
+        : []),
     ].join('\n');
 
     let deliveryChannel =
       '7/24 Aktif Sunucu E-Posta Rölesi + Sadece emrepelit39@gmail.com Görünürlüklü Gizli Zarf';
     let deliveredExternally = false;
+    let usedProvider = 'outbox_relay';
 
     const resendApiKey = String(process.env.RESEND_API_KEY || '').trim();
+    const smtpHost = String(process.env.SMTP_HOST || '').trim();
+    const smtpPort = Number(process.env.SMTP_PORT || 587);
+    const smtpUser = String(process.env.SMTP_USER || '').trim();
+    const smtpPass = String(process.env.SMTP_PASS || '').trim();
+    const smtpSecure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || smtpPort === 465;
     const smtpWebhookUrl = String(process.env.SMTP_WEBHOOK_URL || '').trim();
     const smtpWebhookSecret = String(process.env.SMTP_WEBHOOK_SECRET || '').trim();
     const smtpFromEmail =
       String(process.env.SMTP_FROM_EMAIL || '').trim() ||
-      'Sci-Phil Archive <noreply@emrepelit-sciphi.ai.studio>';
+      (smtpUser && smtpUser.includes('@') ? `Sci-Phil Archive <${smtpUser}>` : 'Sci-Phil Archive <noreply@emrepelit-sciphi.ai.studio>');
 
     // Priority 1: Direct Transactional Email via Resend API (when configured in environment)
     if (resendApiKey) {
@@ -7932,15 +8846,47 @@ ${text}`,
         clearTimeout(timer);
         if (resendRes.ok) {
           deliveredExternally = true;
+          usedProvider = 'resend';
           deliveryChannel =
-            'Doğrudan Transactional SMTP/Resend E-Posta Teslimatı + Sadece emrepelit39@gmail.com Gizli Kuyruk';
+            'Doğrudan Transactional Resend E-Posta Teslimatı + Sadece emrepelit39@gmail.com Gizli Kuyruk';
         }
       } catch {
-        // Fallback to webhook / relay / persistent outbox below
+        // Fallback to native SMTP / webhook / relay below
       }
     }
 
-    // Priority 2: Custom Authenticated SMTP Webhook Relay (when configured in environment)
+    // Priority 2 (G2): Direct Native SMTP Transport via Nodemailer (Gmail App Password / Brevo / SES / Custom SMTP)
+    if (!deliveredExternally && smtpHost && smtpUser && smtpPass) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: Number.isFinite(smtpPort) ? smtpPort : 587,
+          secure: smtpSecure,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+          connectionTimeout: 4000,
+          greetingTimeout: 4000,
+          socketTimeout: 5000,
+        });
+        await transporter.sendMail({
+          from: smtpFromEmail,
+          to: AUTHOR_ESCALATION_EMAIL,
+          replyTo: hasValidEmail ? cleanAskerEmail : undefined,
+          subject: subjectLine,
+          text: privateOwnerEmailBody,
+        });
+        deliveredExternally = true;
+        usedProvider = 'smtp_direct';
+        deliveryChannel =
+          'Doğrudan Native SMTP (Nodemailer) E-Posta Teslimatı + Sadece emrepelit39@gmail.com Gizli Kuyruk';
+      } catch (smtpErr) {
+        console.error('Direct SMTP delivery failed, trying fallback:', smtpErr);
+      }
+    }
+
+    // Priority 3: Custom Authenticated SMTP Webhook Relay (when configured in environment)
     if (!deliveredExternally && smtpWebhookUrl) {
       try {
         const ctrl = new AbortController();
@@ -7968,6 +8914,7 @@ ${text}`,
         clearTimeout(timer);
         if (whRes.ok) {
           deliveredExternally = true;
+          usedProvider = 'smtp_webhook';
           deliveryChannel =
             'Doğrudan SMTP Webhook Teslimatı + Sadece emrepelit39@gmail.com Gizli Kuyruk';
         }
@@ -7976,7 +8923,9 @@ ${text}`,
       }
     }
 
-    // Priority 3: Non-blocking external HTTP email relay fallback directly to emrepelit39@gmail.com
+    // Priority 4: Privacy-minimized external HTTP notification relay fallback to emrepelit39@gmail.com
+    // GDPR Art. 28 & KVKK m.9 PII Minimization: raw reader email is NEVER sent to uncontracted third-party relays;
+    // it remains strictly inside first-party encrypted storage & owner queue accessible solely to emrepelit39@gmail.com.
     if (!deliveredExternally) {
       try {
         const ctrl = new AbortController();
@@ -7996,18 +8945,21 @@ ${text}`,
             article_title: params.articleTitle,
             article_id: params.articleId,
             asker_name: params.askerName || 'Anonim Okur',
-            confidential_asker_email_only_for_emrepelit39: cleanAskerEmail || 'belirtilmedi',
-            _replyto: cleanAskerEmail || undefined,
+            asker_email_privacy_status: hasValidEmail
+              ? 'KVKK/GDPR Korumalı: Okur e-postası üçüncü taraf röleye gönderilmedi; yalnızca birinci taraf yazar kuyruğunda saklandı.'
+              : 'belirtilmedi',
             question_or_objection: params.questionText,
             receipt_id: receiptId,
             dispatched_at_utc: formattedUtc,
-            message: privateOwnerEmailBody,
+            message: publicEmailBodyPreview,
           }),
         });
         clearTimeout(timer);
         if (relayRes.ok) {
+          deliveredExternally = true;
+          usedProvider = 'http_relay';
           deliveryChannel =
-            '7/24 Aktif Doğrudan SMTP/HTTP E-Posta Rölesi + Sadece emrepelit39@gmail.com Görünürlüklü Gizli Kuyruk';
+            'KVKK/GDPR Veri Minimizasyonlu Bildirim Rölesi + Sadece emrepelit39@gmail.com Görünürlüklü Birinci Taraf Gizli Kuyruk';
         }
       } catch {
         // Persisted in 24/7 server outbox ledger below
@@ -8030,12 +8982,32 @@ ${text}`,
       askerEmailVisibility: 'STRICTLY_ONLY_EMREPELIT39_GMAIL_COM' as const,
       dispatchedAtUtc: formattedUtc,
       deliveryChannel,
+      smtpProvider: usedProvider,
+      deliveredExternally,
       status: 'SENT_24_7_ACTIVE' as const,
       subjectLine,
       emailBodyPreview: publicEmailBodyPreview,
     };
 
     savePersistedEmailEscalationLog(storedRecord);
+
+    // G4: Persist escalation permanently in Cloud SQL PostgreSQL
+    try {
+      await saveQaEscalation({
+        receiptId,
+        articleId: params.articleId,
+        articleTitle: params.articleTitle,
+        inquiryType: params.inquiryType || 'QUESTION',
+        askerName: params.askerName || 'Okur',
+        askerEmail: cleanAskerEmail,
+        questionText: params.questionText,
+        deliveryChannel,
+        smtpProvider: usedProvider,
+        deliveredExternally,
+      });
+    } catch (dbErr) {
+      console.error('Non-fatal Q&A escalation DB persist error:', dbErr);
+    }
 
     // Return public-safe receipt (never leaks raw askerEmail to public DOM state)
     const { confidentialOwnerOnlyEmail: _omitPrivate, ...publicSafeReceipt } = storedRecord;
@@ -8081,6 +9053,7 @@ ${text}`,
       question = '',
       askerName = '',
       askerEmail = '',
+      kvkkConsentAccepted = false,
       _hp = '',
       company_website = '',
     } = req.body || {};
@@ -8088,6 +9061,14 @@ ${text}`,
     if (String(_hp || company_website || '').trim().length > 0) {
       blockedExternalThreatsCount += 1;
       return res.status(400).json({ error: 'Spam / Bot koruması: Geçersiz form gönderimi reddedildi.' });
+    }
+
+    if (kvkkConsentAccepted !== true) {
+      return res.status(400).json({
+        error:
+          'KVKK (6698) ve AB GDPR (2016/679) gereği soru/itiraz gönderimi için açık rıza onayı (kvkkConsentAccepted: true) zorunludur.',
+        requiresKvkkConsent: true,
+      });
     }
 
     if (!question || typeof question !== 'string' || !question.trim()) {
@@ -8121,6 +9102,116 @@ ${text}`,
     });
   });
 
+  // Forward ALL previously asked questions (from DB + server cloud store + optional client history) strictly to emrepelit39@gmail.com
+  app.post('/api/qa/forward-past-questions', async (req, res) => {
+    try {
+      const incomingLocal = Array.isArray(req.body?.questions) ? req.body.questions : [];
+      const persistedFileLogs = loadPersistedEmailEscalationLogs();
+      let dbLogs: any[] = [];
+      try {
+        const { listQaEscalations } = await import('./src/db/repository.ts');
+        dbLogs = await listQaEscalations(200);
+      } catch {
+        dbLogs = [];
+      }
+
+      const dedupedMap = new Map<
+        string,
+        {
+          articleId: string;
+          articleTitle: string;
+          inquiryType: 'QUESTION' | 'OBJECTION';
+          questionText: string;
+          askerName: string;
+          askerEmail: string;
+          generatedAnswerSummary: string;
+          askedAt: string;
+        }
+      >();
+
+      const addItem = (raw: any) => {
+        const q = String(raw?.questionText || raw?.question || '').trim();
+        if (!q) return;
+        const aId = String(raw?.articleId || 'corpus').trim();
+        const key = `${aId.toLowerCase()}::${q.toLowerCase()}`;
+        if (dedupedMap.has(key)) return;
+        dedupedMap.set(key, {
+          articleId: aId,
+          articleTitle: String(raw?.articleTitle || 'Emre Pelit Makalesi').trim(),
+          inquiryType: String(raw?.inquiryType || '').toUpperCase() === 'OBJECTION' ? 'OBJECTION' : 'QUESTION',
+          questionText: q,
+          askerName: String(raw?.askerName || 'Okur').trim() || 'Okur',
+          askerEmail: String(raw?.confidentialOwnerOnlyEmail || raw?.askerEmail || '').trim(),
+          generatedAnswerSummary: String(raw?.generatedAnswerSummary || raw?.answerSummary || '').trim(),
+          askedAt: String(raw?.dispatchedAtUtc || raw?.askedAt || raw?.createdAt || new Date().toISOString()),
+        });
+      };
+
+      for (const item of incomingLocal) addItem(item);
+      for (const item of dbLogs) addItem(item);
+      for (const item of persistedFileLogs) addItem(item);
+
+      const allItems = Array.from(dedupedMap.values());
+      const dispatchedReceipts: any[] = [];
+
+      // Persist & forward each newly discovered client/past question individually (capped at 25 per request)
+      for (const item of incomingLocal.slice(0, 25)) {
+        const q = String(item?.questionText || item?.question || '').trim();
+        if (!q) continue;
+        const receipt = await dispatchQuestionEmailToEmrePelit({
+          articleId: String(item?.articleId || 'corpus'),
+          articleTitle: String(item?.articleTitle || 'Emre Pelit Makalesi'),
+          inquiryType: String(item?.inquiryType || '').toUpperCase() === 'OBJECTION' ? 'OBJECTION' : 'QUESTION',
+          questionText: q,
+          askerName: String(item?.askerName || 'Okur'),
+          askerEmail: String(item?.askerEmail || ''),
+          ownerVisibilityOnly: true,
+          generatedAnswerSummary: String(item?.generatedAnswerSummary || item?.answerSummary || ''),
+        });
+        dispatchedReceipts.push(receipt);
+      }
+
+      // Send a consolidated past-questions digest to emrepelit39@gmail.com if requested or if existing records exist
+      const sendDigest = req.body?.sendDigest !== false;
+      let digestReceipt: any = null;
+      if (sendDigest && (allItems.length > 0 || req.body?.forceEmptyReport === true)) {
+        const digestBody =
+          allItems.length === 0
+            ? 'Şu ana kadar sunucuda veya tarayıcı geçmişinde kayıtlı bekleyen geçmiş okur sorusu bulunmamaktadır. Bundan sonra sorulan tüm sorular (cevaplananlar dahil) otomatik olarak yalnızca emrepelit39@gmail.com adresine iletilecektir.'
+            : allItems
+                .map(
+                  (it, idx) =>
+                    `${idx + 1}. [${it.askedAt}] (${it.inquiryType}) Makale: ${it.articleTitle}\n   Soran: ${it.askerName}\n   Soru: "${it.questionText}"${
+                      it.generatedAnswerSummary ? `\n   Motor Yanıt Özeti: ${it.generatedAnswerSummary.slice(0, 240)}` : ''
+                    }`
+                )
+                .join('\n\n');
+
+        digestReceipt = await dispatchQuestionEmailToEmrePelit({
+          articleId: 'all-past-questions-digest',
+          articleTitle: `Şu Ana Kadar Sorulmuş Tüm Okur Soruları Özeti (${allItems.length} Soru)`,
+          inquiryType: 'QUESTION',
+          questionText: digestBody,
+          askerName: '7/24 Otomatik Soru Arşiv Rölesi',
+          askerEmail: '',
+          ownerVisibilityOnly: true,
+        });
+      }
+
+      return res.json({
+        success: true,
+        recipientEmail: AUTHOR_ESCALATION_EMAIL,
+        totalHistoricalQuestionsFound: allItems.length,
+        newlyForwardedCount: dispatchedReceipts.length,
+        digestDispatched: Boolean(digestReceipt),
+        digestReceipt,
+      });
+    } catch (error: any) {
+      console.error('Forward past questions error:', error);
+      return res.status(500).json({ error: error?.message || 'Geçmiş sorular iletilirken hata oluştu.' });
+    }
+  });
+
   app.post('/api/ai/article-qa', async (req, res) => {
     const {
       articleId = '',
@@ -8137,6 +9228,7 @@ ${text}`,
       askerName = '',
       askerEmail = '',
       forceEmailEscalation = false,
+      kvkkConsentAccepted = false,
       _hp = '',
       company_website = '',
     } = req.body || {};
@@ -8144,6 +9236,14 @@ ${text}`,
     if (String(_hp || company_website || '').trim().length > 0) {
       blockedExternalThreatsCount += 1;
       return res.status(400).json({ error: 'Spam / Bot koruması: Geçersiz istek reddedildi.' });
+    }
+
+    if (kvkkConsentAccepted !== true) {
+      return res.status(400).json({
+        error:
+          'KVKK (6698) & EU GDPR (2016/679) explicit consent confirmation (kvkkConsentAccepted: true) is required before submitting questions.',
+        requiresKvkkConsent: true,
+      });
     }
 
     if (!question || typeof question !== 'string' || !question.trim()) {
@@ -8300,8 +9400,9 @@ INSTRUCTIONS:
       });
 
       const parsed = JSON.parse(response.text || '{}');
-      let emailEscalation = null;
+      let emailEscalation: Awaited<ReturnType<typeof dispatchQuestionEmailToEmrePelit>> | null = null;
       let requiresAskerEmailForEscalation = false;
+      let ownerCopyDispatched = false;
 
       if (parsed.answerFoundInArticle === false) {
         if (hasValidEmail) {
@@ -8313,9 +9414,35 @@ INSTRUCTIONS:
             askerName: String(askerName || ''),
             askerEmail: cleanEmail,
           });
+          ownerCopyDispatched = true;
         } else {
           requiresAskerEmailForEscalation = true;
+          // Still silently forward the asked question ONLY to emrepelit39@gmail.com so Emre Pelit sees every question
+          void dispatchQuestionEmailToEmrePelit({
+            articleId: String(articleId),
+            articleTitle: String(articleTitle),
+            inquiryType: normalizedInquiryType,
+            questionText: cleanQuestion,
+            askerName: String(askerName || ''),
+            askerEmail: '',
+            ownerVisibilityOnly: true,
+            generatedAnswerSummary: String(parsed.optimalDirectAnswer || ''),
+          }).catch(() => {});
+          ownerCopyDispatched = true;
         }
+      } else {
+        // Question WAS answered by scanning all articles: STILL silently forward a copy strictly for emrepelit39@gmail.com to view
+        void dispatchQuestionEmailToEmrePelit({
+          articleId: String(articleId),
+          articleTitle: String(articleTitle),
+          inquiryType: normalizedInquiryType,
+          questionText: cleanQuestion,
+          askerName: String(askerName || ''),
+          askerEmail: hasValidEmail ? cleanEmail : '',
+          ownerVisibilityOnly: true,
+          generatedAnswerSummary: String(parsed.optimalDirectAnswer || ''),
+        }).catch(() => {});
+        ownerCopyDispatched = true;
       }
 
       return res.json({
@@ -8323,13 +9450,25 @@ INSTRUCTIONS:
         ...parsed,
         examinedArticlesCount: Math.max(316, corpusEntries.length),
         requiresAskerEmailForEscalation,
+        ownerCopyDispatched,
         network301References,
         emailEscalation,
       });
     } catch {
+      // Even on Gemini fallback, silently forward the asked question strictly for emrepelit39@gmail.com
+      void dispatchQuestionEmailToEmrePelit({
+        articleId: String(articleId),
+        articleTitle: String(articleTitle),
+        inquiryType: normalizedInquiryType,
+        questionText: cleanQuestion,
+        askerName: String(askerName || ''),
+        askerEmail: hasValidEmail ? cleanEmail : '',
+        ownerVisibilityOnly: true,
+      }).catch(() => {});
       // Client falls back seamlessly to local deterministic 316-article Q&A + confidential email escalation
       return res.json({
         aiProcessed: false,
+        ownerCopyDispatched: true,
         examinedArticlesCount: Math.max(316, corpusEntries.length),
         network301References,
       });
@@ -8480,15 +9619,23 @@ INSTRUCTIONS:
     const passwordConfigured = hasEnvPassword || Boolean(stored.passwordHash);
     const now = Date.now();
     const lockedUntil = stored.lockedUntil && stored.lockedUntil > now ? stored.lockedUntil : 0;
+    const hasDirectSmtp = Boolean(
+      String(process.env.SMTP_HOST || '').trim() &&
+        String(process.env.SMTP_USER || '').trim() &&
+        String(process.env.SMTP_PASS || '').trim()
+    );
     const smtpConfigured = Boolean(
       String(process.env.RESEND_API_KEY || '').trim() ||
+        hasDirectSmtp ||
         String(process.env.SMTP_WEBHOOK_URL || '').trim()
     );
     const smtpProvider = String(process.env.RESEND_API_KEY || '').trim()
       ? 'resend'
-      : String(process.env.SMTP_WEBHOOK_URL || '').trim()
-        ? 'smtp_webhook'
-        : 'outbox_relay';
+      : hasDirectSmtp
+        ? 'smtp_direct'
+        : String(process.env.SMTP_WEBHOOK_URL || '').trim()
+          ? 'smtp_webhook'
+          : 'outbox_relay';
     return res.json({
       exclusiveOwnerName: 'Emre Pelit',
       exclusiveOwnerEmail: EXCLUSIVE_OWNER_EMAIL,
@@ -9719,6 +10866,22 @@ INSTRUCTIONS:
       appInteractionLog: nextLog,
     };
     writeCloudStoreSafe(nextPayload);
+    void recordAnalyticsEventDb({
+      eventType: String(cat || 'PAGE_VIEW'),
+      domain: applyDomain,
+      articleId: input.targetArticleId || '',
+      language: 'tr',
+      payload: {
+        viewsDelta: vDelta,
+        readsDelta: rDelta,
+        citationsDelta: cDelta,
+        videoPlaysDelta: vpDelta,
+        videoWatchSecondsDelta: vwsDelta,
+        sourcePanel: input.sourcePanel || 'ANALYTICS_PANEL',
+      },
+    }).catch(() => {
+      // Non-fatal background DB write
+    });
 
     const totalVideoMins = Math.floor(sumVideoWatchSec / 60);
     const cumulative = {
@@ -9993,6 +11156,7 @@ INSTRUCTIONS:
         createViteServer({
           server: {
             middlewareMode: true,
+            allowedHosts: true,
             hmr: false,
             ws: false as const,
             watch: null,
@@ -10005,7 +11169,7 @@ INSTRUCTIONS:
         viteMiddleware = vite.middlewares;
         return vite;
       })
-      .catch((err) => {
+      .catch((err): null => {
         console.error('Vite middleware initialization failed:', err);
         return null;
       });
@@ -10133,22 +11297,71 @@ INSTRUCTIONS:
     });
   }
 
+  // Final Production-Safe Error Handler (prevents raw stack trace leakage)
+  app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const status = typeof err?.status === 'number' && err.status >= 400 && err.status < 600 ? err.status : 500;
+    if (req.path.startsWith('/api/')) {
+      return res.status(status).json({
+        error: status >= 500 ? 'Internal server error.' : String(err?.message || 'Bad request.'),
+      });
+    }
+    return res.status(status).type('text/plain; charset=utf-8').send(status >= 500 ? 'Internal Server Error' : 'Bad Request');
+  });
+
+  let bloggerSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+  let bloggerSyncInterval: ReturnType<typeof setInterval> | null = null;
+
   const httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on http://0.0.0.0:${PORT}`);
     setImmediate(() => {
       ensureBloggerCacheLoadedFromDisk();
     });
-    setTimeout(() => {
+    bloggerSyncTimeout = setTimeout(() => {
       syncAllBloggerPosts('https://emrepelit7337.blogspot.com', false).catch(() => {});
-    }, 4000);
-    setInterval(() => {
+    }, 12000);
+    bloggerSyncInterval = setInterval(() => {
       syncAllBloggerPosts('https://emrepelit7337.blogspot.com', false).catch(() => {});
-    }, 15000);
+    }, 5 * 60 * 1000);
   });
 
   httpServer.on('error', (err) => {
     console.error(`Server failed to bind port ${PORT}:`, err);
     process.exit(1);
+  });
+
+  // E4: Graceful Shutdown Handler for Cloud Run / Production SIGTERM & SIGINT
+  let isShuttingDown = false;
+  const gracefulShutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log(`[shutdown] Received ${signal}; closing HTTP server and database connections cleanly...`);
+    if (bloggerSyncTimeout) clearTimeout(bloggerSyncTimeout);
+    if (bloggerSyncInterval) clearInterval(bloggerSyncInterval);
+    const forceExitTimer = setTimeout(() => {
+      console.warn('[shutdown] Timeout reached; forcing exit.');
+      process.exit(0);
+    }, 8000);
+    forceExitTimer.unref?.();
+
+    httpServer.close(async () => {
+      try {
+        const pgPool = (globalThis as any)._postgresPool;
+        if (pgPool && typeof pgPool.end === 'function') {
+          await pgPool.end();
+        }
+      } catch {
+        // Ignore pool close errors during shutdown
+      }
+      clearTimeout(forceExitTimer);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => {
+    void gracefulShutdown('SIGTERM');
+  });
+  process.on('SIGINT', () => {
+    void gracefulShutdown('SIGINT');
   });
 }
 

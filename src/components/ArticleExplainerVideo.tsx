@@ -15,6 +15,9 @@ import {
   Mic,
   UserCheck,
   Sliders,
+  Maximize2,
+  Minimize2,
+  Subtitles,
 } from 'lucide-react';
 import { Article, LanguageCode } from '../types';
 import { WORLD_LANGUAGES, getLanguageMeta, getLocalizedArray, getLocalizedText } from '../i18n/translations';
@@ -35,6 +38,9 @@ import {
   buildTtsIntonationDirective,
   selectBestCulturalVoice,
   estimateSpeechDurationSec,
+  sanitizeTextForUninterruptedSpeech,
+  splitSafeUtteranceChunks,
+  toPlainSpokenFallback,
 } from '../utils/culturalVoiceEngine';
 
 export interface VideoWatchProgressPayload {
@@ -310,6 +316,9 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
   const isSpeakingQueueRef = useRef<boolean>(false);
   const speakSessionIdRef = useRef<number>(0);
   const queuePauseTimerRef = useRef<number | null>(null);
+  const speakStartDelayRef = useRef<number | null>(null);
+  const utteranceWatchdogRef = useRef<number | null>(null);
+  const utteranceHeartbeatRef = useRef<number | null>(null);
   const activeQueueIndexRef = useRef<number>(0);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -401,13 +410,32 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
     );
   }, [scenes, currentTime, isPlaying, voiceEnabled, speechSupported, activeQueueItem]);
 
+  const clearUtteranceGuards = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (utteranceWatchdogRef.current !== null) {
+      window.clearTimeout(utteranceWatchdogRef.current);
+      utteranceWatchdogRef.current = null;
+    }
+    if (utteranceHeartbeatRef.current !== null) {
+      window.clearInterval(utteranceHeartbeatRef.current);
+      utteranceHeartbeatRef.current = null;
+    }
+  }, []);
+
   const stopSpeechQueue = useCallback(() => {
     speakSessionIdRef.current += 1;
     isSpeakingQueueRef.current = false;
-    if (queuePauseTimerRef.current !== null && typeof window !== 'undefined') {
-      window.clearTimeout(queuePauseTimerRef.current);
-      queuePauseTimerRef.current = null;
+    if (typeof window !== 'undefined') {
+      if (queuePauseTimerRef.current !== null) {
+        window.clearTimeout(queuePauseTimerRef.current);
+        queuePauseTimerRef.current = null;
+      }
+      if (speakStartDelayRef.current !== null) {
+        window.clearTimeout(speakStartDelayRef.current);
+        speakStartDelayRef.current = null;
+      }
     }
+    clearUtteranceGuards();
     currentUtteranceRef.current = null;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
@@ -416,7 +444,7 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
         // ignore cancel errors
       }
     }
-  }, []);
+  }, [clearUtteranceGuards]);
 
   const flushWatchProgress = useCallback(
     (opts?: { forcePlaysDelta?: number; completed?: boolean; minSeconds?: number }) => {
@@ -607,20 +635,19 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
     };
   }, [stopSpeechQueue]);
 
-  // Chrome 15-second SpeechSynthesis keep-alive so long summaries never stall mid-sentence
+  // Gentle SpeechSynthesis paused-state recovery (NEVER calls pause(), which stutters/kills neural voices)
   useEffect(() => {
     if (!isPlaying || !voiceEnabled || !speechSupported) return;
-    const keepAliveId = window.setInterval(() => {
+    const recoveryId = window.setInterval(() => {
       try {
-        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-          window.speechSynthesis.pause();
+        if (isSpeakingQueueRef.current && window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
         }
       } catch {
         // ignore
       }
-    }, 10000);
-    return () => window.clearInterval(keepAliveId);
+    }, 2500);
+    return () => window.clearInterval(recoveryId);
   }, [isPlaying, voiceEnabled, speechSupported]);
 
   // Auto-scroll active sentence inside expandable script panel
@@ -630,11 +657,36 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
     }
   }, [activeQueueIndex, showScript, isPlaying]);
 
-  // Speak comprehensive summary sentence-by-sentence in the selected language with culturally native narrator.
+  // Keep fresh playback configuration in refs so voiceschanged / intonation tweaks never cancel active speech mid-word
+  const availableVoicesRef = useRef(availableVoices);
+  const userIntonationRef = useRef(userIntonation);
+  const playbackSpeedRef = useRef(playbackSpeed);
+  const personaIndexRef = useRef(personaIndex);
+  const manualVoiceUriRef = useRef(manualVoiceUri);
+  const videoLangRef = useRef(videoLang);
+  const voiceProfileRef = useRef(voiceProfile);
+  const activePersonaRef = useRef(activePersona);
+  const narrationQueueRef = useRef(narrationQueue);
+  const totalEstimatedDurationSecRef = useRef(totalEstimatedDurationSec);
+  const flushWatchProgressRef = useRef(flushWatchProgress);
+
+  availableVoicesRef.current = availableVoices;
+  userIntonationRef.current = userIntonation;
+  playbackSpeedRef.current = playbackSpeed;
+  personaIndexRef.current = personaIndex;
+  manualVoiceUriRef.current = manualVoiceUri;
+  videoLangRef.current = videoLang;
+  voiceProfileRef.current = voiceProfile;
+  activePersonaRef.current = activePersona;
+  narrationQueueRef.current = narrationQueue;
+  totalEstimatedDurationSecRef.current = totalEstimatedDurationSec;
+  flushWatchProgressRef.current = flushWatchProgress;
+
+  // Speak comprehensive summary seamlessly without interruptions on any alphanumeric/symbol/unicode character.
   // Video duration adapts strictly to when the speaker finishes the final sentence!
   const speakQueueFromIndex = useCallback(
     (startIndex: number) => {
-      if (!speechSupported || narrationQueue.length === 0) return;
+      if (!speechSupported || narrationQueueRef.current.length === 0) return;
 
       stopSpeechQueue();
       const mySessionId = speakSessionIdRef.current;
@@ -642,110 +694,251 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
 
       const speakItem = (idx: number) => {
         if (!isSpeakingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+        const queue = narrationQueueRef.current;
 
-        if (idx >= narrationQueue.length) {
+        if (idx >= queue.length) {
           isSpeakingQueueRef.current = false;
+          clearUtteranceGuards();
           const finalDuration = Math.max(
-            totalEstimatedDurationSec,
+            totalEstimatedDurationSecRef.current,
             Math.round(sessionWatchedSecRef.current)
           );
           setActualCompletedDurationSec(finalDuration);
-          setCurrentTime(totalEstimatedDurationSec);
+          setCurrentTime(totalEstimatedDurationSecRef.current);
           maxPositionSecRef.current = finalDuration;
           setIsPlaying(false);
-          flushWatchProgress({ completed: true, minSeconds: 1 });
+          flushWatchProgressRef.current({ completed: true, minSeconds: 1 });
           return;
         }
 
-        const item = narrationQueue[idx];
+        const item = queue[idx];
         activeQueueIndexRef.current = idx;
         setActiveQueueIndex(idx);
         setCurrentTime(item.startSec);
 
-        const utter = new SpeechSynthesisUtterance(item.text);
-        utter.lang = voiceProfile.bcp47;
-        utter.rate = Number(
-          Math.min(
-            2.0,
-            Math.max(0.55, activePersona.rateMultiplier * userIntonation.rate * playbackSpeed)
-          ).toFixed(2)
-        );
-        utter.pitch = Number(
-          Math.min(1.8, Math.max(0.5, activePersona.pitch * userIntonation.pitch)).toFixed(2)
-        );
-        utter.volume = Math.min(1.0, Math.max(0.15, userIntonation.volume));
+        const lang = videoLangRef.current;
+        const subChunks = splitSafeUtteranceChunks(item.text, lang);
 
-        // Re-resolve voice at utterance creation for freshly loaded voices
-        const liveVoices =
-          availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-        const picked = selectBestCulturalVoice(
-          liveVoices,
-          videoLang,
-          personaIndex,
-          manualVoiceUri || undefined
-        );
-        if (picked.voice) {
-          utter.voice = picked.voice;
-        }
-
-        utter.onend = () => {
+        const advanceToNextSentence = () => {
           if (!isSpeakingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+          clearUtteranceGuards();
           const nextIdx = idx + 1;
-          if (nextIdx >= narrationQueue.length) {
+          const liveQueue = narrationQueueRef.current;
+          if (nextIdx >= liveQueue.length) {
             speakItem(nextIdx);
             return;
           }
-          const nextItem = narrationQueue[nextIdx];
+          const nextItem = liveQueue[nextIdx];
+          const prof = voiceProfileRef.current;
           const pauseMs = Math.round(
-            ((nextItem.isSceneStart ? voiceProfile.sectionPauseMs : voiceProfile.sentencePauseMs) *
-              userIntonation.pauseScale) /
-              playbackSpeed
+            ((nextItem.isSceneStart ? prof.sectionPauseMs : prof.sentencePauseMs) *
+              userIntonationRef.current.pauseScale) /
+              playbackSpeedRef.current
           );
           queuePauseTimerRef.current = window.setTimeout(() => {
             if (isSpeakingQueueRef.current && speakSessionIdRef.current === mySessionId) {
               speakItem(nextIdx);
             }
-          }, Math.max(100, pauseMs));
+          }, Math.max(85, Math.min(1800, pauseMs)));
         };
 
-        utter.onerror = (ev) => {
-          // Ignore intentional cancellations triggered by seek/pause/language switch
-          if (ev.error === 'canceled' || ev.error === 'interrupted') return;
+        // If a sentence contained only non-speakable symbols, skip cleanly without pausing
+        if (subChunks.length === 0) {
+          queuePauseTimerRef.current = window.setTimeout(advanceToNextSentence, 60);
+          return;
+        }
+
+        const speakSubChunk = (subIdx: number, attempt: number) => {
           if (!isSpeakingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
-          const nextIdx = idx + 1;
-          queuePauseTimerRef.current = window.setTimeout(() => {
-            if (isSpeakingQueueRef.current && speakSessionIdRef.current === mySessionId) {
-              speakItem(nextIdx);
+          if (subIdx >= subChunks.length) {
+            advanceToNextSentence();
+            return;
+          }
+
+          clearUtteranceGuards();
+
+          const rawChunk = subChunks[subIdx];
+          const spokenText =
+            attempt === 0 ? rawChunk : toPlainSpokenFallback(rawChunk);
+
+          if (!spokenText) {
+            speakSubChunk(subIdx + 1, 0);
+            return;
+          }
+
+          const prof = voiceProfileRef.current;
+          const persona = activePersonaRef.current;
+          const intonation = userIntonationRef.current;
+          const speed = playbackSpeedRef.current;
+
+          const effectiveRate = Number(
+            Math.min(
+              2.0,
+              Math.max(0.55, persona.rateMultiplier * intonation.rate * speed)
+            ).toFixed(2)
+          );
+
+          const utter = new SpeechSynthesisUtterance(spokenText);
+          utter.lang = prof.bcp47;
+          utter.rate = effectiveRate;
+          utter.pitch = Number(
+            Math.min(1.8, Math.max(0.5, persona.pitch * intonation.pitch)).toFixed(2)
+          );
+          utter.volume = Math.min(1.0, Math.max(0.15, intonation.volume));
+
+          // On primary attempt pick best synthetic cultural voice; on retry (attempt > 0) let OS default voice handle any stubborn voice error
+          if (attempt === 0) {
+            const liveVoices =
+              availableVoicesRef.current.length > 0
+                ? availableVoicesRef.current
+                : window.speechSynthesis.getVoices();
+            const picked = selectBestCulturalVoice(
+              liveVoices,
+              lang,
+              personaIndexRef.current,
+              manualVoiceUriRef.current || undefined
+            );
+            if (picked.voice) {
+              utter.voice = picked.voice;
             }
-          }, 250);
+          }
+
+          let settled = false;
+          let hasStarted = false;
+          let quietPollsAfterStart = 0;
+          let quietPollsBeforeStart = 0;
+
+          const settleAndProceed = (retryCurrentChunk: boolean) => {
+            if (settled) return;
+            settled = true;
+            clearUtteranceGuards();
+            if (!isSpeakingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+
+            if (retryCurrentChunk && attempt < 1) {
+              try {
+                window.speechSynthesis.cancel();
+              } catch {
+                // ignore
+              }
+              queuePauseTimerRef.current = window.setTimeout(() => {
+                if (isSpeakingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+                  speakSubChunk(subIdx, attempt + 1);
+                }
+              }, 85);
+              return;
+            }
+
+            if (subIdx + 1 < subChunks.length) {
+              queuePauseTimerRef.current = window.setTimeout(() => {
+                if (isSpeakingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+                  speakSubChunk(subIdx + 1, 0);
+                }
+              }, 55);
+            } else {
+              advanceToNextSentence();
+            }
+          };
+
+          utter.onstart = () => {
+            hasStarted = true;
+            quietPollsAfterStart = 0;
+          };
+
+          utter.onend = () => {
+            settleAndProceed(false);
+          };
+
+          utter.onerror = (ev) => {
+            if (!isSpeakingQueueRef.current || speakSessionIdRef.current !== mySessionId) return;
+            // If Chrome/Safari spuriously emitted canceled/interrupted while our session is STILL active, recover cleanly!
+            if (ev.error === 'canceled' || ev.error === 'interrupted') {
+              if (attempt < 1) {
+                settleAndProceed(true);
+              }
+              return;
+            }
+            // Retry once with ultra-plain alphanumeric text & OS default voice, otherwise advance cleanly
+            settleAndProceed(attempt < 1);
+          };
+
+          // Completion & silent-drop watchdog so narration can NEVER freeze on any character or browser quirk
+          const estChunkSec = Math.max(
+            2,
+            estimateSpeechDurationSec(spokenText, lang, effectiveRate, 1.0)
+          );
+          const maxChunkWaitMs = Math.max(7500, Math.round(estChunkSec * 2200 + 4500));
+          utteranceWatchdogRef.current = window.setTimeout(() => {
+            if (settled) return;
+            try {
+              window.speechSynthesis.cancel();
+            } catch {
+              // ignore
+            }
+            settleAndProceed(false);
+          }, maxChunkWaitMs);
+
+          // Heartbeat detects browsers that finish speaking silently without firing onend, or stall before starting
+          utteranceHeartbeatRef.current = window.setInterval(() => {
+            if (settled || !isSpeakingQueueRef.current || speakSessionIdRef.current !== mySessionId) {
+              clearUtteranceGuards();
+              return;
+            }
+            try {
+              if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                return;
+              }
+              const busy = window.speechSynthesis.speaking || window.speechSynthesis.pending;
+              if (hasStarted) {
+                if (!busy) {
+                  quietPollsAfterStart += 1;
+                  if (quietPollsAfterStart >= 2) {
+                    settleAndProceed(false);
+                  }
+                } else {
+                  quietPollsAfterStart = 0;
+                }
+              } else {
+                if (!busy) {
+                  quietPollsBeforeStart += 1;
+                  if (quietPollsBeforeStart >= 3) {
+                    settleAndProceed(attempt < 1);
+                  }
+                } else {
+                  hasStarted = true;
+                }
+              }
+            } catch {
+              // ignore polling error
+            }
+          }, 850);
+
+          currentUtteranceRef.current = utter;
+          try {
+            window.speechSynthesis.speak(utter);
+          } catch {
+            settleAndProceed(attempt < 1);
+          }
         };
 
-        currentUtteranceRef.current = utter;
-        window.speechSynthesis.speak(utter);
+        speakSubChunk(0, 0);
       };
 
-      speakItem(Math.max(0, Math.min(startIndex, narrationQueue.length - 1)));
+      const safeStart = Math.max(0, Math.min(startIndex, narrationQueueRef.current.length - 1));
+      // 55ms post-cancel settling delay prevents Chrome/Safari from auto-canceling the brand-new utterance
+      speakStartDelayRef.current = window.setTimeout(() => {
+        if (isSpeakingQueueRef.current && speakSessionIdRef.current === mySessionId) {
+          speakItem(safeStart);
+        }
+      }, 55);
     },
-    [
-      speechSupported,
-      narrationQueue,
-      stopSpeechQueue,
-      totalEstimatedDurationSec,
-      flushWatchProgress,
-      voiceProfile,
-      activePersona,
-      userIntonation,
-      playbackSpeed,
-      availableVoices,
-      videoLang,
-      personaIndex,
-      manualVoiceUri,
-    ]
+    [speechSupported, stopSpeechQueue, clearUtteranceGuards]
   );
 
-  // Start/stop speaker queue automatically when play/voice/persona/speed changes
+  // Start/stop speaker queue cleanly when play/voice/language/article switches (without mid-sentence restarts on voice list load)
+  const queueReady = narrationQueue.length > 0;
   useEffect(() => {
-    if (isPlaying && voiceEnabled && speechSupported) {
+    if (isPlaying && voiceEnabled && speechSupported && queueReady) {
       speakQueueFromIndex(activeQueueIndexRef.current);
       return () => {
         stopSpeechQueue();
@@ -753,7 +946,18 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
     }
     stopSpeechQueue();
     return undefined;
-  }, [isPlaying, voiceEnabled, speechSupported, speakQueueFromIndex, stopSpeechQueue]);
+  }, [
+    isPlaying,
+    voiceEnabled,
+    speechSupported,
+    queueReady,
+    videoLang,
+    article.id,
+    personaIndex,
+    manualVoiceUri,
+    speakQueueFromIndex,
+    stopSpeechQueue,
+  ]);
 
   // Draw crisp 960x540 animated-entity explainer frame natively in all 12 languages (including Arabic RTL)
   const drawFrame = useCallback(
@@ -1894,11 +2098,13 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioCtxCtor) {
         try {
-          const sliceText = narrationQueue
-            .slice(activeQueueIndexRef.current)
-            .map((q) => q.text)
-            .join(' ')
-            .slice(0, 2600);
+          const sliceText = sanitizeTextForUninterruptedSpeech(
+            narrationQueue
+              .slice(activeQueueIndexRef.current)
+              .map((q) => q.text)
+              .join(' '),
+            videoLang
+          ).slice(0, 2600);
           if (sliceText.trim().length > 0) {
             const ttsRes = await fetch('/api/ai/tts', {
               method: 'POST',
@@ -2010,6 +2216,94 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
     }
   };
 
+  const stageContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const currentFs = document.fullscreenElement;
+      setIsFullscreen(Boolean(currentFs && stageContainerRef.current && currentFs === stageContainerRef.current));
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const handleToggleFullscreen = useCallback(() => {
+    const el = stageContainerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement === el) {
+      document.exitFullscreen?.().catch(() => {});
+    } else if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
+  }, []);
+
+  const formatSubtitleTimestamp = (sec: number, format: 'srt' | 'vtt'): string => {
+    const safe = Math.max(0, Number.isFinite(sec) ? sec : 0);
+    const hrs = Math.floor(safe / 3600);
+    const mins = Math.floor((safe % 3600) / 60);
+    const secs = Math.floor(safe % 60);
+    const ms = Math.round((safe - Math.floor(safe)) * 1000);
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const pad3 = (n: number) => String(Math.min(999, Math.max(0, n))).padStart(3, '0');
+    const sep = format === 'srt' ? ',' : '.';
+    return `${pad2(hrs)}:${pad2(mins)}:${pad2(secs)}${sep}${pad3(ms)}`;
+  };
+
+  const handleExportSubtitles = (format: 'srt' | 'vtt') => {
+    const lines: string[] = [];
+    if (format === 'vtt') {
+      lines.push('WEBVTT');
+      lines.push(`NOTE ${articleTitle} (${videoLangMeta.nativeName}) — Emre Pelit Sci-Phil`);
+      lines.push('');
+    }
+    narrationQueue.forEach((item, idx) => {
+      const start = formatSubtitleTimestamp(item.startSec, format);
+      const end = formatSubtitleTimestamp(Math.max(item.startSec + 1.2, item.endSec), format);
+      if (format === 'srt') {
+        lines.push(String(idx + 1));
+      }
+      lines.push(`${start} --> ${end}`);
+      lines.push(item.text.trim());
+      lines.push('');
+    });
+    const content = lines.join('\n');
+    const mime = format === 'vtt' ? 'text/vtt;charset=utf-8' : 'application/x-subrip;charset=utf-8';
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${article.slug || article.id}-subtitles-${videoLang}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePlayerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (key === ' ' || key === 'k') {
+      e.preventDefault();
+      handleTogglePlay();
+    } else if (key === 'f') {
+      e.preventDefault();
+      handleToggleFullscreen();
+    } else if (key === 'm') {
+      e.preventDefault();
+      const next = !voiceEnabled;
+      setVoiceEnabled(next);
+      if (!next) {
+        stopSpeechQueue();
+      }
+    } else if (key === 'r') {
+      e.preventDefault();
+      handleRestart();
+    }
+  };
+
   const watchCompletionPct = Math.min(
     100,
     Math.round(
@@ -2018,7 +2312,13 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
   );
 
   return (
-    <div className="bg-[#0F172A] text-slate-100 border border-slate-700 rounded-sm overflow-hidden">
+    <div
+      ref={stageContainerRef}
+      tabIndex={0}
+      onKeyDown={handlePlayerKeyDown}
+      aria-label={`${ui.videoTitlePrefix}: ${articleTitle} (Space: Oynat/Duraklat, F: Tam Ekran, M: Ses, R: Başa Sar)`}
+      className="bg-[#0F172A] text-slate-100 border border-slate-700 rounded-sm overflow-hidden focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
+    >
       {/* Compact Video Header + Inline 12-Language Switcher */}
       <div className="px-4 py-2.5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
         <div className="flex items-center gap-2 min-w-0">
@@ -2444,6 +2744,44 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
               )}
               <span>{isRecording ? ui.stopRecordingBtn : ui.exportWebmBtn}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => handleExportSubtitles('srt')}
+              title={`${videoLangMeta.nativeName} (.SRT) altyazı dosyasını indir`}
+              className="inline-flex items-center gap-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 rounded-xs cursor-pointer transition-colors"
+            >
+              <Subtitles className="w-3.5 h-3.5" />
+              <span>.SRT ({videoLangMeta.shortLabel})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExportSubtitles('vtt')}
+              title={`${videoLangMeta.nativeName} (.VTT) web altyazı dosyasını indir`}
+              className="inline-flex items-center gap-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 rounded-xs cursor-pointer transition-colors"
+            >
+              <Subtitles className="w-3.5 h-3.5" />
+              <span>.VTT</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              title={isFullscreen ? 'Tam ekrandan çık (F)' : 'Tam ekran (F)'}
+              aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
+              className="inline-flex items-center gap-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xs cursor-pointer transition-colors"
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{isFullscreen ? 'Çık' : 'Tam Ekran'}</span>
+            </button>
+
+            <span
+              className="hidden xl:inline-flex items-center px-2 py-1 bg-slate-950 border border-slate-800 text-slate-400 text-[10px] rounded-xs"
+              title="Klavye kısayolları: Space (Oynat/Duraklat), F (Tam Ekran), M (Ses), R (Başa Sar)"
+            >
+              Kısayol: Space · F · M · R
+            </span>
 
             {recordingModeNote && (
               <span className="px-2 py-1 bg-amber-950/70 border border-amber-500/40 text-amber-200 text-[10px] rounded-xs">

@@ -45,84 +45,84 @@ const LANG_HUB_META = {
   tr: {
     path: '/',
     title: 'Emre Pelit Sci-Phil — Bilim, Felsefe, Video, Test ve Simülasyon Arşivi',
-    desc: 'Emre Pelit tarafından kaleme alınan 316+ özgün bilim ve felsefe makalesi, her makaleye özel 10 dakikalık hareketli varlık etkileşimli HTML5 açıklayıcı videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonları.',
+    desc: 'Emre Pelit tarafından kaleme alınan 316+ özgün bilim ve felsefe makalesi, her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, çoktan seçmeli kavrama testleri ve interaktif fizik simülasyonları.',
     h1: 'Emre Pelit — Bilim, Felsefe ve Simülasyon Arşivi',
     archiveLabel: 'Tüm Makale Arşivi',
   },
   en: {
     path: '/en/',
     title: 'Emre Pelit Sci-Phil — Science, Philosophy, Videos, Quizzes & Simulation Archive',
-    desc: 'Independent author archive by Emre Pelit with 316+ essays, per-article 10-minute animated-entity HTML5 explainer videos, multiple-choice quizzes, and interactive scientific models.',
+    desc: 'Independent author archive by Emre Pelit with 316+ essays, unrestricted speaker-synced 12-language synthetic cultural voice HTML5 summary videos, multiple-choice quizzes, and interactive scientific models.',
     h1: 'Emre Pelit — Science, Philosophy & Simulation Archive',
     archiveLabel: 'Complete Article Archive',
   },
   es: {
     path: '/es/',
     title: 'Emre Pelit Sci-Phil — Archivo de Ciencia, Filosofía, Videos y Cuestionarios',
-    desc: 'Archivo independiente de Emre Pelit con videos explicativos HTML5 de 10 minutos con entidades animadas por artículo, cuestionarios de opción múltiple, física cuántica, cosmología y simulaciones.',
+    desc: 'Archivo independiente de Emre Pelit con videos explicativos HTML5 sin límite de duración y voz cultural sintética en 12 idiomas por artículo, cuestionarios de opción múltiple, física cuántica, cosmología y simulaciones.',
     h1: 'Emre Pelit — Archivo de Ciencia, Filosofía y Simulación',
     archiveLabel: 'Archivo Completo de Artículos',
   },
   de: {
     path: '/de/',
     title: 'Emre Pelit Sci-Phil — Archiv für Wissenschaft, Videos, Tests & Simulation',
-    desc: 'Unabhängiges Autorenarchiv von Emre Pelit mit 10-Minuten-HTML5-Erklärvideos mit bewegten Akteuren und Multiple-Choice-Tests zu jedem Artikel, Quantenphysik, Kosmologie und Simulationen.',
+    desc: 'Unabhängiges Autorenarchiv von Emre Pelit mit sprechersynchronen HTML5-Erklärvideos mit synthetischer Kulturstimme in 12 Sprachen und Multiple-Choice-Tests zu jedem Artikel, Quantenphysik, Kosmologie und Simulationen.',
     h1: 'Emre Pelit — Archiv für Wissenschaft, Philosophie & Simulation',
     archiveLabel: 'Vollständiges Artikelarchiv',
   },
   fr: {
     path: '/fr/',
     title: 'Emre Pelit Sci-Phil — Archives de Science, Vidéos, Quiz et Simulation',
-    desc: 'Archives indépendantes d’Emre Pelit avec vidéos explicatives HTML5 de 10 minutes à entités animées par article, quiz à choix multiples, physique quantique, cosmologie et simulation.',
+    desc: 'Archives indépendantes d’Emre Pelit avec vidéos explicatives HTML5 à durée synchronisée et voix culturelle synthétique en 12 langues par article, quiz à choix multiples, physique quantique, cosmologie et simulation.',
     h1: 'Emre Pelit — Archives de Science, Philosophie et Simulation',
     archiveLabel: 'Archives Complètes des Articles',
   },
   ru: {
     path: '/ru/',
     title: 'Emre Pelit Sci-Phil — Архив Науки, Философии, Видео и Тестов',
-    desc: 'Независимый архив Эмре Пелита: квантовая физика, космология, 10-минутные HTML5-видеопояснения с движущимися объектами и интерактивные тесты с выбором ответа для каждой статьи.',
+    desc: 'Независимый архив Эмре Пелита: квантовая физика, космология, HTML5-видеопояснения без ограничения длительности с синтетической культурной озвучкой на 12 языках и интерактивные тесты для каждой статьи.',
     h1: 'Emre Pelit — Архив Науки, Философии и Симуляции',
     archiveLabel: 'Полный Архив Статей',
   },
   ar: {
     path: '/ar/',
     title: 'Emre Pelit Sci-Phil — أرشيف العلوم والفلسفة والفيديو والاختبارات',
-    desc: 'أرشيف إمره بيليت المستقل: مقالات فيزياء الكم وعلم الكونيات مع فيديو توضيحي HTML5 مدته 10 دقائق بكيانات متحركة متفاعلة واختبارات اختيار من متعدد لكل مقال.',
+    desc: 'أرشيف إمره بيليت المستقل: مقالات فيزياء الكم وعلم الكونيات مع فيديو توضيحي HTML5 غير مقيد المدة بصوت ثقافي اصطناعي بـ 12 لغة واختبارات اختيار من متعدد لكل مقال.',
     h1: 'Emre Pelit — أرشيف العلوم والفلسفة والمحاكاة',
     archiveLabel: 'الأرشيف الكامل للمقالات',
   },
   zh: {
     path: '/zh/',
     title: 'Emre Pelit Sci-Phil — 科学、哲学、视频、测验与模拟档案',
-    desc: '独立作者 Emre Pelit 档案库：涵盖量子物理与宇宙学论文，每篇文章均配有 10 分钟动态实体交互 HTML5 科普视频、专业多项选择测验与交互式科学模拟。',
+    desc: '独立作者 Emre Pelit 档案库：涵盖量子物理与宇宙学论文，每篇文章均配有不限时长、12种语言合成文化语音 HTML5 完整摘要科普视频、多项选择测验与交互式科学模拟。',
     h1: 'Emre Pelit — 科学、哲学与数学模拟档案',
     archiveLabel: '完整文章档案库',
   },
   ja: {
     path: '/ja/',
     title: 'Emre Pelit Sci-Phil — 科学・哲学・解説動画・理解度テストアーカイブ',
-    desc: '量子物理学・宇宙論・心の哲学を扱う Emre Pelit の独立アーカイブ。各記事に10分間の動くエンティティHTML5解説動画、多肢選択クイズ、対話型シミュレーションを搭載。',
+    desc: '量子物理学・宇宙論・心の哲学を扱う Emre Pelit の独立アーカイブ。各記事に時間制限なし・12言語合成文化音声HTML5要約解説動画、多肢選択クイズ、対話型シミュレーションを搭載。',
     h1: 'Emre Pelit — 科学・哲学・シミュレーションアーカイブ',
     archiveLabel: '全論文アーカイブ',
   },
   pt: {
     path: '/pt/',
     title: 'Emre Pelit Sci-Phil — Arquivo de Ciência, Vídeos, Quizzes e Simulação',
-    desc: 'Arquivo independente de Emre Pelit com vídeos explicativos HTML5 de 10 minutos com entidades animadas e quizzes de múltipla escolha por artigo, física quântica, cosmologia e simulações.',
+    desc: 'Arquivo independente de Emre Pelit com vídeos explicativos HTML5 sem limite de duração com voz cultural sintética em 12 idiomas e quizzes de múltipla escolha por artigo, física quântica, cosmologia e simulações.',
     h1: 'Emre Pelit — Arquivo de Ciência, Filosofia e Simulação',
     archiveLabel: 'Arquivo Completo de Artigos',
   },
   it: {
     path: '/it/',
     title: 'Emre Pelit Sci-Phil — Archivio di Scienza, Video, Quiz e Simulazione',
-    desc: 'Archivio indipendente di Emre Pelit con video esplicativi HTML5 da 10 minuti con entità animate e quiz a scelta multipla per ogni articolo, fisica quantistica, cosmologia e simulazioni.',
+    desc: 'Archivio indipendente di Emre Pelit con video esplicativi HTML5 senza limite di durata con voce culturale sintetica in 12 lingue e quiz a scelta multipla per ogni articolo, fisica quantistica, cosmologia e simulazioni.',
     h1: 'Emre Pelit — Archivio di Scienza, Filosofia e Simulazione',
     archiveLabel: 'Archivio Completo degli Articoli',
   },
   ko: {
     path: '/ko/',
     title: 'Emre Pelit Sci-Phil — 과학·철학·해설 영상·퀴즈·시뮬레이션 아카이브',
-    desc: '양자 물리학과 우주론을 다루는 Emre Pelit 독립 아카이브: 각 논문별 10분 움직이는 개체 상호작용 HTML5 해설 영상, 객관식 이해도 퀴즈 및 대화형 시뮬레이션 제공.',
+    desc: '양자 물리학과 우주론을 다루는 Emre Pelit 독립 아카이브: 각 논문별 시간 제한 없는 12개 언어 합성 문화 음성 HTML5 전체 요약 해설 영상, 객관식 이해도 퀴즈 및 대화형 시뮬레이션 제공.',
     h1: 'Emre Pelit — 과학·철학·시뮬레이션 아카이브',
     archiveLabel: '전체 논문 아카이브',
   },
@@ -146,18 +146,18 @@ const RETIRED_301_WEBSITES = [
 
 const GOVERNANCE_PAGES = {
   privacy: {
-    tr: { title: 'Gizlilik Politikası — Emre Pelit Sci-Phil', desc: 'Veri işleme ilkeleri ve kullanıcı gizliliği politikası.', heading: 'Gizlilik Politikası' },
-    en: { title: 'Privacy Policy — Emre Pelit Sci-Phil', desc: 'Data processing principles and user privacy policy.', heading: 'Privacy Policy' },
-    es: { title: 'Política de Privacidad — Emre Pelit Sci-Phil', desc: 'Principios de tratamiento de datos y privacidad.', heading: 'Política de Privacidad' },
-    de: { title: 'Datenschutzrichtlinie — Emre Pelit Sci-Phil', desc: 'Grundsätze der Datenverarbeitung und Privatsphäre.', heading: 'Datenschutzrichtlinie' },
-    fr: { title: 'Politique de Confidentialité — Emre Pelit Sci-Phil', desc: 'Principes de traitement des données et confidentialité.', heading: 'Politique de Confidentialité' },
-    ru: { title: 'Политика конфиденциальности — Emre Pelit Sci-Phil', desc: 'Принципы обработки данных и конфиденциальности.', heading: 'Политика конфиденциальности' },
-    ar: { title: 'سياسة الخصوصية — Emre Pelit Sci-Phil', desc: 'مبادئ معالجة البيانات وخصوصية المستخدم.', heading: 'سياسة الخصوصية' },
-    zh: { title: '隐私政策 — Emre Pelit Sci-Phil', desc: '数据处理原则与用户隐私保护政策。', heading: '隐私政策' },
-    ja: { title: 'プライバシーポリシー — Emre Pelit Sci-Phil', desc: 'データ処理原則とプライバシー保護方針。', heading: 'プライバシーポリシー' },
-    pt: { title: 'Política de Privacidade — Emre Pelit Sci-Phil', desc: 'Princípios de tratamento de dados e privacidade.', heading: 'Política de Privacidade' },
-    it: { title: 'Informativa sulla Privacy — Emre Pelit Sci-Phil', desc: 'Principi sul trattamento dei dati e sulla privacy.', heading: 'Informativa sulla Privacy' },
-    ko: { title: '개인정보 처리방침 — Emre Pelit Sci-Phil', desc: '데이터 처리 원칙 및 사용자 개인정보 보호 정책.', heading: '개인정보 처리방침' },
+    tr: { title: 'Gizlilik Politikası (KVKK 6698 & AB GDPR 2016/679) — Emre Pelit Sci-Phil', desc: '6698 sayılı KVKK ve AB GDPR (2016/679) kapsamında veri sorumlusu, alt işleyiciler, saklama süreleri ve ilgili kişi hakları.', heading: 'Gizlilik Politikası (KVKK & GDPR)' },
+    en: { title: 'Privacy Policy (EU GDPR 2016/679 & KVKK 6698) — Emre Pelit Sci-Phil', desc: 'EU GDPR (2016/679) and Turkish KVKK (Law No. 6698) data controller, sub-processors, retention periods, and Data Subject Rights.', heading: 'Privacy Policy (GDPR & KVKK)' },
+    es: { title: 'Política de Privacidad (GDPR 2016/679 y KVKK 6698) — Emre Pelit Sci-Phil', desc: 'Responsable del tratamiento, subencargados, plazos de conservación y derechos GDPR/KVKK.', heading: 'Política de Privacidad (GDPR & KVKK)' },
+    de: { title: 'Datenschutzrichtlinie (DSGVO / GDPR 2016/679 & KVKK 6698) — Emre Pelit Sci-Phil', desc: 'Verantwortlicher, Auftragsverarbeiter, Speicherfristen und Betroffenenrechte gemäß DSGVO/GDPR und KVKK.', heading: 'Datenschutzrichtlinie (DSGVO & KVKK)' },
+    fr: { title: 'Politique de Confidentialité (RGPD 2016/679 & KVKK 6698) — Emre Pelit Sci-Phil', desc: 'Responsable du traitement, sous-traitants, durées de conservation et droits RGPD/KVKK.', heading: 'Politique de Confidentialité (RGPD & KVKK)' },
+    ru: { title: 'Политика конфиденциальности (GDPR 2016/679 и KVKK 6698) — Emre Pelit Sci-Phil', desc: 'Контролер данных, обработчики, сроки хранения и права субъектов данных (GDPR/KVKK).', heading: 'Политика конфиденциальности (GDPR & KVKK)' },
+    ar: { title: 'سياسة الخصوصية (GDPR 2016/679 و KVKK 6698) — Emre Pelit Sci-Phil', desc: 'مراقب البيانات ومعالجو البيانات الفرعيون وفترات الاحتفاظ وحقوق أصحاب البيانات.', heading: 'سياسة الخصوصية (GDPR & KVKK)' },
+    zh: { title: '隐私政策 (欧盟 GDPR 2016/679 与 KVKK 6698) — Emre Pelit Sci-Phil', desc: '数据控制者、子处理者、数据保留期限及 GDPR/KVKK 数据主体权利说明。', heading: '隐私政策 (GDPR & KVKK)' },
+    ja: { title: 'プライバシーポリシー (EU GDPR 2016/679・KVKK 6698) — Emre Pelit Sci-Phil', desc: 'データ管理者・委託先・保存期間および GDPR/KVKK に基づくデータ主体の権利。', heading: 'プライバシーポリシー (GDPR & KVKK)' },
+    pt: { title: 'Política de Privacidade (GDPR 2016/679 e KVKK 6698) — Emre Pelit Sci-Phil', desc: 'Controlador de dados, subprocessadores, prazos de retenção e direitos GDPR/KVKK.', heading: 'Política de Privacidade (GDPR & KVKK)' },
+    it: { title: 'Informativa sulla Privacy (GDPR 2016/679 e KVKK 6698) — Emre Pelit Sci-Phil', desc: 'Titolare del trattamento, sub-responsabili, conservazione e diritti GDPR/KVKK.', heading: 'Informativa sulla Privacy (GDPR & KVKK)' },
+    ko: { title: '개인정보 처리방침 (EU GDPR 2016/679 및 KVKK 6698) — Emre Pelit Sci-Phil', desc: '데이터 관리자, 수탁자, 보유 기간 및 GDPR/KVKK 정보주체 권리 안내.', heading: '개인정보 처리방침 (GDPR & KVKK)' },
   },
   terms: {
     tr: { title: 'Kullanım Koşulları — Emre Pelit Sci-Phil', desc: 'Özgün telif hakları, akademik atıf ve kullanım koşulları.', heading: 'Kullanım Koşulları' },
@@ -188,18 +188,18 @@ const GOVERNANCE_PAGES = {
     ko: { title: '출판 정보 및 법적 고지 — Emre Pelit Sci-Phil', desc: '저자 Emre Pelit 출판 정보 및 단일 정규 허브 등록부.', heading: '법적 고지 (Imprint)' },
   },
   kvkk: {
-    tr: { title: '6698 Sayılı KVKK Aydınlatma Metni — Emre Pelit Sci-Phil', desc: '6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında açık rıza ve aydınlatma metni.', heading: '6698 Sayılı KVKK Aydınlatma Metni' },
-    en: { title: 'KVKK & Cookie Consent Notice — Emre Pelit Sci-Phil', desc: 'Personal data protection notice and opt-in telemetry disclosure.', heading: 'Data Protection & KVKK Notice' },
-    es: { title: 'Aviso KVKK y Cookies — Emre Pelit Sci-Phil', desc: 'Aviso de protección de datos personales y consentimiento explícito.', heading: 'Aviso de Protección de Datos (KVKK)' },
-    de: { title: 'KVKK & Einwilligungshinweis — Emre Pelit Sci-Phil', desc: 'Hinweise zum Datenschutz und zur expliziten Einwilligung.', heading: 'Datenschutzhinweis (KVKK)' },
-    fr: { title: 'Notice KVKK & Cookies — Emre Pelit Sci-Phil', desc: 'Notice de protection des données personnelles et consentement.', heading: 'Notice de Protection des Données (KVKK)' },
-    ru: { title: 'Уведомление о защите данных (KVKK) — Emre Pelit Sci-Phil', desc: 'Защита персональных данных и согласие пользователя.', heading: 'Защита данных (KVKK)' },
-    ar: { title: 'إشعار حماية البيانات KVKK — Emre Pelit Sci-Phil', desc: 'إشعار حماية البيانات الشخصية والموافقة الصريحة.', heading: 'إشعار حماية البيانات (KVKK)' },
-    zh: { title: '数据保护与 KVKK 声明 — Emre Pelit Sci-Phil', desc: '个人数据保护说明与显式同意披露。', heading: '数据保护声明 (KVKK)' },
-    ja: { title: 'データ保護・KVKK 通知 — Emre Pelit Sci-Phil', desc: '個人データ保護と同意に関するご案内。', heading: 'データ保護通知 (KVKK)' },
-    pt: { title: 'Aviso de Proteção de Dados (KVKK) — Emre Pelit Sci-Phil', desc: 'Proteção de dados pessoais e consentimento explícito.', heading: 'Proteção de Dados (KVKK)' },
-    it: { title: 'Informativa KVKK e Cookie — Emre Pelit Sci-Phil', desc: 'Informativa sulla protezione dei dati personali e consenso.', heading: 'Protezione dei Dati (KVKK)' },
-    ko: { title: '개인정보 보호(KVKK) 고지 — Emre Pelit Sci-Phil', desc: '개인정보 보호 안내 및 동의 절차.', heading: '데이터 보호 고지 (KVKK)' },
+    tr: { title: '6698 Sayılı KVKK & AB GDPR (2016/679) Aydınlatma Metni — Emre Pelit Sci-Phil', desc: '6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ve AB GDPR (2016/679) kapsamında açık rıza, veri taşınabilirliği ve silme hakları.', heading: '6698 Sayılı KVKK & AB GDPR (2016/679) Aydınlatma Metni' },
+    en: { title: 'KVKK (Law No. 6698) & EU GDPR (2016/679) Notice — Emre Pelit Sci-Phil', desc: 'Personal data protection notice under Turkish KVKK (Law No. 6698) and EU GDPR (2016/679) with explicit opt-in consent and data subject rights.', heading: 'KVKK (6698) & EU GDPR (2016/679) Notice' },
+    es: { title: 'Aviso KVKK (6698) y GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'Aviso de protección de datos personales (KVKK 6698 y GDPR 2016/679) y consentimiento explícito.', heading: 'Protección de Datos (KVKK 6698 & GDPR 2016/679)' },
+    de: { title: 'KVKK (6698) & DSGVO / GDPR (2016/679) Hinweis — Emre Pelit Sci-Phil', desc: 'Datenschutzhinweise nach KVKK (Gesetz Nr. 6698) und EU-DSGVO/GDPR (2016/679) mit expliziter Einwilligung.', heading: 'Datenschutzhinweis (KVKK 6698 & DSGVO/GDPR)' },
+    fr: { title: 'Notice KVKK (6698) & RGPD / GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'Notice de protection des données personnelles (KVKK 6698 et RGPD/GDPR 2016/679) et consentement explicite.', heading: 'Protection des Données (KVKK 6698 & RGPD/GDPR)' },
+    ru: { title: 'Уведомление KVKK (6698) и GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'Защита персональных данных по KVKK (6698) и GDPR (2016/679), явное согласие и права субъектов.', heading: 'Защита данных (KVKK 6698 & GDPR 2016/679)' },
+    ar: { title: 'إشعار حماية البيانات KVKK (6698) و GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'إشعار حماية البيانات الشخصية وفق KVKK 6698 و GDPR 2016/679 والموافقة الصريحة.', heading: 'حماية البيانات (KVKK 6698 & GDPR 2016/679)' },
+    zh: { title: '数据保护声明 KVKK (6698) 与 GDPR (2016/679) — Emre Pelit Sci-Phil', desc: '依据土耳其 KVKK（第6698号法）及欧盟 GDPR（2016/679）的个人数据保护与显式同意说明。', heading: '数据保护声明 (KVKK 6698 & GDPR 2016/679)' },
+    ja: { title: 'データ保護通知 KVKK (6698) および GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'KVKK（第6698号法）およびEU GDPR（2016/679）に基づく個人データ保護と明示的同意のご案内。', heading: 'データ保護通知 (KVKK 6698 & GDPR 2016/679)' },
+    pt: { title: 'Aviso de Proteção de Dados KVKK (6698) e GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'Proteção de dados pessoais conforme KVKK 6698 e GDPR 2016/679 com consentimento explícito.', heading: 'Proteção de Dados (KVKK 6698 & GDPR 2016/679)' },
+    it: { title: 'Informativa KVKK (6698) e GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'Informativa sulla protezione dei dati personali ai sensi di KVKK 6698 e GDPR 2016/679.', heading: 'Protezione dei Dati (KVKK 6698 & GDPR 2016/679)' },
+    ko: { title: '개인정보 보호 고지 KVKK (6698) 및 GDPR (2016/679) — Emre Pelit Sci-Phil', desc: 'KVKK(제6698호법) 및 EU GDPR(2016/679)에 따른 개인정보 보호 및 명시적 동의 절차 안내.', heading: '데이터 보호 고지 (KVKK 6698 & GDPR 2016/679)' },
   },
   disclaimer: {
     tr: { title: 'Bağımsız Yazar Arşivi & Feragatname — Emre Pelit Sci-Phil', desc: 'Bağımsız yazar arşivi statüsü (hakemli dergi değildir) ve içerik feragatnamesi.', heading: 'Bağımsız Yazar Arşivi & Feragatname' },
@@ -678,11 +678,17 @@ async function run() {
           {
             '@type': 'VideoObject',
             '@id': `${routeCanonicalUrl}#explainer-video`,
-            name: `${item.title} — 10-Minute Animated-Entity HTML5 Explainer Video`,
+            name: `${item.title} — 12-Language Synthetic Cultural Voice HTML5 Full Summary Video`,
             description: desc,
             thumbnailUrl: `${CANONICAL_ORIGIN}/og-card.jpg`,
             uploadDate: item.publishedAt,
-            duration: 'PT10M',
+            duration: (() => {
+              const charLen = (item.paragraphs || []).join(' ').length || desc.length;
+              const estSec = Math.max(75, Math.round(Math.min(charLen, 4200) / 13.5) + 18);
+              const mins = Math.floor(estSec / 60);
+              const secs = estSec % 60;
+              return `PT${mins}M${secs}S`;
+            })(),
             embedUrl: `${routeCanonicalUrl}#video`,
             contentUrl: `${routeCanonicalUrl}#video`,
             inLanguage: targetLang,
@@ -719,8 +725,8 @@ async function run() {
     </div>
     ${findingsHtml}
     <section aria-label="HTML5 Açıklayıcı Video ve Çoktan Seçmeli Test">
-      <h2>10 Dakikalık Hareketli Varlık Etkileşimli HTML5 Açıklayıcı Video &amp; Çoktan Seçmeli Kavrama Soruları</h2>
-      <p>Bu makale; 10 bölümlü 10 dakikalık (600 sn) hareketli varlık etkileşimli ve sıfır kanuni yükümlülüklü HTML5 Canvas açıklayıcı video, makalenin genel sonucuyla uyumlu 4 soruluk profesyonel çoktan seçmeli test ve interaktif fizik/felsefe simülasyonu ile birlikte sunulmaktadır.</p>
+      <h2>12 Dilli Sentetik Kültürel Sesli HTML5 Geniş Özet Video &amp; Çoktan Seçmeli Kavrama Soruları</h2>
+      <p>Bu makale; konuşmacı süresine senkron, süre kısıtsız, 12 dilde gerçek kişi içermeyen sentetik kültürel sesli, kullanıcı kontrollü tonlamalı ve sıfır yasal mükellefiyetli HTML5 geniş özet video, makalenin genel sonucuyla uyumlu 4 soruluk profesyonel çoktan seçmeli test ve interaktif fizik/felsefe simülasyonu ile birlikte sunulmaktadır.</p>
     </section>
     <footer>
       <p>Kanonik Adres (${targetLang.toUpperCase()}): <a href="${escapeHtml(routeCanonicalUrl)}">${escapeHtml(routeCanonicalUrl)}</a></p>
@@ -831,11 +837,55 @@ async function run() {
       const info = translations[lang] || translations.en;
       const canonicalUrl = `${CANONICAL_ORIGIN}/${lang}/${govKey}`;
       const hubPath = LANG_HUB_META[lang].path;
+      const isLegalPrivacyPage = govKey === 'privacy' || govKey === 'kvkk';
+      const legalDetailsHtml = isLegalPrivacyPage
+        ? lang === 'tr'
+          ? `
+  <section aria-label="KVKK ve GDPR Uyumluluk Beyanı" class="space-y-3 text-sm leading-relaxed">
+    <h2>Veri Sorumlusu ve Yasal Dayanak (6698 Sayılı KVKK &amp; AB GDPR 2016/679)</h2>
+    <p><strong>Veri Sorumlusu:</strong> Emre Pelit (Mersin, Türkiye · emrepelit39@gmail.com). Bu platform; 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) madde 5, 6, 9, 10 ve 11 ile Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR 2016/679) madde 6, 7, 13, 15, 17, 20 ve 21 hükümlerine tam uyumlu olarak çalışır.</p>
+    <h2>Ön Rıza Öncesi Sıfır Üçüncü Taraf İzleme (Privacy by Design)</h2>
+    <ul>
+      <li>Açık rıza verilmeden hiçbir üçüncü taraf analitik betiği, reklam çerezi veya dış yazı tipi (Google Fonts) tarayıcıdan yüklenmez.</li>
+      <li>Global Privacy Control (GPC) ve Do Not Track (DNT) tarayıcı sinyalleri otomatik olarak tanınır ve isteğe bağlı telemetri kapatılır.</li>
+      <li>IP adresleri ham olarak kaydedilmez; yalnızca anonim bölge agregasyonu için geçici olarak işlenir.</li>
+    </ul>
+    <h2>Alt İşleyiciler ve Saklama Süreleri</h2>
+    <ul>
+      <li><strong>Google Cloud SQL (europe-west2, Londra):</strong> Oturum açmış kullanıcı yer imleri ve soru-cevap iletim kayıtları (kullanıcı silme talebine kadar veya azami 24 ay).</li>
+      <li><strong>Firebase Authentication:</strong> Yalnızca gönüllü oturum açan okurlar için kimlik doğrulama.</li>
+      <li><strong>Yerel Tarayıcı Depolaması:</strong> Tema, yazı boyutu, okuma geçmişi ve kişisel okuma notları yalnızca cihazınızda tutulur; sunucuya aktarılmaz.</li>
+    </ul>
+    <h2>İlgili Kişi Hakları ve Self-Servis Talepler</h2>
+    <p>Verilerinize erişme, JSON formatında dışa aktarma (<code>/api/privacy/export-my-data</code>), rızanızı tek tıkla geri çekme ve tüm kişisel kayıtlarınızı kalıcı olarak silme (<code>/api/privacy/delete-my-data</code>) haklarınızı site içi Gizlilik &amp; KVKK merkezinden veya <code>emrepelit39@gmail.com</code> adresinden 30 gün içinde kullanabilirsiniz. Makine tarafından okunabilir uyumluluk beyanı: <a href="/api/privacy/compliance-manifest">/api/privacy/compliance-manifest</a>.</p>
+  </section>`
+          : `
+  <section aria-label="KVKK and EU GDPR Compliance Disclosure" class="space-y-3 text-sm leading-relaxed">
+    <h2>Data Controller &amp; Legal Framework (EU GDPR 2016/679 &amp; Turkish KVKK Law No. 6698)</h2>
+    <p><strong>Data Controller:</strong> Emre Pelit (Mersin, Türkiye · emrepelit39@gmail.com). This platform complies with EU General Data Protection Regulation (GDPR 2016/679, Articles 6, 7, 13, 15, 17, 20, 21) and Turkish Personal Data Protection Law No. 6698 (KVKK).</p>
+    <h2>Privacy by Design &amp; Zero Pre-Consent External Calls</h2>
+    <ul>
+      <li>No third-party analytics scripts, advertising trackers, or external font stylesheets (Google Fonts) load prior to explicit opt-in consent.</li>
+      <li>Browser Global Privacy Control (GPC) and Do Not Track (DNT) signals are honored automatically.</li>
+      <li>Raw visitor IP addresses are never stored; only privacy-preserving aggregate regional statistics are recorded.</li>
+    </ul>
+    <h2>Sub-Processors &amp; Retention</h2>
+    <ul>
+      <li><strong>Google Cloud SQL (europe-west2, London):</strong> Signed-in reader bookmarks and voluntary Q&amp;A escalation records (retained until user erasure or maximum 24 months).</li>
+      <li><strong>Firebase Authentication:</strong> Optional account sign-in only when initiated by the reader.</li>
+      <li><strong>Browser Local Storage:</strong> Reading theme, typography scale, bookmarks, and personal reading notes stay exclusively on your device.</li>
+    </ul>
+    <h2>Data Subject Rights &amp; Self-Service Controls</h2>
+    <p>Exercise your rights of access, JSON data portability (<code>/api/privacy/export-my-data</code>), consent withdrawal, and permanent erasure (<code>/api/privacy/delete-my-data</code>) directly via the in-app Privacy &amp; KVKK Center or by contacting <code>emrepelit39@gmail.com</code> (response within 30 days). Machine-readable manifest: <a href="/api/privacy/compliance-manifest">/api/privacy/compliance-manifest</a>.</p>
+  </section>`
+        : '';
+
       const rootHtml = `
-<main class="max-w-3xl mx-auto px-6 py-10 space-y-4">
+<main class="max-w-3xl mx-auto px-6 py-10 space-y-5">
   <nav><a href="${hubPath}">Hub</a> / <span>${escapeHtml(info.heading)}</span></nav>
   <h1>${escapeHtml(info.heading)}</h1>
   <p>${escapeHtml(info.desc)}</p>
+  ${legalDetailsHtml}
   <p>Emre Pelit · emrepelit39@gmail.com · <a href="${CANONICAL_ORIGIN}/">https://emrepelit-sciphi.ai.studio/</a></p>
 </main>`.trim();
 
