@@ -3612,9 +3612,16 @@ async function startServer() {
     return next();
   });
 
-  // E4: Built-in Zero-Dependency HTTP Brotli / Gzip Response Compression (skips SSE & small payloads)
+  // E4: Built-in Zero-Dependency HTTP Brotli / Gzip Response Compression (skips SSE, Vite dev modules & small payloads)
   app.use((req, res, next) => {
-    if (req.method === 'HEAD' || req.path === '/api/live/events' || req.path.startsWith('/api/live/')) {
+    if (
+      req.method === 'HEAD' ||
+      req.path === '/api/live/events' ||
+      req.path.startsWith('/api/live/') ||
+      req.path.startsWith('/@') ||
+      req.path.startsWith('/src/') ||
+      req.path.startsWith('/node_modules/')
+    ) {
       return next();
     }
     const acceptEncoding = String(req.headers['accept-encoding'] || '');
@@ -11148,6 +11155,8 @@ INSTRUCTIONS:
     );
   }
 
+  let activeViteServer: any = null;
+
   if (!isProduction) {
     let viteMiddleware: any = null;
     let viteServer: any = null;
@@ -11166,6 +11175,7 @@ INSTRUCTIONS:
       )
       .then((vite) => {
         viteServer = vite;
+        activeViteServer = vite;
         viteMiddleware = vite.middlewares;
         return vite;
       })
@@ -11310,6 +11320,8 @@ INSTRUCTIONS:
 
   let bloggerSyncTimeout: ReturnType<typeof setTimeout> | null = null;
   let bloggerSyncInterval: ReturnType<typeof setInterval> | null = null;
+  let listenRetryCount = 0;
+  const MAX_LISTEN_RETRIES = 6;
 
   const httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on http://0.0.0.0:${PORT}`);
@@ -11324,37 +11336,87 @@ INSTRUCTIONS:
     }, 5 * 60 * 1000);
   });
 
-  httpServer.on('error', (err) => {
+  httpServer.on('error', (err: NodeJS.ErrnoException) => {
+    if (err?.code === 'EADDRINUSE' && listenRetryCount < MAX_LISTEN_RETRIES) {
+      listenRetryCount += 1;
+      console.warn(
+        `Port ${PORT} is temporarily in use (attempt ${listenRetryCount}/${MAX_LISTEN_RETRIES}); retrying in 350ms...`
+      );
+      setTimeout(() => {
+        try {
+          httpServer.listen(PORT, '0.0.0.0');
+        } catch (retryErr) {
+          console.error(`Server failed to re-bind port ${PORT}:`, retryErr);
+          process.exit(1);
+        }
+      }, 350);
+      return;
+    }
     console.error(`Server failed to bind port ${PORT}:`, err);
     process.exit(1);
   });
 
-  // E4: Graceful Shutdown Handler for Cloud Run / Production SIGTERM & SIGINT
+  // E4: Fast Graceful Shutdown Handler for Dev Restarts & Cloud Run SIGTERM / SIGINT
   let isShuttingDown = false;
   const gracefulShutdown = async (signal: string) => {
     if (isShuttingDown) return;
     isShuttingDown = true;
-    console.log(`[shutdown] Received ${signal}; closing HTTP server and database connections cleanly...`);
+    console.log(`[shutdown] Received ${signal}; closing HTTP server, SSE streams, and database connections cleanly...`);
     if (bloggerSyncTimeout) clearTimeout(bloggerSyncTimeout);
     if (bloggerSyncInterval) clearInterval(bloggerSyncInterval);
+
+    // Immediately terminate active SSE clients so httpServer.close() never stalls waiting on open event streams
+    for (const sseRes of Array.from(liveSseClients)) {
+      try {
+        sseRes.end();
+      } catch {
+        // Ignore already-closed SSE responses
+      }
+    }
+    liveSseClients.clear();
+
     const forceExitTimer = setTimeout(() => {
       console.warn('[shutdown] Timeout reached; forcing exit.');
       process.exit(0);
-    }, 8000);
+    }, isProduction ? 4000 : 1500);
     forceExitTimer.unref?.();
 
-    httpServer.close(async () => {
+    const finishShutdown = async () => {
+      try {
+        if (activeViteServer && typeof activeViteServer.close === 'function') {
+          await Promise.race([
+            activeViteServer.close(),
+            new Promise((resolve) => setTimeout(resolve, 600)),
+          ]);
+        }
+      } catch {
+        // Ignore Vite close errors during shutdown
+      }
       try {
         const pgPool = (globalThis as any)._postgresPool;
         if (pgPool && typeof pgPool.end === 'function') {
-          await pgPool.end();
+          await Promise.race([
+            pgPool.end(),
+            new Promise((resolve) => setTimeout(resolve, 600)),
+          ]);
         }
       } catch {
         // Ignore pool close errors during shutdown
       }
       clearTimeout(forceExitTimer);
       process.exit(0);
+    };
+
+    httpServer.close(() => {
+      void finishShutdown();
     });
+    // Close keep-alive & active sockets promptly so port 3000 is released immediately on dev restart
+    if (typeof (httpServer as any).closeIdleConnections === 'function') {
+      (httpServer as any).closeIdleConnections();
+    }
+    if (typeof (httpServer as any).closeAllConnections === 'function') {
+      (httpServer as any).closeAllConnections();
+    }
   };
 
   process.on('SIGTERM', () => {
