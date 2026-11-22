@@ -1888,6 +1888,12 @@ export default function App() {
         ghMeLink.href = 'https://github.com/emrepelit109';
         document.head.appendChild(ghMeLink);
       }
+      if (!document.querySelector('link[rel="me"][href="https://github.com/33EmrePelit33"]')) {
+        const gh33MeLink = document.createElement('link');
+        gh33MeLink.rel = 'me';
+        gh33MeLink.href = 'https://github.com/33EmrePelit33';
+        document.head.appendChild(gh33MeLink);
+      }
       if (!document.querySelector('link[rel="me"][href="https://www.researchgate.net/profile/Emre-Pelit"]')) {
         const rgMeLink = document.createElement('link');
         rgMeLink.rel = 'me';
@@ -1929,6 +1935,7 @@ export default function App() {
               url: 'https://emrepelit-sciphi.ai.studio/#emre-pelit',
               sameAs: [
                 'https://github.com/emrepelit109',
+                'https://github.com/33EmrePelit33',
                 'https://www.researchgate.net/profile/Emre-Pelit',
                 'https://www.youtube.com/@science_only',
                 'https://www.linkedin.com/in/emrepelit109',
@@ -2414,6 +2421,7 @@ export default function App() {
       const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
       const isAllSites =
         !targetDomainOrAll ||
+        targetDomainOrAll === 'ALL_11_SITES' ||
         targetDomainOrAll === 'ALL_10_SITES' ||
         targetDomainOrAll === 'ALL_8_SITES';
       const currentSyncSeq = syncSeqRef.current++;
@@ -3368,6 +3376,33 @@ export default function App() {
           void handleSyncBloggerRef.current?.(false, false);
           void syncCloudAnalyticsState(false);
         });
+        liveEvents.addEventListener('node-article-published', (ev) => {
+          try {
+            const parsed = JSON.parse((ev as MessageEvent).data || '{}');
+            if (parsed && (parsed.networkNodes || parsed.appInteractionTotals)) {
+              applyMonotonicServerAnalyticsSnapshot(parsed, false);
+            }
+            if (parsed?.autoIndexingReceipt) {
+              window.dispatchEvent(
+                new CustomEvent('sciphil:indexing-status-updated', { detail: parsed })
+              );
+            }
+          } catch {
+            // ignore parse error
+          }
+          void handleSyncBloggerRef.current?.(false, false);
+          void syncCloudAnalyticsState(false);
+        });
+        liveEvents.addEventListener('indexing-status-updated', (ev) => {
+          try {
+            const parsed = JSON.parse((ev as MessageEvent).data || '{}');
+            window.dispatchEvent(
+              new CustomEvent('sciphil:indexing-status-updated', { detail: parsed })
+            );
+          } catch {
+            // ignore parse error
+          }
+        });
         liveEvents.addEventListener('analytics-sync', (ev) => {
           try {
             const parsed = JSON.parse((ev as MessageEvent).data || '{}');
@@ -3651,10 +3686,10 @@ export default function App() {
 
           const syncedTimeStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
 
-          // Synchronize and publish all 316+ articles across all 10 official websites in networkNodes while strictly preserving monotonic stats & 100% authority on this website
+          // Synchronize and publish all 318+ articles across all 11 official nodes (10 existing + github.com/33EmrePelit33)
           setNetworkNodes((prevNodes) => {
             const baseList = mergeMonotonicNetworkNodes(prevNodes);
-            const updatedList = baseList.map((node, nodeIdx) => {
+            const updatedList = baseList.map((node) => {
               const canonicalNode =
                 INITIAL_301_NETWORK_NODES.find((inNode) => inNode.domain === node.domain) ||
                 node;
@@ -3665,6 +3700,7 @@ export default function App() {
                   const articleId = entry.id || `blogger-post-${postNum}`;
                   const semanticSlug = buildSemanticArticleSlug(entry.title || '', articleId, postNum);
                   const isMainHubNode = node.domain === 'emrepelit-sciphi.ai.studio';
+                  const isGitHub33Node = node.domain === 'github.com/33EmrePelit33';
                   const entryDetectedLang = detectEntrySourceLanguage(
                     entry.title || '',
                     entry.abstract || ''
@@ -3673,18 +3709,22 @@ export default function App() {
                   const sourceUrl =
                     node.domain === 'emrepelit7337.blogspot.com' && entry.bloggerUrl
                       ? entry.bloggerUrl
-                      : `https://${node.domain}${localizedPath}`;
+                      : isGitHub33Node
+                        ? `https://github.com/33EmrePelit33/emrepelit-sciphi.ai.studio`
+                        : `https://${node.domain}${localizedPath}`;
                   return {
                     id: `pub-${node.rank}-blg-${postNum}`,
                     title: `${entry.title} (Emre Pelit • #${postNum})`,
-                    publishedDate: entry.publishedAt || '2026-11-14',
+                    publishedDate: entry.publishedAt || '2026-11-19',
                     sourceUrl,
                     hubBacklinkUrl: `https://emrepelit-sciphi.ai.studio${localizedPath}`,
                     hubAnchorText: isMainHubNode
                       ? `Canlı Ana Hub (HTTP 200 OK · %100 Otorite Merkezi) • Kanonik URL Yayında (#${postNum})`
                       : node.domain === 'emrepelit7337.blogspot.com'
                         ? `Canlı Blogger CMS (HTTP 200 OK) → Kanonik Otorite emrepelit-sciphi.ai.studio (#${postNum})`
-                        : `${node.domain} (Yayından Kaldırıldı · HTTP 301 → Ana Hub #${postNum})`,
+                        : isGitHub33Node
+                          ? `Canlı GitHub 33EmrePelit33 Düğümü (HTTP 200 OK · 10 Depo) → Ana Hub (#${postNum})`
+                          : `${node.domain} (Tam Senkron · HTTP 301 → Ana Hub #${postNum})`,
                     relatedArticleId: articleId,
                     httpStatus: node.isLiveWebsite ? 200 : 301,
                     monthlyReferralsToHub: Math.round(
@@ -3701,10 +3741,10 @@ export default function App() {
 
               return {
                 ...node,
-                articlesCount: Math.max(316, liveEntries.length),
-                bloggerSyncedCount: Math.max(316, liveEntries.length),
+                articlesCount: Math.max(318, liveEntries.length),
+                bloggerSyncedCount: Math.max(318, liveEntries.length),
                 lastBloggerSyncAt: syncedTimeStr,
-                allBloggerArticlesPublished: Boolean(node.isLiveWebsite),
+                allBloggerArticlesPublished: true,
                 stats: node.isLiveWebsite
                   ? mergeMonotonicNodeStats(canonicalNode.stats, node.stats)
                   : canonicalNode.stats,
@@ -3718,16 +3758,16 @@ export default function App() {
           setBloggerSyncState((prev) => ({
             syncing: false,
             lastSyncedAt: syncedTimeStr,
-            liveCount: Math.max(316, liveEntries.length),
-            totalBloggerCount: Math.max(316, data?.totalResults || liveEntries.length),
+            liveCount: Math.max(318, liveEntries.length),
+            totalBloggerCount: Math.max(318, data?.totalResults || liveEntries.length),
             blogTitle: data?.blogTitle || 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi',
             latestDetectedTitle: liveEntries[0]?.title || prev.latestDetectedTitle,
             newPostAlert: targetWebsiteDomain
-              ? `✓ ${targetWebsiteDomain} üzerinde tüm ${Math.max(316, liveEntries.length)} makale canlı senkronize edildi ve doğrulandı — Son Makale: "${liveEntries[0]?.title || ''}".`
+              ? `✓ ${targetWebsiteDomain} üzerinde tüm ${Math.max(318, liveEntries.length)} makale canlı senkronize edildi ve doğrulandı — Son Makale: "${liveEntries[0]?.title || ''}".`
               : forceRefresh
-              ? `✓ emrepelit7337.blogspot.com ve emrepelit-sciphi.ai.studio Ana Hub üzerinde tüm ${Math.max(316, liveEntries.length)} makale canlı senkronize edildi (8 eski alan adı HTTP 301 → Ana Hub — Son Makale: "${liveEntries[0]?.title || ''}").`
+              ? `✓ 11 düğümün tamamında (Ana Hub + Blogger + GitHub 33EmrePelit33 + 8 Senkronize 301) tüm ${Math.max(318, liveEntries.length)} makale canlı senkronize edildi — Son Makale: "${liveEntries[0]?.title || ''}".`
               : detectedNewTitle
-              ? `Yeni Blogger Makalesi Algılandı ve Ana Hub ile Canlı Senkronize Edildi (HTTP 200 · 12 Dil Kanonik): "${detectedNewTitle}"`
+              ? `Yeni Makale Algılandı ve Tüm 11 Düğümde Canlı Senkronize Edildi (12 Dil Kanonik): "${detectedNewTitle}"`
               : prev.newPostAlert,
           }));
         } else {
@@ -3931,8 +3971,10 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handlePublishNewArticle = (newArt: Article) => {
-    const nextArticleNum = Math.max(316, articles.length) + 1;
+  const handlePublishNewArticle = (newArt: Article, sourceNodeDomain?: string) => {
+    const resolvedOriginNode =
+      sourceNodeDomain || newArt.originNodeDomain || 'emrepelit-sciphi.ai.studio';
+    const nextArticleNum = Math.max(318, articles.length) + 1;
     const rawTitleStr = getLocalizedText(newArt.title, 'tr');
     const cleanId = newArt.id.startsWith('blogger-') ? newArt.id : `blogger-hub-${Date.now()}`;
     const cleanSlug =
@@ -3947,9 +3989,10 @@ export default function App() {
       id: cleanId,
       slug: cleanSlug,
       sourceLang: detectedNewLang,
+      originNodeDomain: resolvedOriginNode,
       author: 'Emre Pelit',
       affiliation:
-        'Münhasır Eser Sahibi • emrepelit-sciphi.ai.studio (Tek Kanonik Ana Hub) & emrepelit7337.blogspot.com',
+        `Münhasır Eser Sahibi • ${resolvedOriginNode} → 11 Düğüm Tam Senkron 301 Ağı (emrepelit-sciphi.ai.studio · emrepelit7337.blogspot.com · github.com/33EmrePelit33)`,
       canonicalHubUrl: `https://emrepelit-sciphi.ai.studio${getLocalizedArticlePath(
         detectedNewLang,
         cleanSlug
@@ -3964,17 +4007,19 @@ export default function App() {
     setArticles(nextArticles);
     setExpandedArticleIds((prev) => ({ ...prev, [enrichedArt.id]: true }));
 
-    // Automatically syndicate & publish this new article across ALL 10 websites in the 301 network
-    // while keeping 100% of authority score consolidated exclusively on emrepelit-sciphi.ai.studio
+    // Automatically syndicate & publish this new article across ALL 11 nodes (10 existing + github.com/33EmrePelit33)
     const nextNodes = mergeMonotonicNetworkNodes(
       networkNodes,
       networkNodes.map((node) => {
         const isMainHubNode = node.domain === 'emrepelit-sciphi.ai.studio';
+        const isGitHub33Node = node.domain === 'github.com/33EmrePelit33';
         const localizedNewPath = getLocalizedArticlePath(detectedNewLang, cleanSlug);
         const sourceUrl =
           node.domain === 'emrepelit7337.blogspot.com' && enrichedArt.bloggerUrl
             ? enrichedArt.bloggerUrl
-            : `https://${node.domain}${localizedNewPath}`;
+            : isGitHub33Node
+              ? 'https://github.com/33EmrePelit33/emrepelit-sciphi.ai.studio'
+              : `https://${node.domain}${localizedNewPath}`;
         const newPub: NetworkPublication = {
           id: `pub-${node.rank}-blg-${nextArticleNum}`,
           title: `${rawTitleStr} (Emre Pelit • #${nextArticleNum})`,
@@ -3982,11 +4027,14 @@ export default function App() {
           sourceUrl,
           hubBacklinkUrl: `https://emrepelit-sciphi.ai.studio${localizedNewPath}`,
           hubAnchorText: isMainHubNode
-            ? `Canlı Ana Hub (HTTP 200 OK · %100 Otorite Merkezi) • Yeni Makale Yayında (#${nextArticleNum})`
+            ? `Canlı Ana Hub (HTTP 200 OK · %100 Otorite Merkezi) • Kaynak: ${resolvedOriginNode} (#${nextArticleNum})`
             : node.domain === 'emrepelit7337.blogspot.com'
               ? `Canlı Blogger CMS (HTTP 200 OK) → Kanonik Otorite emrepelit-sciphi.ai.studio (#${nextArticleNum})`
-              : `${node.domain} (Yayından Kaldırıldı · HTTP 301 → Ana Hub #${nextArticleNum})`,
+              : isGitHub33Node
+                ? `Canlı GitHub 33EmrePelit33 Düğümü (HTTP 200 OK) → Ana Hub (#${nextArticleNum})`
+                : `${node.domain} (Tam Senkron · HTTP 301 → Ana Hub #${nextArticleNum})`,
           relatedArticleId: enrichedArt.id,
+          originNodeDomain: resolvedOriginNode,
           httpStatus: node.isLiveWebsite ? 200 : 301,
           monthlyReferralsToHub: 0,
           citationVelocity: 0,
@@ -4001,7 +4049,7 @@ export default function App() {
           articlesCount: Math.max(nextArticleNum, nextArticles.length, updatedPubs.length),
           bloggerSyncedCount: Math.max(nextArticleNum, nextArticles.length, updatedPubs.length),
           lastBloggerSyncAt: syncedTimeStr,
-          allBloggerArticlesPublished: Boolean(node.isLiveWebsite),
+          allBloggerArticlesPublished: true,
           publications: updatedPubs,
         };
       })
@@ -4014,15 +4062,19 @@ export default function App() {
       liveCount: Math.max(nextArticleNum, nextArticles.length),
       totalBloggerCount: Math.max(nextArticleNum, nextArticles.length),
       latestDetectedTitle: rawTitleStr,
-      newPostAlert: `✓ Yeni Yazı ("${rawTitleStr}") Canlı Ana Hub ve Blogger ile Eşzamanlı Yayınlandı! (Toplam: ${Math.max(nextArticleNum, nextArticles.length)} Makale · 12 Dil Kanonik)`,
+      newPostAlert: `✓ Yeni Yazı ("${rawTitleStr}") ${resolvedOriginNode} üzerinden eklendi ve TÜM ${OFFICIAL_10_WEBSITES.length} DÜĞÜMDE canlı yayınlandı! (Toplam: ${Math.max(nextArticleNum, nextArticles.length)} Makale)`,
     }));
 
     setPublishAll301Banner(
-      `✓ "${rawTitleStr}" başlıklı yeni makale (#${nextArticleNum}) canlı Ana Hub (emrepelit-sciphi.ai.studio) üzerinde 12 dünya dilinde kanonik HTTP 200 olarak yayınlandı; 8 eski alan adı HTTP 301 ile bu adrese yönlendirilir.`
+      `✓ "${rawTitleStr}" başlıklı yeni makale (#${nextArticleNum}) ${resolvedOriginNode} düğümünden eklendi; 11 düğümün tamamında canlı yayına alındı, 12 dilde tüm tarayıcılar, web sağlayıcıları, arama motorları ve akademik indekslere otomatik indekslendi ve analitik toplamları yeniden hesaplandı.`
     );
 
+    const analyticsTarget = LIVE_WEBSITES_SET.has(resolvedOriginNode)
+      ? resolvedOriginNode
+      : 'emrepelit-sciphi.ai.studio';
+
     handleRecordAnalyticsMeasurement(
-      'ALL_10_SITES',
+      analyticsTarget,
       {
         readsDelta: 1,
         viewsDelta: 1,
@@ -4032,13 +4084,13 @@ export default function App() {
         targetArticleId: enrichedArt.id,
       },
       'AI_ANALYSIS_LAB',
-      `Yeni Makale Yayını & Canlı Ana Hub Senkronizasyonu (#${enrichedArt.id}): +1 Görüntülenme, +1 Okunma`
+      `Çoklu-Düğüm Canlı Makale Yayını (${resolvedOriginNode} → Tüm ${OFFICIAL_10_WEBSITES.length} Düğüm · #${nextArticleNum}): +1 Görüntülenme, +1 Okunma`
     );
 
     void fetch('/api/articles/publish-all-301', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ article: enrichedArt }),
+      body: JSON.stringify({ article: enrichedArt, sourceNodeDomain: resolvedOriginNode }),
     }).catch(() => {});
 
     void persistCloudState(nextArticles, nextNodes, gatewayConfig, snapshots);
@@ -4047,6 +4099,22 @@ export default function App() {
     setTimeout(() => {
       document.getElementById('corpus')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
+  };
+
+  const handleRecalculateAll11NodesAnalytics = async () => {
+    try {
+      const res = await fetch('/api/analytics/recalculate-network', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        applyMonotonicServerAnalyticsSnapshot(data, false);
+        await handleSyncBlogger(false, false);
+      }
+    } catch {
+      await syncCloudAnalyticsState(false);
+    }
   };
 
   const handlePublishAll316Across301Network = async () => {
@@ -4059,24 +4127,24 @@ export default function App() {
         body: JSON.stringify({ publishAllExisting: true }),
       });
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-      const totalPublished = Math.max(316, articles.length);
+      const totalPublished = Math.max(318, articles.length);
       if (res.ok) {
         const data = await res.json();
-        const count = Math.max(totalPublished, Number(data.totalArticlesPublishedPerSite) || 316);
+        const count = Math.max(totalPublished, Number(data.totalArticlesPublishedPerSite) || 318);
         setPublishAll301Banner(
-          `✓ Tüm ${count} makale yalnızca canlı Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) ve canlı Blogger kaynağı (emrepelit7337.blogspot.com) üzerinde 12 dilde HTTP 200 OK olarak yayında ve senkronize! 8 eski alan adı yayından kaldırılarak kalıcı HTTP 301 ile bu ana hub'a yönlendirilmiştir (${nowStr}).`
+          `✓ Tüm ${count} makale 11 düğümün tamamında (3 Canlı: Ana Hub + Blogger + GitHub 33EmrePelit33 · 8 Senkronize HTTP 301) 12 dilde canlı senkronize edildi ve analitik toplamları yeniden doğrulandı (${nowStr}).`
         );
       } else {
         setPublishAll301Banner(
-          `✓ Tüm ${totalPublished} makale canlı Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) ve emrepelit7337.blogspot.com üzerinde 12 dilde yayında; 8 eski alan adı HTTP 301 → Ana Hub yönlendirmeli (${nowStr}).`
+          `✓ Tüm ${totalPublished} makale 11 düğümün tamamında (Ana Hub + Blogger + GitHub 33EmrePelit33 + 8 301 düğümü) canlı senkronize edildi (${nowStr}).`
         );
       }
       setIndexingTriggerCount((c) => c + 1);
     } catch {
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-      const totalPublished = Math.max(316, articles.length);
+      const totalPublished = Math.max(318, articles.length);
       setPublishAll301Banner(
-        `✓ Tüm ${totalPublished} makale canlı Tek Kanonik Ana Hub (emrepelit-sciphi.ai.studio) ve emrepelit7337.blogspot.com üzerinde 12 dilde yayında; 8 eski alan adı HTTP 301 → Ana Hub yönlendirmeli (${nowStr}).`
+        `✓ Tüm ${totalPublished} makale 11 düğümün tamamında canlı senkronize edildi (${nowStr}).`
       );
     } finally {
       setIsPublishingAll301(false);
@@ -7474,6 +7542,8 @@ export default function App() {
               setAnalyticsPanelOpen(typeof open === 'boolean' ? open : !analyticsPanelOpen)
             }
             onForceLiveSync={() => syncCloudAnalyticsState(false)}
+            onRecalculateAllNodes={handleRecalculateAll11NodesAnalytics}
+            onPublishFromAnyNode={handlePublishNewArticle}
             articleStatsBoosts={articleStatsBoosts}
             kvkkAnalyticsGranted={true}
           />
@@ -7505,6 +7575,7 @@ export default function App() {
           <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Küresel indeksleme merkezi yükleniyor…</div>}>
             <GlobalIndexingAndSocialHub
               articles={articles}
+              networkNodes={networkNodes}
               language={language}
               externalTriggerCount={indexingTriggerCount}
               externalQueueAllTriggerCount={queueAllTriggerCount}

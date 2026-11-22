@@ -69,6 +69,7 @@ export interface Article {
   sha256Signature: string;
   citationsCount: number;
   networkImpressions: number;
+  originNodeDomain?: string;
   title: LocalizedText;
   subtitle: LocalizedText;
   abstract: LocalizedText;
@@ -86,6 +87,7 @@ export interface NetworkPublication {
   hubBacklinkUrl: string;
   hubAnchorText: string;
   relatedArticleId: string;
+  originNodeDomain?: string;
   httpStatus: 301 | 200;
   monthlyReferralsToHub: number;
   citationVelocity: number;
@@ -106,7 +108,13 @@ export interface Network301Node {
   addedTo301Badge?: boolean;
   redirectTargetUrl: string;
   httpCode: 301 | 200 | 404;
-  status: 'LIVE_MAIN_HUB' | 'LIVE_BLOGGER_SOURCE' | 'DECOMMISSIONED_REDIRECTED_301' | 'PERMANENT_301_ACTIVE' | 'PASSIVE_ARCHIVE_404';
+  status:
+    | 'LIVE_MAIN_HUB'
+    | 'LIVE_BLOGGER_SOURCE'
+    | 'LIVE_GITHUB_NODE'
+    | 'DECOMMISSIONED_REDIRECTED_301'
+    | 'PERMANENT_301_ACTIVE'
+    | 'PASSIVE_ARCHIVE_404';
   isLiveWebsite?: boolean;
   decommissionedNote?: string;
   tlsProtocol: 'TLS 1.3 / SHA-256';

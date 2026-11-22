@@ -59,7 +59,7 @@
       "status": "LIVE_BLOGGER_SOURCE",
       "tlsProtocol": "TLS 1.3 / SHA-256",
       "launchDate": "24 Nisan 2026",
-      "sharePercent": 44.56
+      "sharePercent": 44.55
     },
     {
       "id": "node-sciphi-03",
@@ -217,17 +217,17 @@
       "domain": "emrepelit-sciphi.ai.studio",
       "articlesCount": 318,
       "bloggerSyncedCount": 318,
-      "lastBloggerSyncAt": "2026-11-20 13:01:35 UTC",
+      "lastBloggerSyncAt": "2026-11-22 11:39:06 UTC",
       "stats": {
-        "baseReads": 3332,
+        "baseReads": 3333,
         "recent48hReads": 0,
-        "netReads": 3332,
-        "totalViews": 12725,
+        "netReads": 3333,
+        "totalViews": 12726,
         "readingTimeHours": 219,
-        "readingTimeMinutes": 56,
+        "readingTimeMinutes": 58,
         "audioListenHours": 128,
         "audioListenMinutes": 57,
-        "uniqueReaders": 2630,
+        "uniqueReaders": 2631,
         "simulatorRuns": 1699,
         "syncLatencyMs": 4,
         "videoPlays": 1,
@@ -300,6 +300,35 @@
       "tlsProtocol": "TLS 1.3 / SHA-256",
       "launchDate": "30 Eylül 2026",
       "sharePercent": 0.84
+    },
+    {
+      "id": "node-11",
+      "rank": 11,
+      "domain": "github.com/33EmrePelit33",
+      "launchDate": "25 Eylül 2026",
+      "articlesCount": 318,
+      "bloggerSyncedCount": 318,
+      "allBloggerArticlesPublished": true,
+      "status": "LIVE_GITHUB_NODE",
+      "isLiveWebsite": true,
+      "httpCode": 200,
+      "tlsProtocol": "TLS 1.3 / SHA-256",
+      "lastBloggerSyncAt": "2026-11-22 11:17:51 UTC",
+      "stats": {
+        "baseReads": 0,
+        "recent48hReads": 0,
+        "netReads": 0,
+        "totalViews": 0,
+        "readingTimeHours": 0,
+        "readingTimeMinutes": 0,
+        "audioListenHours": 0,
+        "audioListenMinutes": 0,
+        "uniqueReaders": 0,
+        "simulatorRuns": 0,
+        "videoPlays": 0,
+        "videoWatchSeconds": 0
+      },
+      "sharePercent": 0
     }
   ],
   "analyticsMeasurements": {
@@ -389,15 +418,15 @@
     },
     "emrepelit-sciphi.ai.studio": {
       "domain": "emrepelit-sciphi.ai.studio",
-      "measuredReads": 3332,
-      "measuredViews": 12725,
-      "measuredReadingMinutes": 13196,
+      "measuredReads": 3333,
+      "measuredViews": 12726,
+      "measuredReadingMinutes": 13198,
       "measuredAudioMinutes": 7737,
-      "measuredUniqueReaders": 2630,
+      "measuredUniqueReaders": 2631,
       "measuredSimulatorRuns": 1699,
       "measuredVideoPlays": 1,
       "measuredVideoWatchSeconds": 45,
-      "lastMeasuredAt": "2026-11-20 13:01:35 UTC"
+      "lastMeasuredAt": "2026-11-22 11:39:06 UTC"
     },
     "emrepelit.github.io/science-philosophy": {
       "domain": "emrepelit.github.io/science-philosophy",
@@ -422,6 +451,18 @@
       "measuredVideoPlays": 0,
       "measuredVideoWatchSeconds": 0,
       "lastMeasuredAt": "2026-11-14 21:40 UTC"
+    },
+    "github.com/33EmrePelit33": {
+      "domain": "github.com/33EmrePelit33",
+      "measuredReads": 0,
+      "measuredViews": 0,
+      "measuredReadingMinutes": 0,
+      "measuredAudioMinutes": 0,
+      "measuredUniqueReaders": 0,
+      "measuredSimulatorRuns": 0,
+      "measuredVideoPlays": 0,
+      "measuredVideoWatchSeconds": 0,
+      "lastMeasuredAt": "2026-11-22 11:17:51 UTC"
     }
   },
   "articleStatsBoosts": {
@@ -461,8 +502,8 @@
     }
   },
   "appInteractionTotals": {
-    "pageViews": 485043,
-    "articleReads": 126012,
+    "pageViews": 485045,
+    "articleReads": 126013,
     "analysisModals": 42862,
     "simulationRuns": 61596,
     "audioListens": 71083,
@@ -471,10 +512,56 @@
     "qaObjections": 11420,
     "languageSearchExports": 64313,
     "pwaDownloads": 1842,
-    "totalInteractionsSinceLaunch": 864172,
-    "lastUpdatedAt": "2026-11-20 13:01:35 UTC"
+    "totalInteractionsSinceLaunch": 864175,
+    "lastUpdatedAt": "2026-11-22 11:39:06 UTC"
   },
   "appInteractionLog": [
+    {
+      "id": "meas-1795347546243-36-lyhs",
+      "timestamp": "2026-11-22 11:39:06 UTC",
+      "targetDomain": "ALL_11_SITES",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Tam 11 Düğüm Analitik Yeniden Hesaplandı & Mutabakat Doğrulandı (33EmrePelit33 GitHub Dahil · 318 Makale Tam Senkron)",
+      "readsDelta": 0,
+      "viewsDelta": 0,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 0,
+      "audioMinutesDelta": 0,
+      "videoPlaysDelta": 0,
+      "videoWatchSecondsDelta": 0,
+      "videoCompletedDelta": 0,
+      "uniqueReadersDelta": 0,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485044,
+      "cumulativeReadsAfter": 126013,
+      "cumulativeAppInteractionsAfter": 864175,
+      "syncSeq": 36
+    },
+    {
+      "id": "meas-1795346271266-35-td43",
+      "timestamp": "2026-11-22 11:17:51 UTC",
+      "targetDomain": "emrepelit-sciphi.ai.studio",
+      "sourcePanel": "ANALYTICS_PANEL",
+      "interactionCategory": "PAGE_VIEW",
+      "isHistoricalBaseline": false,
+      "metricSummary": "Canlı Senkron: Yeni Platform Görüntülenmesi (emrepelit-sciphi.ai.studio): +1 Görüntülenme, +1 Okunma, +2 dk Okuma, +1 Tekil Okur",
+      "readsDelta": 1,
+      "viewsDelta": 1,
+      "citationsDelta": 0,
+      "readingMinutesDelta": 2,
+      "audioMinutesDelta": 0,
+      "videoPlaysDelta": 0,
+      "videoWatchSecondsDelta": 0,
+      "videoCompletedDelta": 0,
+      "uniqueReadersDelta": 1,
+      "simulatorRunsDelta": 0,
+      "cumulativeViewsAfter": 485044,
+      "cumulativeReadsAfter": 126013,
+      "cumulativeAppInteractionsAfter": 864174,
+      "syncSeq": 35
+    },
     {
       "id": "meas-1795179695400-34-t4fw",
       "timestamp": "2026-11-20 13:01:35 UTC",
@@ -2574,5 +2661,5 @@
     "externalInterventionAllowed": false,
     "sealedAt": "2026-11-18T23:51:19.568Z"
   },
-  "syncSeqCounter": 34
+  "syncSeqCounter": 36
 }

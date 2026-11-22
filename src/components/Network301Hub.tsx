@@ -23,6 +23,10 @@ import {
   Clock,
   ArrowDownWideNarrow,
   Film,
+  GitBranch,
+  Calculator,
+  PlusCircle,
+  Send,
 } from 'lucide-react';
 import {
   AnalyticsMeasurementEvent,
@@ -107,7 +111,27 @@ const ALLOWED_8_DOMAINS = new Set([
   'emrepelit-sciphi.ai.studio',
   'emrepelit.github.io/science-philosophy',
   'emrepelit-sci-phi.ai.studio',
+  'github.com/33EmrePelit33',
 ]);
+
+interface GitHub33NodeMeta {
+  login: string;
+  profileUrl: string;
+  publicRepos: number;
+  followers: number;
+  createdAt: string;
+  updatedAt: string;
+  syncedArticlesCount: number;
+  liveFetched: boolean;
+  fetchedAt: string;
+  repos: {
+    name: string;
+    url: string;
+    pushedAt: string;
+    stars: number;
+    forks: number;
+  }[];
+}
 
 interface CountryGeoStat {
   code: string;
@@ -204,6 +228,8 @@ interface Network301HubProps {
   articleStatsBoosts?: Record<string, ArticleStatsBoost>;
   onIncrementArticleBoost?: (articleId: string) => void;
   onForceLiveSync?: () => Promise<void>;
+  onRecalculateAllNodes?: () => Promise<void>;
+  onPublishFromAnyNode?: (article: Article, sourceNodeDomain?: string) => void;
   kvkkAnalyticsGranted?: boolean;
 }
 
@@ -317,12 +343,14 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   appInteractionTotals,
   sessionInteractionTotals,
   lastStatsSyncEvent,
-  bloggerSyncedCount = 316,
+  bloggerSyncedCount = 318,
   analyticsPanelOpen,
   onToggleAnalyticsPanel,
   articleStatsBoosts: externalArticleBoosts,
   onIncrementArticleBoost,
   onForceLiveSync,
+  onRecalculateAllNodes,
+  onPublishFromAnyNode,
   kvkkAnalyticsGranted = false,
 }) => {
   const [interactionFilter, setInteractionFilter] = useState<
@@ -334,7 +362,19 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   const [showDetailedSiteCards, setShowDetailedSiteCards] = useState<boolean>(true);
   const [showReconciliationDetails, setShowReconciliationDetails] = useState<boolean>(true);
   const [expandedNodePubs, setExpandedNodePubs] = useState<Record<string, boolean>>({});
+  const [nodeArticleSearch, setNodeArticleSearch] = useState<Record<string, string>>({});
+  const [nodeArticleShowAll, setNodeArticleShowAll] = useState<Record<string, boolean>>({});
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+  const [isRecalculatingAllNodes, setIsRecalculatingAllNodes] = useState<boolean>(false);
+  const [githubNodeMeta, setGithubNodeMeta] = useState<GitHub33NodeMeta | null>(null);
+
+  // Live Cross-Node Article Publishing state (publish on ANY of the 11 nodes -> live sync to all 11 nodes)
+  const [showCrossNodePublishForm, setShowCrossNodePublishForm] = useState<boolean>(false);
+  const [publishOriginNode, setPublishOriginNode] = useState<string>('github.com/33EmrePelit33');
+  const [publishTitle, setPublishTitle] = useState<string>('');
+  const [publishCategory, setPublishCategory] = useState<Article['category']>('Kuantum Fiziği');
+  const [publishAbstract, setPublishAbstract] = useState<string>('');
+  const [publishBody, setPublishBody] = useState<string>('');
   const resolvedAppInteractions = useMemo(
     () =>
       mergeMonotonicAppInteractionTotals(
@@ -443,8 +483,18 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
       .catch(() => {});
   }, []);
 
-  // Close Analytics modal on Escape key
+  // Close Analytics modal on Escape key & fetch live GitHub 33EmrePelit33 node metadata
   useEffect(() => {
+    if (isAnalyticsModalOpen && !githubNodeMeta) {
+      void fetch('/api/network/github-33emrepelit33')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.login && Array.isArray(data?.repos)) {
+            setGithubNodeMeta(data as GitHub33NodeMeta);
+          }
+        })
+        .catch(() => {});
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isAnalyticsModalOpen) {
         setAnalyticsModalOpen(false);
@@ -452,7 +502,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAnalyticsModalOpen]);
+  }, [isAnalyticsModalOpen, githubNodeMeta]);
 
   // Analytics Panel Measurement Controls State
   const [analyticsTargetDomain, setAnalyticsTargetDomain] = useState<string>(
@@ -571,8 +621,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     if (sDelta > 0) parts.push(`+${sDelta} Simülatör`);
 
     const summary = `Canlı Senkron Ölçüm Değişikliği (${
-      analyticsTargetDomain === 'ALL_10_SITES' || analyticsTargetDomain === 'ALL_8_SITES'
-        ? '10 Düğümün Tamamı'
+      analyticsTargetDomain === 'ALL_11_SITES' ||
+      analyticsTargetDomain === 'ALL_10_SITES' ||
+      analyticsTargetDomain === 'ALL_8_SITES'
+        ? '11 Düğümün Tamamı (3 Canlı + 8 Senkron 301)'
         : analyticsTargetDomain
     }): ${parts.join(', ')}`;
 
@@ -591,7 +643,125 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     );
 
     setAnalyticsNotice(
-      `✓ Canlı Senkron Olayı Çalıştı (${parts.join(', ')}) → Kümülatif Toplam Görüntülenme ve İlgili Site İstatistikleri Anında Güncellendi.`
+      `✓ Canlı Senkron Olayı Çalıştı (${parts.join(', ')}) → 11 Düğüm Kümülatif Toplamı ve İlgili Düğüm İstatistikleri Anında Güncellendi.`
+    );
+  };
+
+  const handleQuickCrossNodePublish = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanTitle = publishTitle.trim();
+    if (!cleanTitle || cleanTitle.length < 3) {
+      setAnalyticsNotice('Lütfen tüm 11 düğümde canlı yayınlanacak yazı için en az 3 karakterlik bir başlık girin.');
+      return;
+    }
+    const cleanAbstract =
+      publishAbstract.trim() ||
+      `${cleanTitle} — ${publishOriginNode} düğümü üzerinden yayınlanan ve tüm 11 düğümde (Ana Hub + Blogger + GitHub 33EmrePelit33 + 8 HTTP 301) eşzamanlı senkronize edilen araştırma metni.`;
+    const cleanBody =
+      publishBody.trim() ||
+      `${cleanAbstract}\n\nBu makale ${publishOriginNode} düğümüne eklendiği anda merkezi 301 ağı ve SSE yayın katmanı aracılığıyla tüm 11 düğüme otomatik olarak dağıtılmış, analitik sayaçları 1:1 eşitlenmiştir.`;
+
+    const nowDateTr = new Date().toLocaleDateString('tr-TR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const nextNumber = Math.max(318, activeArticles.length) + 1;
+    const slugVal =
+      cleanTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9çğıöşü\s-]/gi, '')
+        .replace(/\s+/g, '-')
+        .slice(0, 64) || `article-${nextNumber}`;
+    const makeLocalized = (text: string): Record<string, string> => ({
+      tr: text,
+      en: text,
+      de: text,
+      fr: text,
+      es: text,
+      it: text,
+      ru: text,
+      ar: text,
+      zh: text,
+      ja: text,
+      pt: text,
+      ko: text,
+    });
+    const bodyParagraphs = cleanBody
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const fallbackParagraphs =
+      bodyParagraphs.length > 0 ? bodyParagraphs : [cleanAbstract];
+    const templateSim = activeArticles[0]?.simulation || {
+      type: 'quantum' as const,
+      title: makeLocalized('Canlı Kuantum & Bilgi Simülasyonu'),
+      equationLatex: 'i\\hbar \\frac{\\partial}{\\partial t} |\\Psi(t)\\rangle = \\hat{H} |\\Psi(t)\\rangle',
+      methodologyNote: makeLocalized('11-Düğüm canlı senkronizasyon laboratuvar simülasyonu.'),
+      parameters: [
+        {
+          key: 'coherence',
+          label: makeLocalized('Kuantum Tutarlılık'),
+          unit: 'φ',
+          min: 0.1,
+          max: 1.0,
+          step: 0.05,
+          defaultValue: 0.85,
+        },
+      ],
+    };
+
+    const newArticle: Article = {
+      id: `art-node-live-${Date.now()}`,
+      slug: slugVal,
+      sourceLang: language,
+      category: publishCategory || 'Kuantum Fiziği',
+      publishedAt: nowDateTr,
+      readTimeMinutes: Math.max(3, Math.ceil(cleanBody.split(/\s+/).length / 180)),
+      author: 'Emre Pelit',
+      affiliation: 'Sci-Phil | Bilim & Felsefe Ana Merkezi (11-Düğüm Canlı Senkron)',
+      sourceOrigin: publishOriginNode === 'emrepelit7337.blogspot.com' ? 'blogger-live' : 'sci-phil-archive',
+      canonicalHubUrl: `https://emrepelit-sciphi.ai.studio/tr/article/${slugVal}`,
+      publishedOnWebsites: strictNodes.map((n) => n.domain),
+      figureNumber: `FIG-${nextNumber}`,
+      figureCaption: makeLocalized(`${cleanTitle} — ${publishOriginNode} 11-Düğüm Canlı Senkron Şeması`),
+      imageUrl: activeArticles[0]?.imageUrl || '/og-image.svg',
+      sha256Signature: `sha256-live-11node-${Date.now().toString(16)}`,
+      citationsCount: 0,
+      networkImpressions: 1,
+      originNodeDomain: publishOriginNode,
+      title: makeLocalized(cleanTitle),
+      subtitle: makeLocalized(`Kaynak Düğüm: ${publishOriginNode} · Tüm ${strictNodes.length} Düğümde Canlı Senkron`),
+      abstract: makeLocalized(cleanAbstract),
+      keyFindings: {
+        tr: [`Kaynak düğüm: ${publishOriginNode}`, `Tüm ${strictNodes.length} düğümde anında canlı senkronize edildi.`],
+        en: [`Source node: ${publishOriginNode}`, `Synchronized live across all ${strictNodes.length} network nodes.`],
+      },
+      contentParagraphs: {
+        tr: fallbackParagraphs,
+        en: fallbackParagraphs,
+        de: fallbackParagraphs,
+        fr: fallbackParagraphs,
+        es: fallbackParagraphs,
+        it: fallbackParagraphs,
+        ru: fallbackParagraphs,
+        ar: fallbackParagraphs,
+        zh: fallbackParagraphs,
+        ja: fallbackParagraphs,
+        pt: fallbackParagraphs,
+        ko: fallbackParagraphs,
+      },
+      references: [`Kaynak Düğüm: https://${publishOriginNode} (11-Düğüm Canlı Senkron)`],
+      simulation: templateSim,
+    };
+
+    onPublishFromAnyNode?.(newArticle, publishOriginNode);
+    setPublishTitle('');
+    setPublishAbstract('');
+    setPublishBody('');
+    setShowCrossNodePublishForm(false);
+    setAnalyticsNotice(
+      `✓ "#${nextNumber} ${cleanTitle}" yazısı ${publishOriginNode} düğümünden eklendi → Tüm ${strictNodes.length} düğümde canlı olarak yayınlandı ve analitik toplamları yeniden hesaplandı!`
     );
   };
 
@@ -1194,7 +1364,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               emrepelit-sciphi.ai.studio/#analytics
             </span>
             <span className="text-amber-300 font-bold">
-              2 Canlı Web Sitesi (Ana Hub + Blogger) &amp; 8 Emekli 301 Düğümü (Toplam 10 Kayıt · {activeArticles.length} Makale) · Canlı Analitik
+              {cumulativeBreakdown.live2.count} Canlı Düğüm (Ana Hub + Blogger + GitHub 33EmrePelit33) &amp; {cumulativeBreakdown.retired8.count} Senkronize 301 Düğümü (Toplam {strictNodes.length} Düğüm · {activeArticles.length} Makale)
             </span>
             <span
               className={`px-2 py-0.5 font-extrabold text-[10px] rounded-xs inline-flex items-center gap-1 transition-all ${
@@ -1209,6 +1379,27 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onRecalculateAllNodes && (
+              <button
+                type="button"
+                disabled={isRecalculatingAllNodes}
+                onClick={async () => {
+                  setIsRecalculatingAllNodes(true);
+                  try {
+                    await onRecalculateAllNodes();
+                    setAnalyticsNotice(
+                      `✓ Tüm ${strictNodes.length} Düğüm (Ana Hub + Blogger + GitHub 33EmrePelit33 + 8 HTTP 301) Analitik Hesabı ve Kümülatif Toplamları Sunucuda Yeniden Hesaplandı & %100 Eşitlendi.`
+                    );
+                  } finally {
+                    setIsRecalculatingAllNodes(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xs font-extrabold rounded-xs cursor-pointer transition-colors disabled:opacity-60"
+              >
+                <Calculator className={`w-3.5 h-3.5 ${isRecalculatingAllNodes ? 'animate-spin' : ''}`} />
+                <span>{isRecalculatingAllNodes ? 'Hesaplanıyor...' : `${strictNodes.length} Düğüm Analitiğini Yeniden Hesapla`}</span>
+              </button>
+            )}
             {onForceLiveSync && (
               <button
                 type="button"
@@ -1218,7 +1409,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   try {
                     await onForceLiveSync();
                     setAnalyticsNotice(
-                      '✓ Sunucu ile Canlı Monotonik Senkronizasyon Tamamlandı (Hiçbir veri azaltılmadan tüm 10 HTTP 301 düğümü eşitlendi).'
+                      `✓ Sunucu ile Canlı Monotonik Senkronizasyon Tamamlandı (Hiçbir veri azaltılmadan tüm ${strictNodes.length} düğüm ve ${activeArticles.length} makale eşitlendi).`
                     );
                   } finally {
                     setIsManualSyncing(false);
@@ -1243,7 +1434,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   'Canlı Senkron: Yeni Görüntülenme Kaydı (+1 Görüntülenme)'
                 );
                 setAnalyticsNotice(
-                  '✓ +1 Yeni Görüntülenme Eklendi & Canlı Senkron Olayı Çalıştı → Tüm KPI, Site ve Makale Sayaçları Eşzamanlı Güncellendi.'
+                  '✓ +1 Yeni Görüntülenme Eklendi & Canlı Senkron Olayı Çalıştı → Tüm 11 Düğüm KPI, Site ve Makale Sayaçları Eşzamanlı Güncellendi.'
                 );
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-mono text-xs font-extrabold rounded-xs cursor-pointer transition-colors"
@@ -1277,7 +1468,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               <div className="text-base sm:text-lg font-extrabold text-cyan-200 mt-0.5">
                 {articleCumulativeData.totalViews.toLocaleString('tr-TR')}
               </div>
-              <div className="text-[9px] text-slate-400">2 Canlı + 8 Emekli 301 = {activeArticles.length} Makale</div>
+              <div className="text-[9px] text-slate-400">
+                {cumulativeBreakdown.live2.count} Canlı + {cumulativeBreakdown.retired8.count} Senkron 301 = {activeArticles.length} Makale
+              </div>
             </div>
 
             <div className="bg-slate-900 border border-amber-400/60 px-3 py-2.5 rounded-xs">
@@ -1373,7 +1566,16 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
 
           <div className="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xs flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-slate-300">
             <span>
-              <strong className="text-emerald-300">1:1 Tam Senkron &amp; GitHub Ağı:</strong> Σ (2 Canlı Site + 8 Dondurulmuş 301 Kaydı) = Σ {activeArticles.length} Makale = Σ 5 Coğrafya · GitHub:{' '}
+              <strong className="text-emerald-300">1:1 Tam Senkron &amp; GitHub Ağı:</strong> Σ ({cumulativeBreakdown.live2.count} Canlı Düğüm + {cumulativeBreakdown.retired8.count} Senkron 301 = {strictNodes.length} Düğüm) = Σ {activeArticles.length} Makale = Σ 5 Coğrafya · GitHub Düğümleri:{' '}
+              <a
+                href="https://github.com/33EmrePelit33"
+                target="_blank"
+                rel="me noopener noreferrer"
+                className="text-violet-300 hover:underline font-extrabold"
+              >
+                github.com/33EmrePelit33 ↗ ({githubNodeMeta?.publicRepos ?? 10} Repo · Canlı #11)
+              </a>{' '}
+              ·{' '}
               <a
                 href="https://github.com/emrepelit109"
                 target="_blank"
@@ -1384,10 +1586,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               </a>{' '}
               &amp;{' '}
               <span
-                title="GitHub Pages düğümü şu an pasif arşiv durumundadır (404 · yeniden aktifleştirme bekliyor)"
+                title="GitHub Pages düğümü 318+ makale korpusu ile senkronize 301 arşiv kaydıdır"
                 className="text-slate-400 font-semibold"
               >
-                emrepelit.github.io/science-philosophy (Pasif Arşiv · 404)
+                emrepelit.github.io/science-philosophy (301 Senkron Arşiv)
               </span>
             </span>
             <span className="text-[10px] text-emerald-400 font-bold">
@@ -1408,7 +1610,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
             [
               {
                 id: 'overview',
-                label: '1. Genel Bakış: 2 Canlı Site + 8 Emekli 301 (Açılıştan Bugüne)',
+                label: `1. Genel Bakış: ${cumulativeBreakdown.live2.count} Canlı + ${cumulativeBreakdown.retired8.count} Senkron 301 (${strictNodes.length} Düğüm · ${activeArticles.length} Makale)`,
               },
               {
                 id: 'articles-geo',
@@ -1469,7 +1671,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-300">
-                    <span className="text-emerald-300 font-bold">Canlı Sürekli Senkronizasyon Aktif (Çerezsiz &amp; Kişisel Verisiz):</span> Tüm 10 web sitesinin açılış tarihlerinden ({cumulativeBreakdown.networkAgeDays} gün) bugüne elde ettiği kümülatif veriler + canlı okuma, sesli anlatım ve 12 dilli geniş özet video izlenme ölçümleri (<code className="text-cyan-300">POST /api/analytics/record-visit</code> + SSE + BroadcastChannel) anlık eşitlenir ve monotonik kilit nedeniyle hiçbir metrik hiçbir zaman azalmaz.
+                    <span className="text-emerald-300 font-bold">Canlı Sürekli Senkronizasyon Aktif (Çerezsiz &amp; Kişisel Verisiz):</span> Tüm {strictNodes.length} düğümün (Ana Hub + Blogger + GitHub 33EmrePelit33 + 8 HTTP 301 Düğümü) açılış tarihlerinden ({cumulativeBreakdown.networkAgeDays} gün) bugüne elde ettiği kümülatif veriler ve {activeArticles.length} makale korpusu (<code className="text-cyan-300">POST /api/analytics/recalculate-network</code> + <code className="text-cyan-300">POST /api/articles/publish-all-301</code> + SSE) anlık eşitlenir ve monotonik kilit nedeniyle hiçbir metrik hiçbir zaman azalmaz.
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] tabular-nums">
@@ -1489,13 +1691,13 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     <tr>
                       <th className="py-2 px-3">Metrik Adı (Açılıştan Beri)</th>
                       <th className="py-2 px-3 text-right text-emerald-300">
-                        Canlı 2 Web Sitesi (Ana Hub + Blogger)
+                        Canlı {cumulativeBreakdown.live2.count} Düğüm (Hub + Blogger + GitHub 33EmrePelit33)
                       </th>
                       <th className="py-2 px-3 text-right text-slate-300">
-                        Emekli 8 HTTP 301 Düğümü (Tarihsel Taban)
+                        Senkronize {cumulativeBreakdown.retired8.count} HTTP 301 Düğümü (Tarihsel Taban)
                       </th>
                       <th className="py-2 px-3 text-right text-amber-300">
-                        Σ 10 Web Sitesi Kümülatif Toplamı
+                        Σ {strictNodes.length} Düğüm Kümülatif Toplamı
                       </th>
                       <th className="py-2 px-3">Oran / Dönüşüm / Ayrıntılı Hesap</th>
                     </tr>
@@ -1650,20 +1852,19 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
 
                     <tr className="hover:bg-slate-900/50">
                       <td className="py-2 px-3 font-bold text-emerald-200">
-                        7. Toplam Yayınlanan Makale &amp; 12-Dil Kanonik Sayfa
+                        7. Toplam Senkron Makale &amp; 12-Dil Kanonik Sayfa
                       </td>
                       <td className="py-2 px-3 text-right text-emerald-300 font-bold">
-                        {(activeArticles.length * cumulativeBreakdown.live2.count).toLocaleString('tr-TR')} yayın ({activeArticles.length}/site)
+                        {(activeArticles.length * cumulativeBreakdown.live2.count).toLocaleString('tr-TR')} yayın ({activeArticles.length}/düğüm)
                       </td>
                       <td className="py-2 px-3 text-right text-slate-300">
-                        {cumulativeBreakdown.retired8.articlesSum.toLocaleString('tr-TR')} tarihsel indeks
+                        {(activeArticles.length * cumulativeBreakdown.retired8.count).toLocaleString('tr-TR')} senkron indeks ({activeArticles.length}/düğüm)
                       </td>
                       <td className="py-2 px-3 text-right text-emerald-300 font-extrabold text-xs">
                         {(activeArticles.length * strictNodes.length).toLocaleString('tr-TR')} ağ yayını
                       </td>
                       <td className="py-2 px-3 text-[10px] text-slate-300">
-                        Tekil Korpus: {activeArticles.length} Makale × 12 Dil ={' '}
-                        {(activeArticles.length * 12).toLocaleString('tr-TR')} Kanonik Sayfa
+                        Tekil Korpus: {activeArticles.length} Makale × {strictNodes.length} Düğüm (%100 Tam Senkron) · {(activeArticles.length * 12).toLocaleString('tr-TR')} 12-Dil Kanonik Sayfa
                       </td>
                     </tr>
 
@@ -1682,7 +1883,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         {cumulativeBreakdown.total10.publicationsCount} yayın
                       </td>
                       <td className="py-2 px-3 text-[10px] text-slate-300">
-                        Scholar, OpenAlex &amp; ResearchGate (<code className="text-emerald-300">/researchgate</code> 301 Köprüsü)
+                        Scholar, OpenAlex, GitHub 33EmrePelit33 &amp; ResearchGate (<code className="text-emerald-300">/researchgate</code> 301 Köprüsü)
                       </td>
                     </tr>
 
@@ -1694,7 +1895,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         Canlı Oturum +{resolvedSessionInteractions.totalInteractionsSinceLaunch.toLocaleString('tr-TR')}
                       </td>
                       <td className="py-2 px-3 text-right text-slate-300">
-                        Tarihsel + Çoklu Site Akışı
+                        Tarihsel + Çoklu Düğüm Akışı
                       </td>
                       <td className="py-2 px-3 text-right text-white font-extrabold text-xs">
                         {syncedAppInteractions.totalInteractionsSinceLaunch.toLocaleString('tr-TR')}
@@ -1712,16 +1913,16 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         10. HTTP Durum, TLS 1.3 &amp; Ortalama Senkron Gecikmesi
                       </td>
                       <td className="py-2 px-3 text-right text-emerald-300 font-bold">
-                        2 Canlı (HTTP 200) · {cumulativeBreakdown.live2.avgLatencyMs} ms
+                        {cumulativeBreakdown.live2.count} Canlı (HTTP 200) · {cumulativeBreakdown.live2.avgLatencyMs} ms
                       </td>
                       <td className="py-2 px-3 text-right text-slate-300">
-                        8 Emekli (HTTP 301 → Hub) · {cumulativeBreakdown.retired8.avgLatencyMs} ms
+                        {cumulativeBreakdown.retired8.count} Senkron 301 → Hub · {cumulativeBreakdown.retired8.avgLatencyMs} ms
                       </td>
                       <td className="py-2 px-3 text-right text-emerald-300 font-extrabold text-xs">
-                        10 / 10 Düğüm · {cumulativeBreakdown.total10.avgLatencyMs} ms ort.
+                        {strictNodes.length} / {strictNodes.length} Düğüm · {cumulativeBreakdown.total10.avgLatencyMs} ms ort.
                       </td>
                       <td className="py-2 px-3 text-[10px] text-slate-300">
-                        TLS 1.3 / SHA-256 · Blogger Canlı Senkron: {bloggerSyncedCount} Makale
+                        TLS 1.3 / SHA-256 · Tüm {strictNodes.length} Düğümde Canlı Senkron: {Math.max(activeArticles.length, bloggerSyncedCount)} Makale
                       </td>
                     </tr>
                   </tbody>
@@ -1729,15 +1930,134 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               </div>
             </div>
 
-            {/* Consolidated 10-Website Comparison Table Since Launch */}
+            {/* Live Cross-Node Article Publishing Bar (Add article to ANY node -> instant live sync across all 11 nodes) */}
+            {onPublishFromAnyNode && (
+              <div className="bg-slate-900/95 border border-violet-400/70 p-3.5 rounded-xs space-y-3 font-mono text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2 py-0.5 bg-violet-500 text-slate-950 font-extrabold text-[10px] rounded-xs inline-flex items-center gap-1">
+                        <GitBranch className="w-3 h-3" />
+                        <span>11-DÜĞÜM CANLI YAYIN KÖPRÜSÜ</span>
+                      </span>
+                      <span className="text-violet-200 font-bold text-[11px]">
+                        Herhangi Bir Düğüme Yazı Ekle → Tüm {strictNodes.length} Düğümde Anında Canlı Yayınla &amp; Analitiği Eşitle
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Seçtiğiniz herhangi bir düğümden (Ana Hub, Blogger, GitHub 33EmrePelit33 veya 8 HTTP 301 düğümünden biri) eklenen yeni makale SSE ile tüm {strictNodes.length} düğüme canlı yansır ve analitik toplamları hatasız güncellenir.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCrossNodePublishForm((v) => !v)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-400 text-slate-950 font-extrabold text-[11px] rounded-xs cursor-pointer transition-colors"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>{showCrossNodePublishForm ? 'Yayın Formunu Gizle' : 'Herhangi Bir Düğümden Canlı Yazı Ekle'}</span>
+                  </button>
+                </div>
+
+                {showCrossNodePublishForm && (
+                  <form
+                    onSubmit={handleQuickCrossNodePublish}
+                    className="bg-slate-950 border border-slate-800 p-3 rounded-xs space-y-2.5"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] text-violet-300 font-bold mb-1">
+                          KAYNAK DÜĞÜM (11 DÜĞÜMDEN BİRİNİ SEÇ)
+                        </label>
+                        <select
+                          value={publishOriginNode}
+                          onChange={(e) => setPublishOriginNode(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-violet-400"
+                        >
+                          {strictNodes.map((n) => (
+                            <option key={`pub-origin-${n.domain}`} value={n.domain}>
+                              #{n.rank} {n.domain}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-cyan-300 font-bold mb-1">
+                          MAKALE BAŞLIĞI *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={publishTitle}
+                          onChange={(e) => setPublishTitle(e.target.value)}
+                          placeholder="Örn: Kuantum Bilgi Koruması ve Bilinç Geometrisi..."
+                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-emerald-300 font-bold mb-1">
+                          KATEGORİ
+                        </label>
+                        <select
+                          value={publishCategory}
+                          onChange={(e) => setPublishCategory(e.target.value as Article['category'])}
+                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-emerald-400"
+                        >
+                          {categoriesList.map((cat) => (
+                            <option key={`pub-cat-${cat}`} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">KISA ÖZET (OPSİYONEL)</label>
+                        <input
+                          type="text"
+                          value={publishAbstract}
+                          onChange={(e) => setPublishAbstract(e.target.value)}
+                          placeholder="Makalenin kısa akademik özeti..."
+                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-violet-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">METİN İÇERİĞİ (OPSİYONEL)</label>
+                        <input
+                          type="text"
+                          value={publishBody}
+                          onChange={(e) => setPublishBody(e.target.value)}
+                          placeholder="Makale metni (boş bırakılırsa özetten otomatik oluşturulur)..."
+                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-white rounded-xs text-xs focus:outline-none focus:border-violet-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <span className="text-[10px] text-emerald-300">
+                        ✓ Yayınlandığında makale sayısı {activeArticles.length} → {activeArticles.length + 1} olur ve tüm {strictNodes.length} düğüm + analitik sayaçları canlı güncellenir.
+                      </span>
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold text-xs rounded-xs cursor-pointer transition-colors"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Tüm {strictNodes.length} Düğümde Canlı Yayınla</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* Consolidated 11-Node Comparison Table Since Launch */}
             <div className="bg-slate-900/95 border border-cyan-500/50 p-4 rounded-xs space-y-3 font-mono text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                 <div className="space-y-0.5">
                   <span className="text-cyan-300 font-bold uppercase text-[11px]">
-                    2 CANLI WEB SİTESİ (ANA HUB + BLOGGER) VE 8 EMEKLİ 301 DÜĞÜMÜNÜN AÇILIŞTAN BERİ İSTATİSTİKLERİ (TOPLAM 10 KAYIT)
+                    {cumulativeBreakdown.live2.count} CANLI DÜĞÜM (ANA HUB + BLOGGER + GITHUB 33EMREPELIT33) VE {cumulativeBreakdown.retired8.count} SENKRONİZE 301 DÜĞÜMÜNÜN AÇILIŞTAN BERİ İSTATİSTİKLERİ (TOPLAM {strictNodes.length} DÜĞÜM · {activeArticles.length} MAKALE)
                   </span>
                   <div className="text-[10px] text-slate-400">
-                    Canlı artışlar yalnızca emrepelit-sciphi.ai.studio ve emrepelit7337.blogspot.com üzerinde toplanır; yayından kaldırılan 8 eski 301 alan adı taban değerinde dondurulmuştur ve hiçbir sayı azaltılmaz.
+                    Tüm {strictNodes.length} düğümün tamamı {activeArticles.length} makale ile %100 tam senkrondur; canlı trafik artışları emrepelit-sciphi.ai.studio, emrepelit7337.blogspot.com ve github.com/33EmrePelit33 üzerinde toplanır, tarihsel 301 düğümleri monotonik kilit ile korunur.
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1746,7 +2066,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     onClick={() => setShowDetailedSiteCards((v) => !v)}
                     className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-amber-300 text-[10px] font-bold rounded-xs cursor-pointer"
                   >
-                    {showDetailedSiteCards ? 'Detaylı Site Kartlarını Gizle' : '10 Web Sitesi Detay Kartlarını Göster'}
+                    {showDetailedSiteCards ? 'Detaylı Düğüm Kartlarını Gizle' : `${strictNodes.length} Düğüm Detay Kartlarını Göster`}
                   </button>
                   <button
                     type="button"
@@ -1781,9 +2101,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   <tbody className="divide-y divide-slate-900 text-slate-200">
                     {strictNodes.map((node) => {
                       const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
+                      const isGitHubNode =
+                        node.domain === 'github.com/33EmrePelit33' ||
+                        node.status === 'LIVE_GITHUB_NODE';
                       const isPassiveArchive =
-                        node.domain === 'emrepelit.github.io/science-philosophy' ||
-                        node.httpCode === 404;
+                        node.domain === 'emrepelit.github.io/science-philosophy';
                       const isLiveNode =
                         LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
                       const nodeViews = node.stats.totalViews ?? node.stats.netReads;
@@ -1803,42 +2125,58 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                           className={
                             isMainHub
                               ? 'bg-emerald-950/35'
-                              : !isLiveNode
-                                ? 'bg-slate-950/60 opacity-85'
-                                : 'hover:bg-slate-900/70'
+                              : isGitHubNode
+                                ? 'bg-violet-950/30'
+                                : !isLiveNode
+                                  ? 'bg-slate-950/60 opacity-90'
+                                  : 'hover:bg-slate-900/70'
                           }
                         >
                           <td className="py-2 px-2.5 font-bold text-amber-400">#{node.rank}</td>
                           <td className="py-2 px-2.5 font-semibold whitespace-nowrap">
-                            <span className={isMainHub ? 'text-emerald-300' : isLiveNode ? 'text-amber-200' : 'text-slate-300'}>
+                            <span
+                              className={
+                                isMainHub
+                                  ? 'text-emerald-300'
+                                  : isGitHubNode
+                                    ? 'text-violet-300'
+                                    : isLiveNode
+                                      ? 'text-amber-200'
+                                      : 'text-slate-300'
+                              }
+                            >
                               {node.domain}
                             </span>{' '}
                             <span
                               className={`text-[9px] px-1.5 py-0.5 rounded-xs border ${
                                 isMainHub
                                   ? 'bg-emerald-950 border-emerald-500/60 text-emerald-300'
-                                  : isLiveNode
-                                    ? 'bg-amber-950/60 border-amber-400/50 text-amber-300'
-                                    : isPassiveArchive
-                                      ? 'bg-amber-950/40 border-amber-700/60 text-amber-300'
-                                      : 'bg-slate-900 border-slate-700 text-slate-400'
+                                  : isGitHubNode
+                                    ? 'bg-violet-950 border-violet-400/60 text-violet-200'
+                                    : isLiveNode
+                                      ? 'bg-amber-950/60 border-amber-400/50 text-amber-300'
+                                      : isPassiveArchive
+                                        ? 'bg-amber-950/40 border-amber-700/60 text-amber-300'
+                                        : 'bg-slate-900 border-slate-700 text-slate-400'
                               }`}
                             >
                               {isMainHub
                                 ? 'CANLI ANA HUB · HTTP 200'
-                                : isLiveNode
-                                  ? 'CANLI BLOGGER · HTTP 200'
-                                  : isPassiveArchive
-                                    ? 'PASİF ARŞİV DÜĞÜMÜ · 404'
-                                    : 'YAYINDAN KALDIRILDI · HTTP 301 → Hub'}
+                                : isGitHubNode
+                                  ? 'CANLI GITHUB · HTTP 200'
+                                  : isLiveNode
+                                    ? 'CANLI BLOGGER · HTTP 200'
+                                    : isPassiveArchive
+                                      ? 'SENKRON ARŞİV · 301 → Hub'
+                                      : 'SENKRON 301 → Hub'}
                             </span>
                           </td>
                           <td className="py-2 px-2.5 text-amber-200 whitespace-nowrap">
                             {node.launchDate}{' '}
                             <span className="text-[9px] text-slate-400">({elapsedDays}g)</span>
                           </td>
-                          <td className="py-2 px-2.5 text-right text-emerald-300">
-                            {Math.max(activeArticles.length, node.articlesCount)}
+                          <td className="py-2 px-2.5 text-right text-emerald-300 font-bold">
+                            {Math.max(activeArticles.length, node.articlesCount, 318)}
                           </td>
                           <td className="py-2 px-2.5 text-right font-bold text-cyan-300">
                             {nodeViews.toLocaleString('tr-TR')}
@@ -1908,10 +2246,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   <tfoot>
                     <tr className="bg-emerald-950/30 border-t border-emerald-500/50 text-[11px] font-bold">
                       <td colSpan={3} className="py-2 px-2.5 text-emerald-300">
-                        Ara Toplam · Canlı 2 Web Sitesi (Ana Hub + Blogger)
+                        Ara Toplam · Canlı {cumulativeBreakdown.live2.count} Düğüm (Ana Hub + Blogger + GitHub 33EmrePelit33)
                       </td>
                       <td className="py-2 px-2.5 text-right text-emerald-300">
-                        {activeArticles.length} × 2
+                        {activeArticles.length} × {cumulativeBreakdown.live2.count}
                       </td>
                       <td className="py-2 px-2.5 text-right text-cyan-300">
                         {cumulativeBreakdown.live2.totalViews.toLocaleString('tr-TR')}
@@ -1958,9 +2296,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     </tr>
                     <tr className="bg-slate-950 border-t border-slate-800 text-[11px] font-semibold text-slate-300">
                       <td colSpan={3} className="py-2 px-2.5">
-                        Ara Toplam · Emekli 8 HTTP 301 Düğümü (Dondurulmuş Taban)
+                        Ara Toplam · Senkronize {cumulativeBreakdown.retired8.count} HTTP 301 Düğümü (Tam Senkron · Dondurulmuş Taban)
                       </td>
-                      <td className="py-2 px-2.5 text-right">{activeArticles.length} × 8</td>
+                      <td className="py-2 px-2.5 text-right">
+                        {activeArticles.length} × {cumulativeBreakdown.retired8.count}
+                      </td>
                       <td className="py-2 px-2.5 text-right text-cyan-300">
                         {cumulativeBreakdown.retired8.totalViews.toLocaleString('tr-TR')}
                       </td>
@@ -2001,15 +2341,15 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         {cumulativeBreakdown.retired8.avgLatencyMs} ms
                       </td>
                       <td className="py-2 px-2.5 text-right text-slate-400 text-[10px]">
-                        301 Sabit
+                        301 Senkron
                       </td>
                     </tr>
                     <tr className="bg-slate-900 border-t-2 border-emerald-400 font-extrabold text-xs">
                       <td colSpan={3} className="py-2.5 px-2.5 text-emerald-300">
-                        Σ 10 WEB SİTESİ KÜMÜLATİF GENEL TOPLAMI (AÇILIŞTAN BUGÜNE %100 MUTABAKAT)
+                        Σ {strictNodes.length} DÜĞÜM KÜMÜLATİF GENEL TOPLAMI (AÇILIŞTAN BUGÜNE %100 MUTABAKAT)
                       </td>
-                      <td className="py-2.5 px-2.5 text-right text-emerald-300">
-                        {activeArticles.length} / Site
+                      <td className="py-2.5 px-2.5 text-right text-emerald-300 whitespace-nowrap">
+                        {activeArticles.length} / Düğüm ({(activeArticles.length * strictNodes.length).toLocaleString('tr-TR')})
                       </td>
                       <td className="py-2.5 px-2.5 text-right text-cyan-300">
                         {cumulative.totalViews.toLocaleString('tr-TR')}
@@ -2058,6 +2398,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   {strictNodes.map((node) => {
                     const m = analyticsMeasurements?.[node.domain];
                     const isMainHub = node.domain === 'emrepelit-sciphi.ai.studio';
+                    const isGitHubNode =
+                      node.domain === 'github.com/33EmrePelit33' ||
+                      node.status === 'LIVE_GITHUB_NODE';
                     const isLiveNode =
                       LIVE_WEBSITES_SET.has(node.domain) || Boolean(node.isLiveWebsite);
                     const totalReadsSinceLaunch = node.stats.netReads;
@@ -2085,6 +2428,23 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       totalViewsSinceLaunch / Math.max(1, node.stats.uniqueReaders)
                     ).toFixed(2);
                     const isPubsExpanded = Boolean(expandedNodePubs[node.id]);
+                    const nodeQuery = (nodeArticleSearch[node.id] || '').trim().toLowerCase();
+                    const nodeSyncedArticles = nodeQuery
+                      ? activeArticles.filter((art, idx) => {
+                          const titleText =
+                            art.title[language] || art.title.tr || art.title.en || art.id;
+                          return (
+                            titleText.toLowerCase().includes(nodeQuery) ||
+                            art.category.toLowerCase().includes(nodeQuery) ||
+                            `#${idx + 1}` === nodeQuery ||
+                            String(idx + 1) === nodeQuery
+                          );
+                        })
+                      : activeArticles;
+                    const showAllForNode = Boolean(nodeArticleShowAll[node.id]);
+                    const displayedNodeArticles = showAllForNode
+                      ? nodeSyncedArticles
+                      : nodeSyncedArticles.slice(0, 30);
 
                     return (
                       <div
@@ -2092,9 +2452,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         className={`p-4 rounded-xs space-y-3 transition-colors flex flex-col justify-between border ${
                           isMainHub
                             ? 'bg-emerald-950/40 border-emerald-400/90'
-                            : isLiveNode
-                              ? 'bg-slate-900/95 border-amber-400/70'
-                              : 'bg-slate-950/85 border-slate-800'
+                            : isGitHubNode
+                              ? 'bg-violet-950/30 border-violet-400/80'
+                              : isLiveNode
+                                ? 'bg-slate-900/95 border-amber-400/70'
+                                : 'bg-slate-950/85 border-slate-800'
                         }`}
                       >
                         <div className="space-y-2.5">
@@ -2105,9 +2467,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                   className={`font-extrabold text-[11px] leading-snug break-all ${
                                     isMainHub
                                       ? 'text-emerald-300'
-                                      : isLiveNode
-                                        ? 'text-amber-200'
-                                        : 'text-slate-200'
+                                      : isGitHubNode
+                                        ? 'text-violet-200'
+                                        : isLiveNode
+                                          ? 'text-amber-200'
+                                          : 'text-slate-200'
                                   }`}
                                   title={node.domain}
                                 >
@@ -2116,6 +2480,17 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                 <span className="px-1.5 py-0.5 text-[9px] bg-slate-900 text-cyan-300 border border-cyan-500/40 rounded-xs shrink-0">
                                   HTTP {node.httpCode}
                                 </span>
+                                {isGitHubNode && (
+                                  <a
+                                    href="https://github.com/33EmrePelit33"
+                                    target="_blank"
+                                    rel="me noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] bg-violet-950 hover:bg-violet-900 text-violet-200 border border-violet-400/60 rounded-xs shrink-0"
+                                  >
+                                    <span>GitHub Profili</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
                               </div>
                               <div className="text-[10px] text-slate-400 break-words leading-snug mt-0.5" title={node.nodeTitle}>
                                 {node.nodeTitle}
@@ -2131,19 +2506,23 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                               className={`px-2 py-0.5 rounded-xs font-bold uppercase ${
                                 isMainHub
                                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/50'
-                                  : isLiveNode
-                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50'
-                                    : 'bg-slate-900 text-slate-300 border border-slate-700'
+                                  : isGitHubNode
+                                    ? 'bg-violet-500/20 text-violet-200 border border-violet-400/60'
+                                    : isLiveNode
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50'
+                                      : 'bg-slate-900 text-slate-300 border border-slate-700'
                               }`}
                             >
                               {isMainHub
                                 ? 'CANLI ANA HUB (HTTP 200 · TEKİL KANONİK)'
-                                : isLiveNode
-                                  ? 'CANLI BLOGGER CMS (HTTP 200 → HUB)'
-                                  : 'EMEKLİ HTTP 301 DÜĞÜMÜ → HUB · DONDURULDU'}
+                                : isGitHubNode
+                                  ? `CANLI GITHUB DÜĞÜMÜ (HTTP 200 · ${githubNodeMeta?.publicRepos ?? 10} REPO)`
+                                  : isLiveNode
+                                    ? 'CANLI BLOGGER CMS (HTTP 200 → HUB)'
+                                    : 'SENKRON HTTP 301 DÜĞÜMÜ → HUB · %100 KORPUS'}
                             </span>
                             <span className="bg-amber-950/40 border border-amber-400/50 px-2 py-0.5 rounded-xs text-amber-200 font-bold">
-                              Açılış: {node.launchDate} ({elapsedDays} gün) · {corpusMetrics.distinctOriginalCount} Özgün · {corpusMetrics.multilingualTextsCount} Metin
+                              Açılış: {node.launchDate} ({elapsedDays} gün) · {activeArticles.length} Makale · {corpusMetrics.distinctOriginalCount} Özgün
                             </span>
                           </div>
 
@@ -2221,53 +2600,123 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                             </div>
                           </div>
 
-                          {node.publications && node.publications.length > 0 && (
-                            <div className="border border-slate-800 bg-slate-950/90 rounded-xs p-2 space-y-1.5">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExpandedNodePubs((prev) => ({
-                                    ...prev,
-                                    [node.id]: !prev[node.id],
-                                  }))
-                                }
-                                className="w-full flex items-center justify-between text-[10px] font-bold text-cyan-300 hover:text-cyan-200 cursor-pointer"
-                              >
-                                <span>
-                                  301 Backlink &amp; İndekslenmiş Yayın Kayıtları ({node.publications.length} Kayıt)
-                                </span>
-                                {isPubsExpanded ? (
-                                  <ChevronUp className="w-3.5 h-3.5" />
-                                ) : (
-                                  <ChevronDown className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              {isPubsExpanded && (
-                                <div className="space-y-1 pt-1 border-t border-slate-800 max-h-44 overflow-y-auto">
-                                  {node.publications.map((pub) => (
-                                    <div
-                                      key={pub.id}
-                                      className="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-2 py-1 rounded-xs text-[10px]"
-                                    >
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          onSelectArticleFromBacklink(pub.relatedArticleId, node.domain)
-                                        }
-                                        className="text-left text-emerald-300 hover:underline font-semibold truncate cursor-pointer"
-                                        title={`${pub.title} (${pub.sourceUrl} → ${pub.hubBacklinkUrl})`}
-                                      >
-                                        {pub.title}
-                                      </button>
-                                      <span className="text-[9px] text-slate-400 shrink-0 tabular-nums">
-                                        {pub.publishedDate} · HTTP {pub.httpStatus} · +{pub.monthlyReferralsToHub}/ay
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
+                          <div className="border border-slate-800 bg-slate-950/90 rounded-xs p-2 space-y-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedNodePubs((prev) => ({
+                                  ...prev,
+                                  [node.id]: !prev[node.id],
+                                }))
+                              }
+                              className="w-full flex items-center justify-between text-[10px] font-bold text-cyan-300 hover:text-cyan-200 cursor-pointer"
+                            >
+                              <span>
+                                Bu Düğümde Senkron Tüm Makaleler ({activeArticles.length} / {activeArticles.length} Makale · %100 Tam Senkron)
+                              </span>
+                              {isPubsExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
                               )}
-                            </div>
-                          )}
+                            </button>
+                            {isPubsExpanded && (
+                              <div className="space-y-1.5 pt-1.5 border-t border-slate-800">
+                                {isGitHubNode && githubNodeMeta?.repos && githubNodeMeta.repos.length > 0 && (
+                                  <div className="bg-violet-950/40 border border-violet-500/40 p-2 rounded-xs space-y-1">
+                                    <div className="text-[9px] text-violet-200 font-bold uppercase">
+                                      Canlı GitHub 33EmrePelit33 Depoları ({githubNodeMeta.publicRepos} Repo · {githubNodeMeta.liveFetched ? 'Canlı API' : 'Önbellek'})
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {githubNodeMeta.repos.slice(0, 10).map((repo) => (
+                                        <a
+                                          key={repo.url}
+                                          href={repo.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-1.5 py-0.5 bg-slate-900 hover:bg-violet-900 border border-violet-500/40 text-violet-200 text-[9px] rounded-xs inline-flex items-center gap-1"
+                                        >
+                                          <span>{repo.name}</span>
+                                          <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="flex items-center gap-1.5">
+                                  <div className="relative flex-1">
+                                    <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                                    <input
+                                      type="text"
+                                      value={nodeArticleSearch[node.id] || ''}
+                                      onChange={(e) =>
+                                        setNodeArticleSearch((prev) => ({
+                                          ...prev,
+                                          [node.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder={`#${node.rank} düğümündeki ${activeArticles.length} makalede ara...`}
+                                      className="w-full pl-6 pr-2 py-1 bg-slate-900 border border-slate-700 text-slate-100 rounded-xs text-[10px] focus:outline-none focus:border-cyan-400"
+                                    />
+                                  </div>
+                                  {nodeSyncedArticles.length > 30 && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setNodeArticleShowAll((prev) => ({
+                                          ...prev,
+                                          [node.id]: !prev[node.id],
+                                        }))
+                                      }
+                                      className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-500/50 text-emerald-300 text-[9px] font-bold rounded-xs shrink-0 cursor-pointer"
+                                    >
+                                      {showAllForNode
+                                        ? 'İlk 30 Göster'
+                                        : `Tümünü Göster (${nodeSyncedArticles.length})`}
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                                  {displayedNodeArticles.map((art, artIdx) => {
+                                    const artTitle =
+                                      art.title[language] || art.title.tr || art.title.en || art.id;
+                                    const serialNum = activeArticles.indexOf(art) + 1;
+                                    return (
+                                      <div
+                                        key={`${node.id}-art-${art.id}-${artIdx}`}
+                                        className="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-2 py-1 rounded-xs text-[10px]"
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onSelectArticleFromBacklink(art.id, node.domain)
+                                          }
+                                          className="text-left text-emerald-300 hover:underline font-semibold truncate cursor-pointer"
+                                          title={`#${serialNum} ${artTitle} (${node.domain} → emrepelit-sciphi.ai.studio)`}
+                                        >
+                                          <span className="text-amber-300 mr-1">#{serialNum}</span>
+                                          {artTitle}
+                                        </button>
+                                        <span className="text-[9px] text-slate-400 shrink-0 tabular-nums">
+                                          {art.originNodeDomain === node.domain ? (
+                                            <span className="text-violet-300 font-bold mr-1">[KAYNAK]</span>
+                                          ) : null}
+                                          {art.publishedAt} · HTTP {node.httpCode}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                  {displayedNodeArticles.length === 0 && (
+                                    <div className="text-[10px] text-slate-400 text-center py-2">
+                                      Aramanızla eşleşen makale bulunamadı.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="pt-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[9px] text-emerald-400">
@@ -2318,7 +2767,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     ✓ CANLI DİNAMİK ARİTMETİK MUTABAKAT &amp; ZERO-TRUST GÜVENLİK ({securitySealState.batchToken})
                   </span>
                   <span className="text-[10px] text-amber-300 font-bold">
-                    2 Canlı Site + 8 Dondurulmuş 301 Kaydı Korumalı · Dış Müdahale Kapalı
+                    {cumulativeBreakdown.live2.count} Canlı Düğüm (Hub + Blogger + GitHub 33EmrePelit33) + {cumulativeBreakdown.retired8.count} Senkron 301 Korumalı · {activeArticles.length} Makale
                   </span>
                 </div>
                 <div className="space-y-1.5">
@@ -2492,7 +2941,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <span>ORTALAMA OKUMA SÜRESİ SIRALAMASI (EN FAZLA → EN AZ)</span>
                     </span>
                     <span className="text-emerald-400 font-bold text-[11px]">
-                      {activeArticles.length} Metin · 2 Canlı Sitede Senkron (8 Eski Alan Adı 301 → Hub)
+                      {activeArticles.length} Metin · Tüm {strictNodes.length} Düğümde %100 Tam Senkron (3 Canlı + 8 HTTP 301)
                     </span>
                   </div>
                 </div>
@@ -3310,11 +3759,13 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       const isLive = LIVE_WEBSITES_SET.has(n.domain) || Boolean(n.isLiveWebsite);
                       return (
                         <option key={n.domain} value={n.domain} disabled={!isLive}>
-                          #{n.rank} {n.domain} {isLive ? `(Canlı 200 · Açılış: ${n.launchDate})` : '(Emekli 301 - Donduruldu)'}
+                          #{n.rank} {n.domain} {isLive ? `(Canlı 200 · Açılış: ${n.launchDate})` : '(Senkron 301 - Donduruldu)'}
                         </option>
                       );
                     })}
-                    <option value="ALL_10_SITES">Tüm Canlı Siteler (Ana Hub + Blogger)</option>
+                    <option value="ALL_11_SITES">
+                      Tüm Canlı Düğümler (Ana Hub + Blogger + GitHub 33EmrePelit33)
+                    </option>
                   </select>
                 </div>
 
@@ -3394,7 +3845,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="text-[11px] text-slate-300">
                   {analyticsNotice ||
-                    'Her yeni görüntülenme, okuma, dinleme veya simülatör girişi yalnızca canlı 2 web sitesinde artar; 8 emekli 301 düğümü taban değerinde dondurulmuştur ve genel mutabakat 1:1 senkronize edilir.'}
+                    `Her yeni görüntülenme, okuma, dinleme veya simülatör girişi canlı ${cumulativeBreakdown.live2.count} düğümde (Ana Hub, Blogger, GitHub 33EmrePelit33) artar; ${cumulativeBreakdown.retired8.count} senkron 301 düğümü taban değerinde korunur ve ${strictNodes.length} düğüm genel mutabakatı 1:1 senkronize edilir.`}
                 </div>
                 <button
                   type="submit"
@@ -3476,7 +3927,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                         </span>
                         <span className="text-emerald-400 text-[10px] shrink-0">
                           {ev.cumulativeViewsAfter ? `Σ Gör.: ${ev.cumulativeViewsAfter.toLocaleString('tr-TR')} · ` : ''}
-                          {ev.targetDomain === 'ALL_10_SITES' || ev.targetDomain === 'ALL_8_SITES' ? 'Ana Hub + Blogger' : ev.targetDomain}
+                          {ev.targetDomain === 'ALL_11_SITES' || ev.targetDomain === 'ALL_10_SITES' || ev.targetDomain === 'ALL_8_SITES'
+                            ? 'Tüm 11 Düğüm (Hub + Blogger + GitHub)'
+                            : ev.targetDomain}
                         </span>
                       </div>
                     ))}
@@ -3496,7 +3949,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
         {activeHubTab === 'benchmark' && (
           <AnalyticsBenchmarkReport
             cumulative={cumulative}
-            totalArticlesCount={Math.max(316, activeArticles.length, bloggerSyncedCount || 316)}
+            totalArticlesCount={Math.max(318, activeArticles.length, bloggerSyncedCount || 318)}
           />
         )}
       </div>

@@ -1,0 +1,83 @@
+{
+  "lastFullIndexedAt": "2026-11-22T15:31:39.998Z",
+  "lastBatchId": "AUTO-11N-12L-4B8C52D876",
+  "triggerReason": "AUTO_INDEX_NEW_ARTICLE:emrepelit-sciphi.ai.studio",
+  "primaryHttpStatus": 200,
+  "totalUrlsSubmittedLastRun": 3496,
+  "engineResults": [
+    {
+      "engine": "indexnow-org",
+      "endpoint": "https://api.indexnow.org/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "bing-indexnow",
+      "endpoint": "https://www.bing.com/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "yandex-indexnow",
+      "endpoint": "https://yandex.com/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "seznam-indexnow",
+      "endpoint": "https://search.seznam.cz/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "naver-indexnow",
+      "endpoint": "https://searchadvisor.naver.com/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "websub-pubsubhubbub (/rss.xml)",
+      "endpoint": "https://pubsubhubbub.appspot.com/",
+      "httpStatus": 204,
+      "batchesSent": 1
+    },
+    {
+      "engine": "websub-pubsubhubbub (/atom.xml)",
+      "endpoint": "https://pubsubhubbub.appspot.com/",
+      "httpStatus": 204,
+      "batchesSent": 1
+    }
+  ],
+  "autoIndexedNewArticles": [
+    {
+      "articleId": "blogger-3291259342360549163",
+      "postNumber": 318,
+      "title": "The Fundamental Difference Between a QPU and the Heart",
+      "sourceNodeDomain": "emrepelit-sciphi.ai.studio",
+      "indexedAt": "2026-11-22T15:31:39.998Z",
+      "nodesIndexedCount": 11,
+      "languagesIndexedCount": 12,
+      "urlsSubmittedCount": 20,
+      "primaryHttpStatus": 200,
+      "receiptHash": "AUTO-11N-12L-4B8C52D876",
+      "browsersCount": 10,
+      "webProvidersCount": 18,
+      "searchEnginesCount": 12,
+      "academicIndexesCount": 18,
+      "urls12Langs": [
+        "https://emrepelit-sciphi.ai.studio/tr/makale/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/en/article/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/es/articulo/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/de/artikel/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/fr/article/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ru/statya/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ar/maqal/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ja/ronbun/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/pt/artigo/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/it/articolo/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ko/nonmun/the-fundamental-difference-between-a-qpu-and-the-heart-318"
+      ]
+    }
+  ]
+}
