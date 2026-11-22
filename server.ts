@@ -1802,8 +1802,8 @@ function renderSsrGovernanceHtml(
             ? '3. Alt İşleyiciler, Saklama Süreleri ve Veri Sahibi Hakları (GDPR m.15-20 / KVKK m.11)'
             : '3. Sub-Processors, Retention Periods & Data Subject Rights (GDPR Art. 15-20 / KVKK Art. 11)',
           p: isTr
-            ? 'İsteğe bağlı Google ile giriş (Firebase Auth) ve yer imi/soru kayıtları Avrupa bölgesi (europe-west2) güvenli sunucularında saklanır; yapay zeka yanıtları yalnızca sunucu taraflı işlenir. Yerel tarayıcı verileri kullanıcı silene dek, gönüllü soru kayıtları en fazla 12 ay veya silme talebine dek muhafaza edilir. Kullanıcılar site içindeki Veri Sahibi Hakları Merkezi ve /api/privacy/export-my-data ile /api/privacy/delete-my-data uç noktaları üzerinden verilerini JSON olarak dışa aktarabilir veya kalıcı olarak silebilir. Şikayet mercileri: Kişisel Verileri Koruma Kurumu (kvkk.gov.tr) ve AB/AEA Ulusal Veri Koruma Otoriteleri (GDPR Madde 77).'
-            : 'Optional Google Sign-In (Firebase Auth), synced bookmarks, and voluntary Q&A submissions are hosted in the European cloud region (europe-west2); AI features execute exclusively server-side. Local preferences remain until cleared; voluntary Q&A submissions are retained for up to 12 months or until erasure is requested. Data subjects may exercise Access/Portability (GDPR Art. 15/20) via /api/privacy/export-my-data and Erasure (GDPR Art. 17 / KVKK Art. 7) via /api/privacy/delete-my-data. Supervisory authorities: Turkish KVKK Authority (kvkk.gov.tr) and EU/EEA Data Protection Authorities (GDPR Art. 77).',
+            ? 'İsteğe bağlı Google ile giriş (Firebase Auth) ve yer imi/soru kayıtları Avrupa bölgesi (europe-west2) güvenli sunucularında saklanır; yapay zeka yanıtları yalnızca sunucu taraflı işlenir. 11 düğümlü 301 ağı, 12 ülke akademik merkezleri ve Silikon Vadisi / sanayi ekosistemi makale okunma dağılımları kesinlikle kişisel veri (IP/çerez/kimlik) içermez ve tekilleştirme riskine karşı k ≥ 5 küçük hücre maskelemesi (< 5 k-Anonim) uygular; tarayıcı analitik ölçümü ve analitik localStorage yalnızca açık rıza (opt-in) ile çalışır. Yerel tarayıcı verileri kullanıcı silene dek, gönüllü soru kayıtları en fazla 12 ay veya silme talebine dek muhafaza edilir. Kullanıcılar site içindeki Veri Sahibi Hakları Merkezi ve /api/privacy/export-my-data ile /api/privacy/delete-my-data uç noktaları üzerinden verilerini JSON olarak dışa aktarabilir veya kalıcı olarak silebilir. Şikayet mercileri: Kişisel Verileri Koruma Kurumu (kvkk.gov.tr) ve AB/AEA Ulusal Veri Koruma Otoriteleri (GDPR Madde 77).'
+            : 'Optional Google Sign-In (Firebase Auth), synced bookmarks, and voluntary Q&A submissions are hosted in the European cloud region (europe-west2); AI features execute exclusively server-side. Per-article 11-node global readership, 12-country academic hub, and Silicon Valley / industrial ecosystem analytics contain zero PII (no IP/cookie/identity profiling), enforce k ≥ 5 small-cell masking under GDPR Recital 26 & KVKK, and strictly gate browser analytics recording and analytics localStorage behind explicit opt-in consent. Local preferences remain until cleared; voluntary Q&A submissions are retained for up to 12 months or until erasure is requested. Data subjects may exercise Access/Portability (GDPR Art. 15/20) via /api/privacy/export-my-data and Erasure (GDPR Art. 17 / KVKK Art. 7) via /api/privacy/delete-my-data. Supervisory authorities: Turkish KVKK Authority (kvkk.gov.tr) and EU/EEA Data Protection Authorities (GDPR Art. 77).',
         },
       ],
     },
@@ -1860,6 +1860,14 @@ function renderSsrGovernanceHtml(
             ? 'Kişisel verilerinizin işlenip işlenmediğini öğrenme, erişim ve taşınabilirlik (JSON dışa aktarım), düzeltme, silme/unutulma hakkı (KVKK m.7 / GDPR m.17) ve açık rızayı dilediğiniz an geri çekme (GDPR m.7(3)) haklarınızı doğrudan site içindeki Gizlilik & KVKK panelinden veya emrepelit39@gmail.com adresine başvurarak kullanabilirsiniz. Ayrıca KVKK Kurumu’na (kvkk.gov.tr) veya ikamet ettiğiniz AB üye devletindeki veri koruma otoritesine şikayette bulunma hakkınız saklıdır.'
             : 'You have the right to access, export (JSON portability), rectify, erase (Right to be Forgotten under KVKK Art. 7 / GDPR Art. 17), and withdraw consent at any time (GDPR Art. 7(3)) directly through the in-site Privacy & KVKK Center or by emailing emrepelit39@gmail.com. You also retain the right to lodge a complaint with the Turkish Data Protection Authority (kvkk.gov.tr) or your local EU/EEA supervisory authority (GDPR Art. 77).',
         },
+        {
+          h: isTr
+            ? '3. 11 Düğümlü Makale Okunma, Akademik Merkez & Silikon Vadisi Analitiklerinde Sıfır Kişisel Veri & k ≥ 5 Maskeleme'
+            : '3. Zero-PII & k ≥ 5 Masking in 11-Node Article, Academic Hub & Silicon Valley Analytics',
+          p: isTr
+            ? 'Her makalenin 11 düğümlü 301 ağı toplam okunma dağılımı, 12 ülkedeki 60 akademik merkez ve Silikon Vadisi dahil 6 küresel sanayi ekosistemi istatistikleri kesinlikle kişisel veri (IP, çerez, cihaz parmak izi, ASN veya çalışan profili) içermez ve yalnızca anonimleştirilmiş toplulaştırılmış verilerle (KVKK m.28/1-b & GDPR Recital 26) üretilir. Küçük hücrelerde tekilleştirme riskini önlemek için k ≥ 5 maskelemesi (< 5 k-Anonim) uygulanır. Tarayıcı analitik kaydı ve analitik localStorage yazımı yalnızca açık rıza (opt-in) ile etkinleşir; rıza reddedildiğinde veya geri çekildiğinde tüm analitik localStorage kayıtları otomatik silinir. Listelenen üniversite ve teknoloji kuruluşları resmi ortaklık veya onay anlamına gelmez.'
+            : 'Per-article 11-node 301 network totals, 12-country / 60 academic center figures, and Silicon Valley / 6 global industrial ecosystem distributions contain zero personal data (no IP, cookie, fingerprint, ASN, or employee profiling) and are produced strictly as aggregated anonymous statistics (KVKK Art. 28/1-b & GDPR Recital 26). Small cells enforce k ≥ 5 masking (< 5 k-Anonim) against singling-out. Browser analytics recording and analytics localStorage writes operate strictly under opt-in consent and are automatically purged on rejection or withdrawal. Listed universities and tech organizations do not imply official partnership or endorsement.',
+        },
       ],
     },
     disclaimer: {
@@ -1877,10 +1885,10 @@ function renderSsrGovernanceHtml(
       heading: isTr ? 'Yapay Zeka, Simülasyon & Telemetri Metodolojisi' : 'AI, Simulation & Telemetry Methodology',
       sections: [
         {
-          h: isTr ? '1. Kavramsal Modelleme ve Kümülatif İstatistikler' : '1. Conceptual Modeling & Synchronized Statistics',
+          h: isTr ? '1. Kavramsal Modelleme ve 11 Düğümlü Anonim İstatistikler' : '1. Conceptual Modeling & 11-Node Anonymous Statistics',
           p: isTr
-            ? 'Her makale için özet, kavram zinciri, gelecek araştırma protokolleri ve etkileşimli simülasyonlar sunulur. 10 düğümlü ağ istatistikleri her okuma ve görüntüleme artışında 1:1 senkron olarak güncellenir.'
-            : 'Each essay pairs structured summaries, conceptual reasoning chains, future research pathways, and interactive models. Network statistics synchronize 1:1 with live read and view updates.',
+            ? 'Her makale için özet, kavram zinciri, gelecek araştırma protokolleri ve etkileşimli simülasyonlar sunulur. 11 düğümlü 301 ağı istatistikleri, 12 ülke akademik merkezleri ve Silikon Vadisi dahil 6 küresel sanayi ekosistemi dağılımları kişisel veri işlenmeden ve k ≥ 5 küçük hücre maskelemesiyle (KVKK & GDPR Recital 26) senkron olarak hesaplanır.'
+            : 'Each essay pairs structured summaries, conceptual reasoning chains, future research pathways, and interactive models. 11-node 301 network totals, 12-country academic hub figures, and 6 global industrial ecosystem breakdowns synchronize without personal data processing using k ≥ 5 small-cell masking (KVKK & GDPR Recital 26).',
         },
       ],
     },
@@ -9166,11 +9174,17 @@ ${text}`,
       privacyByDesign: {
         preConsentThirdPartyFontsBlocked: true,
         preConsentAnalyticsBlocked: true,
+        preConsentLocalStorageAnalyticsBlocked: true,
+        withdrawalPurgesAnalyticsLocalStorage: true,
         gpcAndDntHonored: true,
         equalProminenceRejectAcceptBanner: true,
         supportedConsentBannerLanguages: 12,
         thirdPartyRelayPiiMinimized: true,
         serverSideAiKeyIsolation: true,
+        institutionalReadershipZeroPii: true,
+        noIndividualIpOrAsnProfiling: true,
+        kAnonymitySmallCellThreshold: 5,
+        institutionalAffiliationDisclaimer: true,
       },
       subProcessors: [
         {

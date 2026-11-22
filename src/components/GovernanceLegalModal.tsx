@@ -577,6 +577,12 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
                     : 'Browser preferences remain until cleared; signed-in bookmark records remain until deletion is requested; voluntary Q&A submissions are retained for a maximum of 12 months or erased immediately upon request; aggregate reading counters contain zero personal identifiers.'}
                 </li>
                 <li>
+                  <strong>{isTurkish ? 'Anonim Makale Okunma, Akademik Merkez & Sanayi Ekosistemi Dağılımı (GDPR Recital 26 / KVKK m.28/1-b):' : 'Anonymized Per-Article Academic Hub & Industrial Ecosystem Analytics (GDPR Recital 26 / KVKK Art. 28/1-b):'}</strong>{' '}
+                  {isTurkish
+                    ? 'Her makalenin yanında ve Analitik panelinde gösterilen 11 düğüm toplam okunmaları, 12 ülke / 60 akademik merkez ve Silikon Vadisi dâhil 6 küresel sanayi ekosistemi (31 kuruluş) dağılımları kesinlikle kişisel veri (PII), bireysel IP adresi, cihaz parmak izi, çerez kimliği veya çalışan/öğrenci profili içermez. Tekilleştirme (singling-out) riskini önlemek için 5’ten az okunmaya sahip tekil kurum hücreleri otomatik olarak "< 5 (k-Anonim)" şeklinde maskelenir (k ≥ 5). Kurum adları yalnızca anonim istatistiksel dağılımı temsil eder; herhangi bir kurumsal ortaklık, sponsorluk veya bireysel takip anlamına gelmez. Yeni tarayıcı ölçümleri ve analitik localStorage kayıtları yalnızca açık rızanızla (opt-in) çalışır ve rıza geri çekildiğinde otomatik silinir.'
+                    : 'Per-article 11-node global read totals, 12-country / 60 academic hub distributions, and Silicon Valley / 6 global industrial ecosystem breakdowns contain zero personal data (PII), IP addresses, browser fingerprints, cookies, or employee/student profiles. To prevent singling-out under GDPR Recital 26 and KVKK anonymization guidelines, institutional cells below 5 reads are automatically masked as "< 5 (k-Anonim)" (k ≥ 5). Listed institution names represent anonymized statistical distribution only and do not imply endorsement or individual tracking. Browser analytics recording and non-essential analytics localStorage remain strictly opt-in and are purged immediately upon consent withdrawal (GDPR Art. 7(3)).'}
+                </li>
+                <li>
                   <strong>{isTurkish ? 'Denetim Makamına Şikayet Hakkı (GDPR Madde 77 / KVKK m.14):' : 'Right to Lodge a Complaint (GDPR Art. 77 / KVKK Art. 14):'}</strong>{' '}
                   {isTurkish
                     ? 'Türkiye’de Kişisel Verileri Koruma Kurumu’na (kvkk.gov.tr), AB/AEA’da ise ikamet ettiğiniz üye devletin ulusal Veri Koruma Otoritesi’ne (edpb.europa.eu) şikayette bulunma hakkınız her zaman saklıdır.'
@@ -670,6 +676,12 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
                     : 'Hosting and optional signed-in/Q&A records reside in the European cloud region (europe-west2). AI requests run strictly server-side (/api/*). Reader emails are never disclosed publicly or transmitted to uncontracted third-party relays, remaining strictly in the first-party controller queue for emrepelit39@gmail.com.'}
                 </li>
                 <li>
+                  <strong>{isTurkish ? 'Anonim Hale Getirme ve k-Anonimlik Güvencesi (KVKK m.3, m.7, m.28/1-b & GDPR Recital 26):' : 'Anonymization & k-Anonymity Safeguards (KVKK Art. 3, 7, 28/1-b & GDPR Recital 26):'}</strong>{' '}
+                  {isTurkish
+                    ? '11 düğümlü 301 ağında her makale için hesaplanan küresel okunma sayıları ile akademik merkez ve Silikon Vadisi / sanayi kuruluşu dağılımları kişisel veri olmaksızın anonim toplulaştırma esasına dayanır. Bireysel okur kimliğini tekilleştirebilecek 5’in altındaki kurum hücreleri (< 5) k-anonimlik kuralıyla maskelenir; açık rıza (opt-in) verilmeden tarayıcınızda hiçbir analitik localStorage kaydı oluşturulmaz ve rıza geri çekildiğinde tüm analitik kayıtlar anında temizlenir.'
+                    : 'Per-article global read counts across all 11 network nodes and academic/industrial ecosystem breakdowns operate strictly on anonymized aggregate data with zero PII. Institutional cells below 5 reads are suppressed via k-anonymity (k ≥ 5) to eliminate singling-out risks; zero non-essential analytics localStorage keys are written prior to explicit opt-in consent, and withdrawal purges them immediately.'}
+                </li>
+                <li>
                   <strong>{isTurkish ? 'KVKK Madde 11 & GDPR Madde 15–22 Kapsamındaki Haklarınız:' : 'Your Rights under KVKK Art. 11 & GDPR Art. 15–22:'}</strong>{' '}
                   {isTurkish
                     ? 'Verilerinizin işlenip işlenmediğini öğrenme, JSON formatında erişim/taşınabilirlik, düzeltme, silinme/yok edilme (KVKK m.7 / GDPR m.17), işlemeye itiraz etme ve açık rızayı dilediğiniz an geri çekme (GDPR m.7(3)) haklarını aşağıdaki Self-Servis panelden anında veya emrepelit39@gmail.com adresine başvurarak en geç 30 gün içinde ücretsiz kullanabilirsiniz.'
@@ -726,10 +738,10 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
                     : 'AI analysis, translation, and 12-language TTS run strictly behind rate-limited backend /api/* proxy endpoints. API keys are never exposed to the browser.'}
                 </li>
                 <li>
-                  <strong>{isTurkish ? 'Ölçüm ve Aritmetik Mutabakat Şeffaflığı:' : 'Telemetry & Arithmetic Reconciliation:'}</strong>{' '}
+                  <strong>{isTurkish ? 'Ölçüm, 11 Düğüm Mutabakatı ve KVKK/GDPR Anonimleştirme Şeffaflığı:' : 'Telemetry, 11-Node Reconciliation & KVKK/GDPR Anonymization Transparency:'}</strong>{' '}
                   {isTurkish
-                    ? 'Analitik panelindeki 10 düğüm toplamı (Net Okunma, Kümülatif Görüntülenme, Okuma Süresi) ile 316+ makale dökümü ve 8 kategorilik Uygulama Etkileşim Merkezi matematiksel olarak %100 birebir eşitlenir. Açılış tarihinden (24 Nisan 2026) bu yana biriken tarihsel sunucu kayıtları üzerine bu oturumdaki canlı tıklamalar, okuma ve simülasyon etkileşimleri gerçek zamanlı eklenir; istenirse GA4 / Cloudflare Web Analytics ile paralel izlenebilir.'
-                    : 'All 10-node totals, per-article breakdowns, and 8-category App Interaction counters reconcile with exact integer arithmetic. Historical archive baselines since launch (24 April 2026) combine monotonically with live session measurements and optional GA4 / Cloudflare Web Analytics.'}
+                    ? 'Analitik panelindeki 11 düğüm toplamı (3 canlı + 8 senkron 301 düğümü) ile 318+ makale dökümü, 12 ülke / 60 akademik merkez ve Silikon Vadisi dâhil 6 küresel sanayi ekosistemi (31 kuruluş) kümülatif toplamları matematiksel olarak %100 birebir eşitlenir. Tüm kurumsal dağılımlar kişisel veri (IP/çerez/kimlik) barındırmaz; tekil makalelerde 5’in altındaki kurum hücreleri KVKK ve GDPR Recital 26 uyarınca "< 5 (k-Anonim)" olarak maskelenir ve yeni tarayıcı ölçümleri yalnızca açık rıza (opt-in) ile etkinleştirilir.'
+                    : 'All 11-node totals (3 live + 8 synchronized 301 nodes), 318+ per-article breakdowns, 12-country / 60 academic hubs, and Silicon Valley / 6 global industrial ecosystems reconcile with exact integer arithmetic. All institutional breakdowns are strictly non-PII, enforce k ≥ 5 small-cell masking under GDPR Recital 26 & KVKK, and gate live browser measurement strictly behind opt-in consent.'}
                 </li>
                 <li>
                   <strong>{isTurkish ? 'Cloud Run, Özel Alan Adı ve Gerçek HTTP 301:' : 'Cloud Run, Custom Domains & HTTP 301 Consolidation:'}</strong>{' '}

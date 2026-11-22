@@ -50,9 +50,12 @@ import {
 import { WorldAnalyticsMap } from './WorldAnalyticsMap';
 
 const LIVE_WEBSITES_SET = new Set<string>(ACTIVE_LIVE_WEBSITES);
-import { computeArticleAverageReadingTime } from '../utils/articleAnalysisEngine';
 import { computeCorpusCountMetrics } from '../utils/articleLocale';
 import { AnalyticsBenchmarkReport } from './AnalyticsBenchmarkReport';
+import {
+  computeCorpusReadAnalytics,
+  PRIVACY_K_ANONYMITY_THRESHOLD,
+} from '../utils/articleReadAnalyticsEngine';
 
 const TR_MONTH_INDEX: Record<string, number> = {
   ocak: 0,
@@ -133,52 +136,6 @@ interface GitHub33NodeMeta {
   }[];
 }
 
-interface CountryGeoStat {
-  code: string;
-  countryName: string;
-  regionLabel: string;
-  reads: number;
-  views: number;
-  sharePercent: number;
-  academicHubs: string;
-}
-
-interface ArticleCumulativeGeoRow {
-  rank: number;
-  articleId: string;
-  title: string;
-  category: string;
-  archiveCode: string;
-  publishedAt: string;
-  reads: number;
-  views: number;
-  citations: number;
-  readSharePercent: number;
-  viewSharePercent: number;
-  averageReadingSeconds: number;
-  averageReadingMinutes: number;
-  averageReadingFormatted: string;
-  wordCount: number;
-  totalReadingMinutes: number;
-  totalReadingFormatted: string;
-  videoPlays: number;
-  videoWatchSeconds: number;
-  videoCompletions: number;
-  maxVideoPositionSec: number;
-  avgVideoWatchSeconds: number;
-  videoDurationSec: number;
-  videoWatchPercent: number;
-  videoWatchFormatted: string;
-  regions: {
-    tr: { reads: number; views: number; sharePct: number };
-    eu: { reads: number; views: number; sharePct: number };
-    amer: { reads: number; views: number; sharePct: number };
-    asia: { reads: number; views: number; sharePct: number };
-    menaOther: { reads: number; views: number; sharePct: number };
-  };
-  countries: CountryGeoStat[];
-}
-
 interface Network301HubProps {
   nodes: Network301Node[];
   articles?: Article[];
@@ -232,105 +189,6 @@ interface Network301HubProps {
   onPublishFromAnyNode?: (article: Article, sourceNodeDomain?: string) => void;
   kvkkAnalyticsGranted?: boolean;
 }
-
-const COUNTRY_DEFINITIONS = [
-  {
-    code: 'TR',
-    countryName: 'Türkiye',
-    regionKey: 'tr' as const,
-    regionLabel: 'Türkiye',
-    baseShare: 0.405,
-    academicHubs: 'İstanbul, Ankara, İzmir (ODTÜ, Boğaziçi, İTÜ, Bilkent, Koç)',
-  },
-  {
-    code: 'DE',
-    countryName: 'Almanya',
-    regionKey: 'eu' as const,
-    regionLabel: 'Avrupa',
-    baseShare: 0.088,
-    academicHubs: 'Münih, Berlin, Heidelberg (Max Planck, LMU, ETH/Avrupa Ağı)',
-  },
-  {
-    code: 'GB',
-    countryName: 'Birleşik Krallık',
-    regionKey: 'eu' as const,
-    regionLabel: 'Avrupa',
-    baseShare: 0.068,
-    academicHubs: 'Londra, Oxford, Cambridge, Edinburgh',
-  },
-  {
-    code: 'FR',
-    countryName: 'Fransa',
-    regionKey: 'eu' as const,
-    regionLabel: 'Avrupa',
-    baseShare: 0.044,
-    academicHubs: 'Paris, Lyon (Sorbonne, CNRS, ENS)',
-  },
-  {
-    code: 'CH',
-    countryName: 'İsviçre & Benelüks',
-    regionKey: 'eu' as const,
-    regionLabel: 'Avrupa',
-    baseShare: 0.036,
-    academicHubs: 'Cenevre, Zürih, Amsterdam (CERN, ETH Zürich, Leiden)',
-  },
-  {
-    code: 'ES_IT',
-    countryName: 'İspanya & İtalya',
-    regionKey: 'eu' as const,
-    regionLabel: 'Avrupa',
-    baseShare: 0.029,
-    academicHubs: 'Madrid, Barselona, Roma, Bologna',
-  },
-  {
-    code: 'US',
-    countryName: 'Amerika Birleşik Devletleri',
-    regionKey: 'amer' as const,
-    regionLabel: 'Amerika',
-    baseShare: 0.132,
-    academicHubs: 'Boston, Princeton, Palo Alto, New York (MIT, IAS, Stanford)',
-  },
-  {
-    code: 'CA_BR',
-    countryName: 'Kanada & Latin Amerika',
-    regionKey: 'amer' as const,
-    regionLabel: 'Amerika',
-    baseShare: 0.043,
-    academicHubs: 'Toronto, Waterloo (Perimeter Inst.), São Paulo, Meksiko',
-  },
-  {
-    code: 'AZ_TRK',
-    countryName: 'Azerbaycan & Türk Devletleri',
-    regionKey: 'asia' as const,
-    regionLabel: 'Asya-Pasifik',
-    baseShare: 0.048,
-    academicHubs: 'Bakü, Astana, Taşkent, Bişkek Akademik Ağları',
-  },
-  {
-    code: 'JP_KR',
-    countryName: 'Japonya & Güney Kore',
-    regionKey: 'asia' as const,
-    regionLabel: 'Asya-Pasifik',
-    baseShare: 0.036,
-    academicHubs: 'Tokyo, Kyoto, Seul (Kavli IPMU, KAIST, SNU)',
-  },
-  {
-    code: 'CN_IN',
-    countryName: 'Çin, Hindistan & Singapur',
-    regionKey: 'asia' as const,
-    regionLabel: 'Asya-Pasifik',
-    baseShare: 0.026,
-    academicHubs: 'Pekin, Şanghay, Singapur, Yeni Delhi (Tsinghua, NUS)',
-  },
-  {
-    code: 'MENA_RU_OC',
-    countryName: 'Orta Doğu, K. Afrika, Rusya & Okyanusya',
-    regionKey: 'menaOther' as const,
-    regionLabel: 'Orta Doğu & Diğer',
-    baseShare: 0.045,
-    academicHubs: 'Doha, Dubai, Kahire, Moskova, Sidney, Melbourne',
-  },
-];
 
 export const Network301Hub: React.FC<Network301HubProps> = ({
   nodes,
@@ -524,6 +382,9 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     | 'avg_read_time_asc'
     | 'total_read_time_desc'
     | 'reads_desc'
+    | 'academic_desc'
+    | 'industrial_desc'
+    | 'silicon_valley_desc'
     | 'views_desc'
     | 'video_watch_desc'
     | 'video_plays_desc'
@@ -932,343 +793,19 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
   }, [articles]);
   const corpusMetrics = useMemo(() => computeCorpusCountMetrics(activeArticles), [activeArticles]);
 
-  // Compute deterministic, arithmetically reconciled per-article reads, views, citations & geographical breakdown
-  // Zero synthetic floors: when cumulative counters start at 0, article counters start cleanly at 0 without NaN.
-  const articleCumulativeData = useMemo(() => {
-    const count = activeArticles.length;
-    const rawReadWeights = activeArticles.map((art, idx) => {
-      const baseImp = art.networkImpressions || 0;
-      const citWeight = (art.citationsCount || 0) * 14;
-      const rankBonus = Math.max(1, count - idx);
-      return baseImp * 0.22 + citWeight + rankBonus;
-    });
-
-    const rawViewWeights = activeArticles.map((_, idx) => {
-      const viewMultiplier = 3.65 + ((idx * 7) % 13) * 0.08;
-      return rawReadWeights[idx] * viewMultiplier;
-    });
-
-    const readWeightSum = rawReadWeights.reduce((acc, w) => acc + w, 0) || 1;
-    const viewWeightSum = rawViewWeights.reduce((acc, w) => acc + w, 0) || 1;
-
-    // Target cumulative totals up to this exact moment (including any article-specific boosts)
-    const totalBoostReads = Object.values(effectiveArticleBoosts).reduce((a, b) => a + b.reads, 0);
-    const totalBoostViews = Object.values(effectiveArticleBoosts).reduce((a, b) => a + b.views, 0);
-
-    const targetBaseReads = Math.max(0, cumulative.netReads - totalBoostReads);
-    const targetBaseViews = Math.max(
-      targetBaseReads,
-      cumulative.totalViews - totalBoostViews
-    );
-
-    // 1. Allocate integer reads across all articles so sum(allocatedReads) === targetBaseReads (0 if targetBaseReads === 0)
-    const allocatedReads = rawReadWeights.map((w) =>
-      targetBaseReads === 0 ? 0 : Math.floor((w / readWeightSum) * targetBaseReads)
-    );
-    let diffReads = targetBaseReads - allocatedReads.reduce((acc, r) => acc + r, 0);
-    let rCursor = 0;
-    while (diffReads !== 0 && count > 0) {
-      const idx = rCursor % count;
-      if (diffReads > 0) {
-        allocatedReads[idx] += 1;
-        diffReads -= 1;
-      } else if (allocatedReads[idx] > 0) {
-        allocatedReads[idx] -= 1;
-        diffReads += 1;
-      }
-      rCursor += 1;
-      if (rCursor > count * 5000) break;
-    }
-
-    // 2. Allocate integer views across all articles so sum(allocatedViews) === targetBaseViews (0 if targetBaseViews === 0)
-    const allocatedViews = rawViewWeights.map((w, idx) =>
-      targetBaseViews === 0
-        ? 0
-        : Math.max(allocatedReads[idx], Math.floor((w / viewWeightSum) * targetBaseViews))
-    );
-    let diffViews = targetBaseViews - allocatedViews.reduce((acc, v) => acc + v, 0);
-    let vCursor = 0;
-    while (diffViews !== 0 && count > 0) {
-      const idx = vCursor % count;
-      if (diffViews > 0) {
-        allocatedViews[idx] += 1;
-        diffViews -= 1;
-      } else if (allocatedViews[idx] > allocatedReads[idx]) {
-        allocatedViews[idx] -= 1;
-        diffViews += 1;
-      }
-      vCursor += 1;
-      if (vCursor > count * 8000) break;
-    }
-
-    const finalGrandTotalReads = targetBaseReads + totalBoostReads;
-    const finalGrandTotalViews = targetBaseViews + totalBoostViews;
-    const totalWebsiteReadingMinutes = Math.max(
-      0,
-      cumulative.readingHours * 60 + cumulative.readingMins
-    );
-
-    const avgReadingStatsList = activeArticles.map((art) =>
-      computeArticleAverageReadingTime(art, language)
-    );
-    const rawReadTimeWeights = activeArticles.map((_, idx) => {
-      const readsForArticle =
-        allocatedReads[idx] + (effectiveArticleBoosts[activeArticles[idx].id]?.reads || 0);
-      return Math.max(1, readsForArticle * avgReadingStatsList[idx].averageReadingSeconds);
-    });
-    const readTimeWeightSum = rawReadTimeWeights.reduce((acc, w) => acc + w, 0) || 1;
-    const allocatedTotalReadMins = rawReadTimeWeights.map((w) =>
-      totalWebsiteReadingMinutes === 0
-        ? 0
-        : Math.floor((w / readTimeWeightSum) * totalWebsiteReadingMinutes)
-    );
-    let diffReadMins =
-      totalWebsiteReadingMinutes - allocatedTotalReadMins.reduce((acc, m) => acc + m, 0);
-    let rmCursor = 0;
-    while (diffReadMins !== 0 && count > 0) {
-      const idx = rmCursor % count;
-      if (diffReadMins > 0) {
-        allocatedTotalReadMins[idx] += 1;
-        diffReadMins -= 1;
-      } else if (allocatedTotalReadMins[idx] > 0) {
-        allocatedTotalReadMins[idx] -= 1;
-        diffReadMins += 1;
-      }
-      rmCursor += 1;
-      if (rmCursor > count * 4000) break;
-    }
-
-    const formatHoursMins = (minsTotal: number) => {
-      const h = Math.floor(minsTotal / 60);
-      const m = minsTotal % 60;
-      return `${h.toLocaleString('tr-TR')} sa ${m} dk`;
-    };
-
-    const rows: ArticleCumulativeGeoRow[] = activeArticles.map((art, idx) => {
-      const boost = effectiveArticleBoosts[art.id] || { reads: 0, views: 0, citations: 0 };
-      const articleReads = allocatedReads[idx] + boost.reads;
-      const articleViews = allocatedViews[idx] + boost.views;
-      const avgRT = avgReadingStatsList[idx];
-      const articleTotalReadMins = allocatedTotalReadMins[idx];
-
-      // Only genuine recorded citations (no fabricated base floors)
-      const baseCitations = art.citationsCount || 0;
-      const articleCitations = baseCitations + boost.citations;
-
-      // Deterministic regional distribution per article with 100% sum reconciliation
-      const catShift =
-        art.category === 'Kuantum Fiziği'
-          ? 0.015
-          : art.category === 'Zihin Felsefesi'
-            ? -0.012
-            : art.category === 'Kozmoloji & Holografi'
-              ? 0.008
-              : 0;
-
-      const rawCountryShares = COUNTRY_DEFINITIONS.map((c, cIdx) => {
-        const modShift = (((idx + cIdx * 3) % 7) - 3) * 0.0018;
-        const shift = c.code === 'TR' ? -catShift : c.code === 'US' ? catShift : modShift;
-        return Math.max(0.012, c.baseShare + shift);
-      });
-      const shareSum = rawCountryShares.reduce((a, b) => a + b, 0) || 1;
-      const normShares = rawCountryShares.map((s) => s / shareSum);
-
-      // Allocate country reads & views so their sum equals articleReads and articleViews exactly
-      const cReads = normShares.map((s) => Math.floor(s * articleReads));
-      let remCReads = articleReads - cReads.reduce((a, b) => a + b, 0);
-      for (let i = 0; i < cReads.length && remCReads > 0; i++) {
-        cReads[i] += 1;
-        remCReads -= 1;
-      }
-
-      const cViews = normShares.map((s) => Math.floor(s * articleViews));
-      let remCViews = articleViews - cViews.reduce((a, b) => a + b, 0);
-      for (let i = 0; i < cViews.length && remCViews > 0; i++) {
-        cViews[i] += 1;
-        remCViews -= 1;
-      }
-
-      const countries: CountryGeoStat[] = COUNTRY_DEFINITIONS.map((c, cIdx) => ({
-        code: c.code,
-        countryName: c.countryName,
-        regionLabel: c.regionLabel,
-        reads: cReads[cIdx],
-        views: cViews[cIdx],
-        sharePercent: Number(((cReads[cIdx] / Math.max(1, articleReads)) * 100).toFixed(1)),
-        academicHubs: c.academicHubs,
-      }));
-
-      const sumRegion = (rKey: 'tr' | 'eu' | 'amer' | 'asia' | 'menaOther') => {
-        let r = 0;
-        let v = 0;
-        COUNTRY_DEFINITIONS.forEach((def, cIdx) => {
-          if (def.regionKey === rKey) {
-            r += cReads[cIdx];
-            v += cViews[cIdx];
-          }
-        });
-        return {
-          reads: r,
-          views: v,
-          sharePct: Number(((r / Math.max(1, articleReads)) * 100).toFixed(1)),
-        };
-      };
-
-      const localizedTitle =
-        art.title[language] || art.title.tr || art.title.en || Object.values(art.title)[0] || art.id;
-
-      const formatVideoDuration = (secTotal: number) => {
-        const s = Math.max(0, Math.floor(secTotal));
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const remS = s % 60;
-        if (h > 0) return `${h} sa ${m} dk`;
-        if (m > 0) return `${m} dk ${String(remS).padStart(2, '0')} sn`;
-        return `${remS} sn`;
-      };
-
-      const videoPlays = Math.max(0, Number(boost.videoPlays) || 0);
-      const videoWatchSeconds = Math.max(0, Number(boost.videoWatchSeconds) || 0);
-      const videoCompletions = Math.max(0, Number(boost.videoCompletions) || 0);
-      const estimatedVideoDurationSec = Math.max(
-        90,
-        Number(boost.videoDurationSec) || Math.round(Math.max(120, avgRT.averageReadingSeconds * 0.72))
-      );
-      const maxVideoPositionSec = Math.max(
-        0,
-        Math.min(estimatedVideoDurationSec, Number(boost.maxVideoPositionSec) || 0)
-      );
-      const avgVideoWatchSeconds =
-        videoPlays > 0 ? Math.min(estimatedVideoDurationSec, Math.round(videoWatchSeconds / videoPlays)) : 0;
-      const videoWatchPercent =
-        videoPlays > 0
-          ? Math.min(
-              100,
-              Math.round((Math.max(avgVideoWatchSeconds, maxVideoPositionSec) / estimatedVideoDurationSec) * 100)
-            )
-          : 0;
-
-      return {
-        rank: idx + 1,
-        articleId: art.id,
-        title: localizedTitle,
-        category: art.category,
-        archiveCode: `SCIPHIL-#${idx + 1}`,
-        publishedAt: art.publishedAt,
-        reads: articleReads,
-        views: articleViews,
-        citations: articleCitations,
-        readSharePercent: Number(((articleReads / Math.max(1, finalGrandTotalReads)) * 100).toFixed(2)),
-        viewSharePercent: Number(((articleViews / Math.max(1, finalGrandTotalViews)) * 100).toFixed(2)),
-        averageReadingSeconds: avgRT.averageReadingSeconds,
-        averageReadingMinutes: avgRT.averageReadingMinutes,
-        averageReadingFormatted: avgRT.formattedShort,
-        wordCount: avgRT.wordCount,
-        totalReadingMinutes: articleTotalReadMins,
-        totalReadingFormatted: formatHoursMins(articleTotalReadMins),
-        videoPlays,
-        videoWatchSeconds,
-        videoCompletions,
-        maxVideoPositionSec,
-        avgVideoWatchSeconds,
-        videoDurationSec: estimatedVideoDurationSec,
-        videoWatchPercent,
-        videoWatchFormatted: formatVideoDuration(videoWatchSeconds),
-        regions: {
-          tr: sumRegion('tr'),
-          eu: sumRegion('eu'),
-          amer: sumRegion('amer'),
-          asia: sumRegion('asia'),
-          menaOther: sumRegion('menaOther'),
-        },
-        countries,
-      };
-    });
-
-    const totalReads = rows.reduce((acc, r) => acc + r.reads, 0);
-    const totalViews = rows.reduce((acc, r) => acc + r.views, 0);
-    const totalCitations = rows.reduce((acc, r) => acc + r.citations, 0);
-    const totalVideoPlaysAllArticles = Math.max(
-      cumulative.videoPlays || 0,
-      rows.reduce((acc, r) => acc + r.videoPlays, 0)
-    );
-    const totalVideoWatchSecondsAllArticles = Math.max(
-      cumulative.videoWatchSeconds || 0,
-      rows.reduce((acc, r) => acc + r.videoWatchSeconds, 0)
-    );
-    const articlesWithVideoWatches = rows.filter((r) => r.videoPlays > 0 || r.videoWatchSeconds > 0).length;
-    const totalReadingMinutesAllArticles = rows.reduce((acc, r) => acc + r.totalReadingMinutes, 0);
-    const meanAvgReadingSeconds = Math.round(
-      rows.reduce((acc, r) => acc + r.averageReadingSeconds, 0) / Math.max(1, rows.length)
-    );
-    const articlesSortedByAvgReadingTimeDesc = [...rows].sort(
-      (a, b) => b.averageReadingSeconds - a.averageReadingSeconds || b.wordCount - a.wordCount
-    );
-    const topWatchedVideoArticles = [...rows]
-      .filter((r) => r.videoPlays > 0 || r.videoWatchSeconds > 0)
-      .sort((a, b) => b.videoWatchSeconds - a.videoWatchSeconds || b.videoPlays - a.videoPlays)
-      .slice(0, 6);
-
-    const regionTotals = {
-      tr: {
-        reads: rows.reduce((acc, r) => acc + r.regions.tr.reads, 0),
-        views: rows.reduce((acc, r) => acc + r.regions.tr.views, 0),
-      },
-      eu: {
-        reads: rows.reduce((acc, r) => acc + r.regions.eu.reads, 0),
-        views: rows.reduce((acc, r) => acc + r.regions.eu.views, 0),
-      },
-      amer: {
-        reads: rows.reduce((acc, r) => acc + r.regions.amer.reads, 0),
-        views: rows.reduce((acc, r) => acc + r.regions.amer.views, 0),
-      },
-      asia: {
-        reads: rows.reduce((acc, r) => acc + r.regions.asia.reads, 0),
-        views: rows.reduce((acc, r) => acc + r.regions.asia.views, 0),
-      },
-      menaOther: {
-        reads: rows.reduce((acc, r) => acc + r.regions.menaOther.reads, 0),
-        views: rows.reduce((acc, r) => acc + r.regions.menaOther.views, 0),
-      },
-    };
-
-    const countryTotals = COUNTRY_DEFINITIONS.map((def, cIdx) => {
-      const reads = rows.reduce((acc, r) => acc + (r.countries[cIdx]?.reads || 0), 0);
-      const views = rows.reduce((acc, r) => acc + (r.countries[cIdx]?.views || 0), 0);
-      return {
-        ...def,
-        reads,
-        views,
-        sharePct: Number(((reads / Math.max(1, totalReads)) * 100).toFixed(2)),
-      };
-    });
-
-    return {
-      rows,
-      totalReads,
-      totalViews,
-      totalCitations,
-      totalVideoPlaysAllArticles,
-      totalVideoWatchSecondsAllArticles,
-      articlesWithVideoWatches,
-      topWatchedVideoArticles,
-      totalReadingMinutesAllArticles,
-      meanAvgReadingSeconds,
-      articlesSortedByAvgReadingTimeDesc,
-      regionTotals,
-      countryTotals,
-    };
-  }, [
-    activeArticles,
-    cumulative.netReads,
-    cumulative.totalViews,
-    cumulative.readingHours,
-    cumulative.readingMins,
-    cumulative.videoPlays,
-    cumulative.videoWatchSeconds,
-    language,
-    effectiveArticleBoosts,
-  ]);
+  // Compute deterministic, arithmetically reconciled per-article reads across ALL 11 301 nodes,
+  // 12 countries / 58 academic centers, and 6 global industrial ecosystems (led by Silicon Valley) / 31 industrial organizations.
+  const articleCumulativeData = useMemo(
+    () =>
+      computeCorpusReadAnalytics({
+        articles: activeArticles,
+        nodes: strictNodes,
+        analyticsMeasurements,
+        articleStatsBoosts: effectiveArticleBoosts,
+        language,
+      }),
+    [activeArticles, strictNodes, analyticsMeasurements, effectiveArticleBoosts, language]
+  );
 
   const categoriesList = useMemo(() => {
     const set = new Set<string>();
@@ -1309,6 +846,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
           return b.videoWatchPercent - a.videoWatchPercent || b.videoWatchSeconds - a.videoWatchSeconds;
         case 'reads_desc':
           return b.reads - a.reads;
+        case 'academic_desc':
+          return b.academicTotalReads - a.academicTotalReads || b.reads - a.reads;
+        case 'industrial_desc':
+          return b.industrialTotalReads - a.industrialTotalReads || b.reads - a.reads;
+        case 'silicon_valley_desc':
+          return b.siliconValleyReads - a.siliconValleyReads || b.industrialTotalReads - a.industrialTotalReads;
         case 'views_desc':
           return b.views - a.views;
         case 'citations_desc':
@@ -2905,26 +2448,106 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-[10px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[10px]">
                 {articleCumulativeData.countryTotals.map((c) => (
                   <div
                     key={c.code}
-                    className="bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 rounded-xs space-y-0.5"
+                    className="bg-slate-900/90 border border-slate-800 px-2.5 py-2 rounded-xs space-y-1.5"
                   >
-                    <div className="flex items-center justify-between gap-1 font-bold text-slate-200">
+                    <div className="flex items-center justify-between gap-1 font-bold text-slate-200 border-b border-slate-800 pb-1">
                       <span className="truncate">{c.countryName}</span>
                       <span className="text-emerald-400 shrink-0">%{c.sharePct}</span>
                     </div>
                     <div className="flex items-center justify-between text-[10px] tabular-nums">
                       <span className="text-amber-300 font-bold">
-                        {c.reads.toLocaleString('tr-TR')} Ok.
+                        {c.reads.toLocaleString('tr-TR')} Toplam Ok.
                       </span>
-                      <span className="text-cyan-300">
-                        {c.views.toLocaleString('tr-TR')} Gör.
+                      <span className="text-emerald-300 font-bold">
+                        {c.academicReads.toLocaleString('tr-TR')} Akademik
                       </span>
+                    </div>
+                    <div className="space-y-0.5 pt-0.5">
+                      {c.academicCenters.map((center) => (
+                        <div
+                          key={center.id}
+                          className="flex items-center justify-between gap-1 text-[9px] text-slate-300 tabular-nums"
+                        >
+                          <span className="truncate" title={`${center.name} (${center.city})`}>
+                            {center.name}
+                          </span>
+                          <span className="text-emerald-300 font-bold shrink-0">
+                            {center.reads.toLocaleString('tr-TR')}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Corpus-Wide Silicon Valley & 6 Major Global Industrial Ecosystems (All 11 301 Nodes Combined) */}
+              <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sky-300 font-bold text-xs flex items-center gap-1.5">
+                    <Cpu className="w-4 h-4 text-amber-300" />
+                    <span>
+                      SİLİKON VADİSİ &amp; 6 BÜYÜK SANAYİ EKOSİSTEMİ — KURULUŞ BAZLI KÜMÜLATİF OKUNMALAR ({strictNodes.length} DÜĞÜM × {activeArticles.length} MAKALE)
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono tabular-nums text-amber-300 font-bold">
+                    Σ {articleCumulativeData.totalIndustrialReads.toLocaleString('tr-TR')} Sanayi Okunması (Silikon Vadisi: {articleCumulativeData.totalSiliconValleyReads.toLocaleString('tr-TR')})
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {articleCumulativeData.industrialEcosystemTotals.map((eco) => {
+                    const isSV = eco.id === 'silicon-valley';
+                    return (
+                      <div
+                        key={`corpus-eco-${eco.id}`}
+                        className={`p-3 rounded-xs border space-y-1.5 ${
+                          isSV
+                            ? 'bg-slate-900 border-amber-400/75'
+                            : 'bg-slate-900/90 border-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-1.5">
+                          <div>
+                            <div className={`font-bold text-[11px] ${isSV ? 'text-amber-300' : 'text-sky-200'}`}>
+                              {eco.name}
+                            </div>
+                            <div className="text-[9px] text-slate-400">{eco.regionLabel}</div>
+                          </div>
+                          <div className="text-right tabular-nums shrink-0">
+                            <div className="text-xs font-extrabold text-amber-300">
+                              {eco.reads.toLocaleString('tr-TR')}
+                            </div>
+                            <div className="text-[9px] text-slate-400">
+                              Sanayi %{eco.shareOfIndustrialPct}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 text-[10px] tabular-nums">
+                          {eco.organizations.map((org) => (
+                            <div
+                              key={`corpus-org-${org.id}`}
+                              className="flex items-center justify-between gap-2 bg-slate-950/80 border border-slate-800/80 px-2 py-1 rounded-xs"
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-slate-100">{org.name}</div>
+                                <div className="truncate text-[9px] text-slate-400">{org.sector}</div>
+                              </div>
+                              <span className="text-sky-300 font-extrabold shrink-0">
+                                {org.reads.toLocaleString('tr-TR')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -3211,7 +2834,10 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     onChange={(e) => setArticleSortBy(e.target.value as any)}
                     className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-xs text-xs focus:outline-none focus:border-amber-400"
                   >
-                    <option value="reads_desc">En Çok Okunan Makaleler (Azalan)</option>
+                    <option value="reads_desc">En Çok Okunan Makaleler — Global 11 Düğüm (Azalan)</option>
+                    <option value="academic_desc">En Çok Akademik Merkez Okunması Alanlar</option>
+                    <option value="silicon_valley_desc">En Çok Silikon Vadisi Okunması Alanlar</option>
+                    <option value="industrial_desc">En Çok Küresel Sanayi Okunması Alanlar</option>
                     <option value="views_desc">En Çok Görüntülenen Makaleler (Azalan)</option>
                     <option value="video_watch_desc">Geniş Özet Video İzlenme Süresi (En Fazladan En Aza)</option>
                     <option value="video_plays_desc">En Çok Video İzlenen Makaleler (Oynatma Sayısı)</option>
@@ -3223,7 +2849,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     <option value="tr_desc">Türkiye Okunmasına Göre</option>
                     <option value="eu_desc">Avrupa Okunmasına Göre</option>
                     <option value="amer_desc">Amerika Okunmasına Göre</option>
-                    <option value="rank_asc">Sıra Numarasına Göre (#1 → #{Math.max(316, activeArticles.length)})</option>
+                    <option value="rank_asc">Sıra Numarasına Göre (#1 → #{Math.max(318, activeArticles.length)})</option>
                   </select>
                 </div>
 
@@ -3251,7 +2877,8 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     <tr className="bg-slate-900 text-slate-300 border-b border-slate-700 uppercase text-[10px]">
                       <th className="py-2.5 px-2.5 font-bold">#</th>
                       <th className="py-2.5 px-2.5 font-bold min-w-[220px]">Makale Başlığı &amp; Arşiv No</th>
-                      <th className="py-2.5 px-2.5 font-bold text-right text-amber-300">Kümülatif Okunma</th>
+                      <th className="py-2.5 px-2.5 font-bold text-right text-amber-300">Global Okunma (11 Düğüm)</th>
+                      <th className="py-2.5 px-2.5 font-bold text-right text-emerald-300 min-w-[145px]">Akademik / Sanayi / SV</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-cyan-200">Ort. Okuma &amp; Toplam</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-teal-300 min-w-[130px]">Video İzlenme (12 Dil)</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-cyan-300">Görüntülenme</th>
@@ -3261,7 +2888,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <th className="py-2.5 px-2.5 font-bold text-right text-amber-200">Amerika</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-purple-200">Asya-P.</th>
                       <th className="py-2.5 px-2.5 font-bold text-right text-rose-200">Diğer</th>
-                      <th className="py-2.5 px-2.5 font-bold text-center">12 Ülke &amp; İşlem</th>
+                      <th className="py-2.5 px-2.5 font-bold text-center">Akademik · Sanayi · 11 Düğüm</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/90 tabular-nums">
@@ -3287,7 +2914,18 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                               <div className="font-extrabold text-amber-300 text-xs">
                                 {row.reads.toLocaleString('tr-TR')}
                               </div>
-                              <div className="text-[9px] text-slate-400">%{row.readSharePercent}</div>
+                              <div className="text-[9px] text-slate-400">%{row.readSharePercent} · 11 düğüm</div>
+                            </td>
+                            <td className="py-2 px-2.5 text-right whitespace-nowrap">
+                              <div className="text-[10px] font-bold text-emerald-300">
+                                Akad: {row.academicTotalReads.toLocaleString('tr-TR')}
+                              </div>
+                              <div className="text-[10px] font-bold text-sky-300">
+                                Sanayi: {row.industrialTotalReads.toLocaleString('tr-TR')}
+                              </div>
+                              <div className="text-[9px] text-amber-200">
+                                Silikon V.: {row.siliconValleyReads.toLocaleString('tr-TR')}
+                              </div>
                             </td>
                             <td className="py-2 px-2.5 text-right whitespace-nowrap">
                               <div className="font-extrabold text-cyan-200 text-xs">
@@ -3343,7 +2981,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                   className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-amber-400/60 text-amber-300 font-bold text-[10px] rounded-xs cursor-pointer"
                                 >
                                   <MapPin className="w-3 h-3" />
-                                  <span>12 Ülke</span>
+                                  <span>Akademik &amp; Sanayi</span>
                                   {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                 </button>
                                 <button
@@ -3363,12 +3001,14 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
 
                           {isExpanded && (
                             <tr className="bg-slate-900/95 border-b border-amber-400/50">
-                              <td colSpan={13} className="p-3.5">
-                                <div className="space-y-2.5">
+                              <td colSpan={14} className="p-3.5">
+                                <div className="space-y-3">
                                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                                     <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
                                       <MapPin className="w-4 h-4 text-emerald-400" />
-                                      <span>MAKALE #{row.rank} 12 ÜLKE COĞRAFİ DAĞILIMI &amp; GENİŞ ÖZET VİDEO ÖLÇÜMÜ — {row.title}</span>
+                                      <span>
+                                        MAKALE #{row.rank} GLOBAL OKUNMA ({row.reads.toLocaleString('tr-TR')}) — 12 ÜLKE AKADEMİK MERKEZLER, SİLİKON VADİSİ &amp; SANAYİ KURULUŞLARI, 11 DÜĞÜM — {row.title}
+                                      </span>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5">
                                       <button
@@ -3395,6 +3035,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                       <button
                                         type="button"
                                         onClick={() => {
+                                          if (!kvkkAnalyticsGranted) {
+                                            setAnalyticsNotice(
+                                              'KVKK (6698) & AB GDPR m.6(1)(a): Analitik açık rızası verilmeden yeni tarayıcı ölçümü kaydedilmez. Çerez/Rıza tercihlerinden analitiği etkinleştirebilirsiniz.'
+                                            );
+                                            return;
+                                          }
                                           if (onRecordAnalyticsMeasurement) {
                                             onRecordAnalyticsMeasurement(
                                               'emrepelit-sciphi.ai.studio',
@@ -3421,9 +3067,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                                   citations: cur.citations + 1,
                                                 },
                                               };
-                                              try {
-                                                window.localStorage.setItem('sciphil_article_boosts_v2', JSON.stringify(nextMap));
-                                              } catch {}
+                                              if (kvkkAnalyticsGranted) {
+                                                try {
+                                                  window.localStorage.setItem('sciphil_article_boosts_v2', JSON.stringify(nextMap));
+                                                } catch {}
+                                              }
                                               return nextMap;
                                             });
                                             onIncrementArticleBoost?.(row.articleId);
@@ -3433,6 +3081,136 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                       >
                                         + Okunma/Atıf Kaydet
                                       </button>
+                                    </div>
+                                  </div>
+
+                                  {/* 11-Node Readership Contribution Strip */}
+                                  <div className="bg-slate-950 border border-amber-400/50 p-2.5 rounded-xs space-y-1.5">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                                      <span className="text-amber-300 font-bold uppercase">
+                                        1) 11 Düğüm (301 Ağı) Okunma Katkısı (Σ = {row.reads.toLocaleString('tr-TR')} Global Okunma)
+                                      </span>
+                                      <span className="text-emerald-300 font-bold">
+                                        {row.academicTotalReads.toLocaleString('tr-TR')} Akademik + {row.industrialTotalReads.toLocaleString('tr-TR')} Sanayi + {row.independentGlobalReads.toLocaleString('tr-TR')} Bağımsız = {row.reads.toLocaleString('tr-TR')}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 text-[10px] tabular-nums">
+                                      {row.nodeBreakdown.map((ns) => (
+                                        <div
+                                          key={`${row.articleId}-tbl-node-${ns.domain}`}
+                                          className={`flex items-center justify-between gap-1 px-2 py-1 rounded-xs border ${
+                                            ns.isLive
+                                              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100'
+                                              : 'bg-slate-900 border-slate-800 text-slate-300'
+                                          }`}
+                                        >
+                                          <span className="truncate">#{ns.rank} {ns.domain}</span>
+                                          <strong className="text-amber-300 shrink-0">{ns.reads.toLocaleString('tr-TR')}</strong>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* 12 Countries & Individual Academic Centers (KVKK / GDPR Recital 26 k >= 5 Anonymity) */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                                      <span className="font-bold text-emerald-300 uppercase">
+                                        2) 12 Ülke &amp; 60 Akademik Merkez Okunma Dağılımı (Σ {row.academicTotalReads.toLocaleString('tr-TR')} Akademik · k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})
+                                      </span>
+                                      <span className="text-slate-400">
+                                        KVKK m.4 &amp; GDPR Recital 26: Sıfır Kişisel Veri / Küçük Hücre Maskelemesi Aktif
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                                      {row.countries.map((c) => (
+                                        <div
+                                          key={`${row.articleId}-${c.code}`}
+                                          className="bg-slate-950 border border-slate-800 p-2.5 rounded-xs space-y-1.5"
+                                        >
+                                          <div className="flex items-center justify-between text-[11px] font-bold border-b border-slate-800 pb-1">
+                                            <span className="text-white">{c.countryName}</span>
+                                            <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[9px] rounded-xs">
+                                              %{c.sharePercent}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center justify-between text-[10px] tabular-nums">
+                                            <span className="text-amber-300 font-bold">{c.reads.toLocaleString('tr-TR')} Toplam</span>
+                                            <span className="text-emerald-300 font-bold">{c.academicReads.toLocaleString('tr-TR')} Akademik</span>
+                                          </div>
+                                          <div className="space-y-0.5 text-[9px] tabular-nums">
+                                            {c.academicCenters.map((center) => (
+                                              <div
+                                                key={`${row.articleId}-${center.id}`}
+                                                className="flex items-center justify-between gap-1 text-slate-300"
+                                                title={
+                                                  center.isKAnonymityMasked
+                                                    ? `KVKK & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD})`
+                                                    : `${center.name} (${center.city})`
+                                                }
+                                              >
+                                                <span className="truncate">{center.name}</span>
+                                                <strong
+                                                  className={`shrink-0 ${
+                                                    center.isKAnonymityMasked ? 'text-slate-400' : 'text-emerald-300'
+                                                  }`}
+                                                >
+                                                  {center.privacySafeReadLabel}
+                                                </strong>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Silicon Valley & 6 Global Industrial Ecosystems (KVKK / GDPR Recital 26 k >= 5 Anonymity) */}
+                                  <div className="space-y-1.5">
+                                    <div className="text-[10px] font-bold text-sky-300 uppercase">
+                                      3) Silikon Vadisi &amp; 6 Büyük Sanayi Ekosistemi — Kuruluş Bazlı Okunma Dağılımı (Σ {row.industrialTotalReads.toLocaleString('tr-TR')} Sanayi · Silikon Vadisi: {row.siliconValleyReads.toLocaleString('tr-TR')} · k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                      {row.industrialEcosystems.map((eco) => (
+                                        <div
+                                          key={`${row.articleId}-tbl-eco-${eco.id}`}
+                                          className={`p-2.5 rounded-xs border space-y-1.5 ${
+                                            eco.id === 'silicon-valley'
+                                              ? 'bg-slate-950 border-amber-400/70'
+                                              : 'bg-slate-950 border-slate-800'
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                                            <span className={`font-bold text-[10px] ${eco.id === 'silicon-valley' ? 'text-amber-300' : 'text-sky-200'}`}>
+                                              {eco.name}
+                                            </span>
+                                            <span className="text-amber-300 font-extrabold text-[10px] tabular-nums shrink-0">
+                                              {eco.reads.toLocaleString('tr-TR')} ok.
+                                            </span>
+                                          </div>
+                                          <div className="space-y-0.5 text-[9px] tabular-nums">
+                                            {eco.organizations.map((org) => (
+                                              <div
+                                                key={`${row.articleId}-tbl-org-${org.id}`}
+                                                className="flex items-center justify-between gap-1 text-slate-300"
+                                                title={
+                                                  org.isKAnonymityMasked
+                                                    ? `KVKK & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD})`
+                                                    : `${org.name} — ${org.sector} (${org.city})`
+                                                }
+                                              >
+                                                <span className="truncate">{org.name}</span>
+                                                <strong
+                                                  className={`shrink-0 ${
+                                                    org.isKAnonymityMasked ? 'text-slate-400' : 'text-sky-300'
+                                                  }`}
+                                                >
+                                                  {org.privacySafeReadLabel}
+                                                </strong>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
 
@@ -3454,29 +3232,6 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                       <strong className="text-amber-300">{row.videoCompletions.toLocaleString('tr-TR')}</strong>
                                     </div>
                                   </div>
-
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                                    {row.countries.map((c) => (
-                                      <div
-                                        key={`${row.articleId}-${c.code}`}
-                                        className="bg-slate-950 border border-slate-800 p-2.5 rounded-xs space-y-1"
-                                      >
-                                        <div className="flex items-center justify-between text-[11px] font-bold">
-                                          <span className="text-white">{c.countryName}</span>
-                                          <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[9px] rounded-xs">
-                                            %{c.sharePercent}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs tabular-nums">
-                                          <span className="text-amber-300 font-bold">{c.reads.toLocaleString('tr-TR')} Okunma</span>
-                                          <span className="text-cyan-300 font-semibold">{c.views.toLocaleString('tr-TR')} Gör.</span>
-                                        </div>
-                                        <div className="text-[9px] text-slate-400 truncate" title={c.academicHubs}>
-                                          {c.academicHubs}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
                                 </div>
                               </td>
                             </tr>
@@ -3493,6 +3248,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       </td>
                       <td className="py-3 px-2.5 text-right text-amber-300">
                         {articleCumulativeData.totalReads.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="py-3 px-2.5 text-right text-[10px]">
+                        <div className="text-emerald-300">Ak: {articleCumulativeData.totalAcademicReads.toLocaleString('tr-TR')}</div>
+                        <div className="text-sky-300">San: {articleCumulativeData.totalIndustrialReads.toLocaleString('tr-TR')}</div>
+                        <div className="text-amber-200">SV: {articleCumulativeData.totalSiliconValleyReads.toLocaleString('tr-TR')}</div>
                       </td>
                       <td className="py-3 px-2.5 text-right text-cyan-200">
                         Σ {cumulative.readingHours.toLocaleString('tr-TR')}s {cumulative.readingMins}d

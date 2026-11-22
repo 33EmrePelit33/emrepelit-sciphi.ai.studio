@@ -80,6 +80,8 @@ import { ArticleShareMenu } from './components/ArticleShareMenu';
 import type { VideoWatchProgressPayload } from './components/ArticleExplainerVideo';
 import type { GovernanceTab } from './components/GovernanceLegalModal';
 import { computeArticleScientificAnalysis } from './utils/articleAnalysisEngine';
+import { computeCorpusReadAnalytics } from './utils/articleReadAnalyticsEngine';
+import { ArticleReadershipIntelligencePanel } from './components/ArticleReadershipIntelligencePanel';
 
 // E1: Route/Modal/Section Code-Splitting via React.lazy for Fast Initial Load
 const Network301Hub = lazy(() =>
@@ -2251,31 +2253,46 @@ export default function App() {
       lastBloggerSyncAt: n.lastBloggerSyncAt,
       stats: n.stats,
     }));
+    const hasAnalyticsConsent =
+      kvkkConsent.status === 'accepted' && Boolean(kvkkConsent.analytics);
+
     if (typeof window !== 'undefined') {
       try {
-        window.localStorage.setItem(
-          'emrepelit_10sites_monotonic_stats_v3',
-          JSON.stringify(compactNodes)
-        );
-        window.localStorage.setItem(
-          'emrepelit_10sites_analytics_measurements_v2',
-          JSON.stringify(analyticsMeasurements)
-        );
-        window.localStorage.setItem(
-          'emrepelit_10sites_app_interaction_totals_v2',
-          JSON.stringify(appInteractionTotals)
-        );
-        window.localStorage.setItem(
-          'emrepelit_10sites_app_interaction_log_v2',
-          JSON.stringify(analyticsEventLog.slice(0, 120))
-        );
-        window.localStorage.setItem(
-          'sciphil_article_boosts_v2',
-          JSON.stringify(articleStatsBoosts)
-        );
+        if (hasAnalyticsConsent) {
+          window.localStorage.setItem(
+            'emrepelit_10sites_monotonic_stats_v3',
+            JSON.stringify(compactNodes)
+          );
+          window.localStorage.setItem(
+            'emrepelit_10sites_analytics_measurements_v2',
+            JSON.stringify(analyticsMeasurements)
+          );
+          window.localStorage.setItem(
+            'emrepelit_10sites_app_interaction_totals_v2',
+            JSON.stringify(appInteractionTotals)
+          );
+          window.localStorage.setItem(
+            'emrepelit_10sites_app_interaction_log_v2',
+            JSON.stringify(analyticsEventLog.slice(0, 120))
+          );
+          window.localStorage.setItem(
+            'sciphil_article_boosts_v2',
+            JSON.stringify(articleStatsBoosts)
+          );
+        } else if (kvkkConsent.status === 'rejected' || !kvkkConsent.analytics) {
+          // GDPR Art. 7(3) & ePrivacy Art. 5(3): Purge non-essential analytics storage when opt-in is not granted
+          window.localStorage.removeItem('emrepelit_10sites_monotonic_stats_v3');
+          window.localStorage.removeItem('emrepelit_10sites_analytics_measurements_v2');
+          window.localStorage.removeItem('emrepelit_10sites_app_interaction_totals_v2');
+          window.localStorage.removeItem('emrepelit_10sites_app_interaction_log_v2');
+          window.localStorage.removeItem('sciphil_article_boosts_v2');
+        }
       } catch {
         // Ignore storage quota errors
       }
+    }
+    if (!hasAnalyticsConsent) {
+      return;
     }
     const timer = window.setTimeout(() => {
       fetch('/api/cloud/state', {
@@ -2303,6 +2320,8 @@ export default function App() {
     analyticsEventLog,
     gatewayConfig,
     snapshots,
+    kvkkConsent.status,
+    kvkkConsent.analytics,
   ]);
 
   const networkNodesRef = useRef<Network301Node[]>(networkNodes);
@@ -2349,6 +2368,10 @@ export default function App() {
       metricSummary: string,
       interactionCategoryOverride?: AppInteractionCategory
     ) => {
+      // KVKK (6698) m.5/1 & EU GDPR Art. 6(1)(a) strict opt-in gate: block browser analytics recording without explicit consent
+      if (kvkkConsentRef.current.status !== 'accepted' || !kvkkConsentRef.current.analytics) {
+        return;
+      }
       const rDelta = Math.max(0, Math.floor(Number(delta.readsDelta) || 0));
       const explicitVDelta =
         typeof delta.viewsDelta === 'number'
@@ -4477,6 +4500,19 @@ export default function App() {
     return firstExpanded || paginatedArticles[0] || articles[0] || null;
   }, [paginatedArticles, expandedArticleIds, articles]);
 
+  // 11-Node Arithmetically Reconciled Per-Article Global Readership, 12-Country Academic Hubs & Silicon Valley / Industrial Ecosystems
+  const corpusReadAnalytics = useMemo(
+    () =>
+      computeCorpusReadAnalytics({
+        articles,
+        nodes: networkNodes,
+        analyticsMeasurements,
+        articleStatsBoosts,
+        language,
+      }),
+    [articles, networkNodes, analyticsMeasurements, articleStatsBoosts, language]
+  );
+
   return (
     <div
       id="top"
@@ -6582,6 +6618,7 @@ export default function App() {
               );
 
               const articleAnalysisSummary = computeArticleScientificAnalysis(article, language);
+              const articleReadStats = corpusReadAnalytics.byArticleId[article.id];
               const workCluster = workClustersData.clusterByArticleId[article.id];
               const siblingLangEntries = workCluster
                 ? (Object.entries(workCluster.byLang) as [LanguageCode, Article][]).filter(([, a]) => Boolean(a))
@@ -6615,6 +6652,30 @@ export default function App() {
                           {APP_CHROME_I18N[language].scientificScore}: {articleAnalysisSummary.scientificScore.overallScore} / 100
                         </span>
                       </span>
+                      {articleReadStats && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            document
+                              .getElementById(`article-readership-${article.id}`)
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }}
+                          className="px-2 py-0.5 bg-[#0F172A] hover:bg-slate-800 text-amber-300 border border-amber-400/70 font-mono font-bold rounded-xs inline-flex items-center gap-1.5 tabular-nums cursor-pointer transition-colors"
+                          title="Bu makalenin 11 düğüm toplam global okunması, 12 ülke akademik merkezleri ve Silikon Vadisi / sanayi ekosistemi dağılımı"
+                        >
+                          <Globe className="w-3 h-3 text-emerald-400" />
+                          <span>
+                            Global Okunma ({corpusReadAnalytics.nodesCount} Düğüm):{' '}
+                            {articleReadStats.reads.toLocaleString('tr-TR')}
+                          </span>
+                          <span className="text-emerald-300">
+                            · Akademik: {articleReadStats.academicTotalReads.toLocaleString('tr-TR')}
+                          </span>
+                          <span className="text-sky-300">
+                            · Silikon V.: {articleReadStats.siliconValleyReads.toLocaleString('tr-TR')}
+                          </span>
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] tabular-nums">
@@ -7056,8 +7117,32 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Right 5 Cols: Prominent Side-by-Side Question/Objection Box + Visual Plate & Key Findings */}
+                    {/* Right 5 Cols: Global 11-Node Readership (Academic Hubs + Silicon Valley/Industrial) + Side-by-Side Q&A + Visual Plate */}
                     <div className="lg:col-span-5 space-y-4">
+                      {/* Per-Article Global Readership (All 11 301 Nodes), 12-Country Academic Centers & Silicon Valley / Global Industrial Ecosystems */}
+                      <ArticleReadershipIntelligencePanel
+                        stats={articleReadStats}
+                        totalNetworkReads={corpusReadAnalytics.totalReads}
+                        totalNodesCount={corpusReadAnalytics.nodesCount}
+                        kvkkAnalyticsGranted={
+                          kvkkConsent.status === 'accepted' && Boolean(kvkkConsent.analytics)
+                        }
+                        onOpenFullAnalytics={() => {
+                          setAnalyticsPanelOpen(true);
+                          setActiveTab('stats');
+                          setTimeout(() => {
+                            document
+                              .getElementById('analytics-article-table')
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 120);
+                        }}
+                        onOpenKvkkModal={() => {
+                          setGovernanceTab('kvkk');
+                          setGovernanceModalOpen(true);
+                        }}
+                        onOpenConsentPrefs={() => setKvkkManageOpen(true)}
+                      />
+
                       {/* Prominent Side-by-Side Question & Objection Box Beside Every Article */}
                       <div id={`article-qa-${article.id}`} className="no-print scroll-mt-24">
                         <ArticleQuestionModule
@@ -7545,7 +7630,9 @@ export default function App() {
             onRecalculateAllNodes={handleRecalculateAll11NodesAnalytics}
             onPublishFromAnyNode={handlePublishNewArticle}
             articleStatsBoosts={articleStatsBoosts}
-            kvkkAnalyticsGranted={true}
+            kvkkAnalyticsGranted={
+              kvkkConsent.status === 'accepted' && Boolean(kvkkConsent.analytics)
+            }
           />
         </Suspense>
 
