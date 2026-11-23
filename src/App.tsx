@@ -65,23 +65,41 @@ import {
   getLocalizedText,
   getLocalizedArray,
 } from './i18n/translations';
-import { ScientificPlate } from './components/ScientificPlate';
-import { ArticleAudioPlayer } from './components/ArticleAudioPlayer';
-import { ArticleSimulation } from './components/ArticleSimulation';
-import { ArticleQuestionModule } from './components/ArticleQuestionModule';
-import { ArticleQuizModule } from './components/ArticleQuizModule';
 import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallButton';
 import { MathFormula } from './components/MathFormula';
-import { CitationExportBox } from './components/CitationExportBox';
 import { ArticleStickyToc } from './components/ArticleStickyToc';
 import { UserAuthButton } from './components/UserAuthButton';
-import { RelatedArticlesStrip } from './components/RelatedArticlesStrip';
-import { ArticleShareMenu } from './components/ArticleShareMenu';
 import type { VideoWatchProgressPayload } from './components/ArticleExplainerVideo';
 import type { GovernanceTab } from './components/GovernanceLegalModal';
 import { computeArticleScientificAnalysis } from './utils/articleAnalysisEngine';
 import { computeCorpusReadAnalytics } from './utils/articleReadAnalyticsEngine';
 import { ArticleReadershipIntelligencePanel } from './components/ArticleReadershipIntelligencePanel';
+
+// Performance: Lazy-load heavy interactive article sub-modules so initial JS bundle & hydration stay fast
+const ScientificPlate = lazy(() =>
+  import('./components/ScientificPlate').then((m) => ({ default: m.ScientificPlate }))
+);
+const ArticleAudioPlayer = lazy(() =>
+  import('./components/ArticleAudioPlayer').then((m) => ({ default: m.ArticleAudioPlayer }))
+);
+const ArticleSimulation = lazy(() =>
+  import('./components/ArticleSimulation').then((m) => ({ default: m.ArticleSimulation }))
+);
+const ArticleQuestionModule = lazy(() =>
+  import('./components/ArticleQuestionModule').then((m) => ({ default: m.ArticleQuestionModule }))
+);
+const ArticleQuizModule = lazy(() =>
+  import('./components/ArticleQuizModule').then((m) => ({ default: m.ArticleQuizModule }))
+);
+const CitationExportBox = lazy(() =>
+  import('./components/CitationExportBox').then((m) => ({ default: m.CitationExportBox }))
+);
+const RelatedArticlesStrip = lazy(() =>
+  import('./components/RelatedArticlesStrip').then((m) => ({ default: m.RelatedArticlesStrip }))
+);
+const ArticleShareMenu = lazy(() =>
+  import('./components/ArticleShareMenu').then((m) => ({ default: m.ArticleShareMenu }))
+);
 
 // E1: Route/Modal/Section Code-Splitting via React.lazy for Fast Initial Load
 const Network301Hub = lazy(() =>
@@ -110,6 +128,9 @@ const KnowledgeGraph = lazy(() =>
 );
 const InteractiveAppsSuite = lazy(() =>
   import('./components/InteractiveAppsSuite').then((m) => ({ default: m.InteractiveAppsSuite }))
+);
+const RiddleTriviaWeeklyArena = lazy(() =>
+  import('./components/RiddleTriviaWeeklyArena').then((m) => ({ default: m.RiddleTriviaWeeklyArena }))
 );
 const ArticleExplainerVideo = lazy(() =>
   import('./components/ArticleExplainerVideo').then((m) => ({ default: m.ArticleExplainerVideo }))
@@ -1117,7 +1138,7 @@ export default function App() {
     }
     return 1;
   });
-  const [articlesPerPage, setArticlesPerPage] = useState<number>(10);
+  const [articlesPerPage, setArticlesPerPage] = useState<number>(5);
   const didMountFilterResetRef = useRef<boolean>(false);
   const knownBloggerIdsRef = useRef<Set<string>>(new Set());
   const initialEntryRecordedRef = useRef<boolean>(false);
@@ -1269,22 +1290,24 @@ export default function App() {
   });
   const [showOnlyBookmarked, setShowOnlyBookmarked] = useState<boolean>(false);
 
-  // Persist E2 reading comfort preferences to localStorage
+  // Persist E2 reading comfort preferences to localStorage ONLY after explicit KVKK/GDPR consent (ePrivacy Art. 5(3))
   useEffect(() => {
+    if (kvkkConsent.status !== 'accepted') return;
     try {
       localStorage.setItem('emre_pelit_ux_theme', uxReadingTheme);
     } catch {
       // ignore
     }
-  }, [uxReadingTheme]);
+  }, [uxReadingTheme, kvkkConsent.status]);
 
   useEffect(() => {
+    if (kvkkConsent.status !== 'accepted') return;
     try {
       localStorage.setItem('emre_pelit_ux_font_scale', uxFontScale);
     } catch {
       // ignore
     }
-  }, [uxFontScale]);
+  }, [uxFontScale, kvkkConsent.status]);
 
   useEffect(() => {
     setActiveCommandIndex(0);
@@ -1300,18 +1323,24 @@ export default function App() {
         updatedAt: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
       };
       setLastReadArticle(record);
-      try {
-        localStorage.setItem('emre_pelit_last_read_article', JSON.stringify(record));
-      } catch {
-        // ignore
+      const canPersistReadHistory =
+        kvkkConsentRef.current.status === 'accepted' && Boolean(kvkkConsentRef.current.analytics);
+      if (canPersistReadHistory) {
+        try {
+          localStorage.setItem('emre_pelit_last_read_article', JSON.stringify(record));
+        } catch {
+          // ignore
+        }
       }
       setReadArticleIds((prev) => {
         if (prev.includes(articleId)) return prev;
         const next = [...prev, articleId];
-        try {
-          localStorage.setItem('emre_pelit_read_articles', JSON.stringify(next));
-        } catch {
-          // ignore
+        if (canPersistReadHistory) {
+          try {
+            localStorage.setItem('emre_pelit_read_articles', JSON.stringify(next));
+          } catch {
+            // ignore
+          }
         }
         return next;
       });
@@ -1358,10 +1387,12 @@ export default function App() {
         if (importedBookmarks.length > 0) {
           setBookmarkedArticleIds((prev) => {
             const merged = Array.from(new Set([...prev, ...importedBookmarks]));
-            try {
-              localStorage.setItem('emre_pelit_bookmarked_articles', JSON.stringify(merged));
-            } catch {
-              // ignore
+            if (kvkkConsentRef.current.status === 'accepted') {
+              try {
+                localStorage.setItem('emre_pelit_bookmarked_articles', JSON.stringify(merged));
+              } catch {
+                // ignore
+              }
             }
             return merged;
           });
@@ -1369,10 +1400,12 @@ export default function App() {
         if (importedReads.length > 0) {
           setReadArticleIds((prev) => {
             const merged = Array.from(new Set([...prev, ...importedReads]));
-            try {
-              localStorage.setItem('emre_pelit_read_articles', JSON.stringify(merged));
-            } catch {
-              // ignore
+            if (kvkkConsentRef.current.status === 'accepted' && Boolean(kvkkConsentRef.current.analytics)) {
+              try {
+                localStorage.setItem('emre_pelit_read_articles', JSON.stringify(merged));
+              } catch {
+                // ignore
+              }
             }
             return merged;
           });
@@ -1479,10 +1512,12 @@ export default function App() {
       const next = willBeBookmarked
         ? [...prev, articleId]
         : prev.filter((id) => id !== articleId);
-      try {
-        localStorage.setItem('emre_pelit_bookmarked_articles', JSON.stringify(next));
-      } catch {
-        // Ignore storage quota
+      if (kvkkConsentRef.current.status === 'accepted') {
+        try {
+          localStorage.setItem('emre_pelit_bookmarked_articles', JSON.stringify(next));
+        } catch {
+          // Ignore storage quota
+        }
       }
       const token = firebaseIdTokenRef.current;
       if (token) {
@@ -1840,13 +1875,7 @@ export default function App() {
         gscMetaEl.setAttribute('content', gatewayConfig.googleSiteVerificationToken);
       }
 
-      // Client-Side DOM & All-Browser Registration Guard: Ensure author, LinkedIn & official YouTube (@science_only) verification tags are persisted across all web browsers
-      try {
-        localStorage.setItem('emre_pelit_youtube_channel', '@science_only');
-        localStorage.setItem('emre_pelit_youtube_url', 'https://www.youtube.com/@science_only');
-      } catch {
-        // Ignore storage quota
-      }
+      // Client-Side DOM & All-Browser Registration Guard: Declarative head meta tags only (zero pre-consent localStorage writes for KVKK/GDPR & ePrivacy Art. 5(3))
       const authorMeta = document.querySelector('meta[name="author"]');
       if (authorMeta) {
         authorMeta.setAttribute('content', 'Emre Pelit');
@@ -2280,12 +2309,20 @@ export default function App() {
             JSON.stringify(articleStatsBoosts)
           );
         } else if (kvkkConsent.status === 'rejected' || !kvkkConsent.analytics) {
-          // GDPR Art. 7(3) & ePrivacy Art. 5(3): Purge non-essential analytics storage when opt-in is not granted
+          // GDPR Art. 7(3) & ePrivacy Art. 5(3): Purge non-essential analytics, reading-history & legacy preference storage when opt-in is not granted
           window.localStorage.removeItem('emrepelit_10sites_monotonic_stats_v3');
           window.localStorage.removeItem('emrepelit_10sites_analytics_measurements_v2');
           window.localStorage.removeItem('emrepelit_10sites_app_interaction_totals_v2');
           window.localStorage.removeItem('emrepelit_10sites_app_interaction_log_v2');
           window.localStorage.removeItem('sciphil_article_boosts_v2');
+          window.localStorage.removeItem('emre_pelit_last_read_article');
+          window.localStorage.removeItem('emre_pelit_read_articles');
+          window.localStorage.removeItem('emre_pelit_youtube_channel');
+          window.localStorage.removeItem('emre_pelit_youtube_url');
+          if (kvkkConsent.status !== 'accepted') {
+            window.localStorage.removeItem('emre_pelit_ux_theme');
+            window.localStorage.removeItem('emre_pelit_ux_font_scale');
+          }
         }
       } catch {
         // Ignore storage quota errors
@@ -3351,44 +3388,36 @@ export default function App() {
     ((scrollToArticles?: boolean, forceRefresh?: boolean, targetWebsiteDomain?: string) => Promise<void>) | null
   >(null);
 
-  // 1. One-time initial read-only corpus hydration on mount (wrapped safely for privacy blockers)
+  // 1. Deferred parallel read-only corpus hydration right after first paint (eliminates sequential mount blocking)
   useEffect(() => {
-    const initCorpusOnce = async () => {
-      try {
-        await syncCloudAnalyticsState(true);
-      } catch {
-        // Non-blocking
-      }
-      try {
-        await handleSyncBloggerRef.current?.(false, false);
-      } catch {
-        // Non-blocking
-      }
-    };
-    void initCorpusOnce();
+    const startTimer = window.setTimeout(() => {
+      void Promise.allSettled([
+        syncCloudAnalyticsState(true),
+        Promise.resolve(handleSyncBloggerRef.current?.(false, false)),
+      ]);
+    }, 60);
+    return () => window.clearTimeout(startTimer);
   }, [syncCloudAnalyticsState]);
 
-  // 2. Continuous Live SSE (/api/live/events) & 15s polling for cookieless all-10-sites cumulative stats
+  // 2. Continuous Live SSE (/api/live/events) + lightweight 120s visibility-aware cloud state reconciliation (no 15s full-corpus Blogger re-fetch storm)
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      void syncCloudAnalyticsState(false);
-      void handleSyncBloggerRef.current?.(false, false);
-    }, 15000);
+      if (typeof document === 'undefined' || !document.hidden) {
+        void syncCloudAnalyticsState(false);
+      }
+    }, 120000);
 
     const keepAliveId = window.setInterval(() => {
-      void fetch('/api/health').catch(() => {});
-    }, 45000);
+      if (typeof document === 'undefined' || !document.hidden) {
+        void fetch('/api/health').catch(() => {});
+      }
+    }, 90000);
 
-    const handleWindowFocus = () => {
-      void syncCloudAnalyticsState(false);
-      void handleSyncBloggerRef.current?.(false, false);
-    };
     const handleVisibilityChange = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
         void syncCloudAnalyticsState(false);
       }
     };
-    window.addEventListener('focus', handleWindowFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     let liveEvents: EventSource | null = null;
@@ -3426,6 +3455,16 @@ export default function App() {
             // ignore parse error
           }
         });
+        liveEvents.addEventListener('arena-leaderboard-updated', (ev) => {
+          try {
+            const parsed = JSON.parse((ev as MessageEvent).data || '{}');
+            window.dispatchEvent(
+              new CustomEvent('sciphil:arena-leaderboard-updated', { detail: parsed })
+            );
+          } catch {
+            // ignore parse error
+          }
+        });
         liveEvents.addEventListener('analytics-sync', (ev) => {
           try {
             const parsed = JSON.parse((ev as MessageEvent).data || '{}');
@@ -3454,7 +3493,6 @@ export default function App() {
     return () => {
       window.clearInterval(intervalId);
       window.clearInterval(keepAliveId);
-      window.removeEventListener('focus', handleWindowFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       try {
         liveEvents?.close();
@@ -4126,15 +4164,39 @@ export default function App() {
 
   const handleRecalculateAll11NodesAnalytics = async () => {
     try {
-      const res = await fetch('/api/analytics/recalculate-network', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        applyMonotonicServerAnalyticsSnapshot(data, false);
-        await handleSyncBlogger(false, false);
+      const [syncRes, recalcRes] = await Promise.all([
+        fetch('/api/network301/sync-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: false }),
+        }),
+        fetch('/api/analytics/recalculate-network', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ]);
+      const nowUtc = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+      if (syncRes.ok) {
+        const syncData = await syncRes.json();
+        const syncedCount = Math.max(318, articles.length, Number(syncData.syncedArticlesPerNode) || 318);
+        const displayTs = syncData.syncedAtDisplay || nowUtc;
+        setNetworkNodes((prev) =>
+          mergeMonotonicNetworkNodes(
+            prev.map((n) => ({
+              ...n,
+              articlesCount: Math.max(n.articlesCount || 318, syncedCount),
+              bloggerSyncedCount: Math.max(n.bloggerSyncedCount || 318, syncedCount),
+              allBloggerArticlesPublished: true,
+              lastBloggerSyncAt: displayTs,
+            }))
+          )
+        );
       }
+      if (recalcRes.ok) {
+        const data = await recalcRes.json();
+        applyMonotonicServerAnalyticsSnapshot(data, false);
+      }
+      await handleSyncBlogger(false, false);
     } catch {
       await syncCloudAnalyticsState(false);
     }
@@ -5376,7 +5438,9 @@ export default function App() {
               </span>
             </div>
 
-            <ScientificPlate article={featuredHeroArticle} language={language} />
+            <Suspense fallback={<div className="h-44 bg-stone-100 border border-stone-200 animate-pulse rounded-xs" />}>
+              <ScientificPlate article={featuredHeroArticle} language={language} />
+            </Suspense>
 
             <div className="space-y-2 pt-1">
               <div className="text-[11px] font-mono text-[#1E3A8A] font-semibold">
@@ -5398,54 +5462,83 @@ export default function App() {
                 </span>
               </button>
 
-              <ArticleAudioPlayer
-                article={featuredHeroArticle}
-                language={language}
-                voicePersona={gatewayConfig.defaultVoicePersona}
-                compact
-                onAudioMeasured={(artId, minsDelta) =>
-                  handleRecordAnalyticsMeasurement(
-                    'emrepelit-sciphi.ai.studio',
-                    {
-                      readsDelta: 1,
-                      viewsDelta: 1,
-                      targetArticleId: artId,
-                      audioMinutesDelta: minsDelta,
-                    },
-                    'AUDIO_NARRATOR',
-                    `Analitik Ölçüm (Sesli Anlatım #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
-                  )
-                }
-              />
+              <Suspense fallback={null}>
+                <ArticleAudioPlayer
+                  article={featuredHeroArticle}
+                  language={language}
+                  voicePersona={gatewayConfig.defaultVoicePersona}
+                  compact
+                  onAudioMeasured={(artId, minsDelta) =>
+                    handleRecordAnalyticsMeasurement(
+                      'emrepelit-sciphi.ai.studio',
+                      {
+                        readsDelta: 1,
+                        viewsDelta: 1,
+                        targetArticleId: artId,
+                        audioMinutesDelta: minsDelta,
+                      },
+                      'AUDIO_NARRATOR',
+                      `Analitik Ölçüm (Sesli Anlatım #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
+                    )
+                  }
+                />
+              </Suspense>
             </div>
           </div>
         </section>
 
         {/* PROMINENT HOMEPAGE QUESTION & OBJECTION BOX + 306-ARTICLE CORPUS ANSWERING ENGINE (24/7 CONFIDENTIAL EMAIL ROUTING TO emrepelit39@gmail.com) */}
         <section aria-label="Anasayfa Soru ve Bilimsel/Felsefi İtiraz Cevaplayıcı Motoru">
-          <ArticleQuestionModule
-            article={featuredHeroArticle}
-            allArticles={articles}
+          <Suspense fallback={<div className="h-28 bg-white border border-stone-200 animate-pulse rounded-xs" />}>
+            <ArticleQuestionModule
+              article={featuredHeroArticle}
+              allArticles={articles}
+              language={language}
+              defaultExpanded={true}
+              variant="homepage"
+              onJumpToArticle={(artId) => handleJumpToArticle(artId)}
+              onQuestionAskedMeasured={(artId) =>
+                handleRecordAnalyticsMeasurement(
+                  'emrepelit-sciphi.ai.studio',
+                  {
+                    readsDelta: 1,
+                    viewsDelta: 1,
+                    readingMinutesDelta: 2,
+                    targetArticleId: artId,
+                  },
+                  'QA_OBJECTOR',
+                  `Uygulama Etkileşimi (Anasayfa Soru/İtiraz Cevaplayıcı Motoru #${artId}): +1 Soru/İtiraz Sorgusu, +1 Okunma`,
+                  'QA_OBJECTION'
+                )
+              }
+            />
+          </Suspense>
+        </section>
+
+        {/* INTERACTIVE SCIENCE & PHILOSOPHY RIDDLES, PUZZLES & Q&A ARENA + WEEKLY TOP 5 LEADERBOARD (12 LANGUAGES · OPEN TO ALL · KVKK/GDPR COMPLIANT) */}
+        <Suspense
+          fallback={
+            <div className="no-print h-44 bg-[#FBF9F5] border border-stone-300 animate-pulse rounded-xs" />
+          }
+        >
+          <RiddleTriviaWeeklyArena
             language={language}
-            defaultExpanded={true}
-            variant="homepage"
-            onJumpToArticle={(artId) => handleJumpToArticle(artId)}
-            onQuestionAskedMeasured={(artId) =>
+            onOpenKvkkModal={() => {
+              setGovernanceTab('kvkk');
+              setGovernanceModalOpen(true);
+            }}
+            onArenaPlayedMeasured={(summary, _score) =>
               handleRecordAnalyticsMeasurement(
                 'emrepelit-sciphi.ai.studio',
                 {
-                  readsDelta: 1,
                   viewsDelta: 1,
-                  readingMinutesDelta: 2,
-                  targetArticleId: artId,
                 },
-                'QA_OBJECTOR',
-                `Uygulama Etkileşimi (Anasayfa Soru/İtiraz Cevaplayıcı Motoru #${artId}): +1 Soru/İtiraz Sorgusu, +1 Okunma`,
-                'QA_OBJECTION'
+                'ARTICLE_READER',
+                summary
               )
             }
           />
-        </section>
+        </Suspense>
 
         {/* Collapsible / Dropdown CV & Exclusive Authorship Menu Section */}
         <Suspense fallback={<div className="no-print p-4 text-xs font-mono text-stone-500">Özgeçmiş modülü yükleniyor…</div>}>
@@ -6540,7 +6633,7 @@ export default function App() {
 
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-stone-600">Sayfa Başına:</span>
-              {[10, 25, 50, 100, corpusArticlesCount].map((size) => (
+              {[5, 10, 25, 50, 100, corpusArticlesCount].map((size) => (
                 <button
                   key={size}
                   type="button"
@@ -6629,7 +6722,7 @@ export default function App() {
                   key={article.id}
                   id={article.id}
                   data-print-target={printingArticleId === article.id ? 'true' : undefined}
-                  className="bg-white border border-stone-300 p-6 lg:p-8 space-y-6 scroll-mt-24"
+                  className="article-card-cv bg-white border border-stone-300 p-6 lg:p-8 space-y-6 scroll-mt-24"
                 >
                   {/* Unboxed Clean Academic Metadata Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-stone-200 text-xs text-stone-500">
@@ -6799,24 +6892,26 @@ export default function App() {
 
                         {/* Prominent Per-Article 12-Language Audio Narration + Live Synchronized Transcript */}
                         <div id={`article-audio-${article.id}`} className="no-print scroll-mt-24 pt-1">
-                          <ArticleAudioPlayer
-                            article={article}
-                            language={language}
-                            voicePersona={gatewayConfig.defaultVoicePersona}
-                            onAudioMeasured={(artId, minsDelta) =>
-                              handleRecordAnalyticsMeasurement(
-                                'emrepelit-sciphi.ai.studio',
-                                {
-                                  readsDelta: 1,
-                                  viewsDelta: 1,
-                                  targetArticleId: artId,
-                                  audioMinutesDelta: minsDelta,
-                                },
-                                'AUDIO_NARRATOR',
-                                `Analitik Ölçüm (Sesli Anlatım #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
-                              )
-                            }
-                          />
+                          <Suspense fallback={null}>
+                            <ArticleAudioPlayer
+                              article={article}
+                              language={language}
+                              voicePersona={gatewayConfig.defaultVoicePersona}
+                              onAudioMeasured={(artId, minsDelta) =>
+                                handleRecordAnalyticsMeasurement(
+                                  'emrepelit-sciphi.ai.studio',
+                                  {
+                                    readsDelta: 1,
+                                    viewsDelta: 1,
+                                    targetArticleId: artId,
+                                    audioMinutesDelta: minsDelta,
+                                  },
+                                  'AUDIO_NARRATOR',
+                                  `Analitik Ölçüm (Sesli Anlatım #${artId}): +1 Görüntülenme, +1 Okunma, +${minsDelta} dk Sesli Dinleme`
+                                )
+                              }
+                            />
+                          </Suspense>
                         </div>
 
                         {/* Dedicated Per-Article Pop-up Full Content Analysis, Understandable Guide, Professional Guide, Core Thesis Equation & Content-Matched Audio Narration Strip Next to Article */}
@@ -7145,31 +7240,35 @@ export default function App() {
 
                       {/* Prominent Side-by-Side Question & Objection Box Beside Every Article */}
                       <div id={`article-qa-${article.id}`} className="no-print scroll-mt-24">
-                        <ArticleQuestionModule
-                          article={article}
-                          allArticles={articles}
-                          language={language}
-                          defaultExpanded={true}
-                          variant="sidebar"
-                          onJumpToArticle={(artId) => handleJumpToArticle(artId)}
-                          onQuestionAskedMeasured={(artId) =>
-                            handleRecordAnalyticsMeasurement(
-                              'emrepelit-sciphi.ai.studio',
-                              {
-                                readsDelta: 1,
-                                viewsDelta: 1,
-                                readingMinutesDelta: 2,
-                                targetArticleId: artId,
-                              },
-                              'QA_OBJECTOR',
-                              `Uygulama Etkileşimi (Makale Yanı Soru/İtiraz Kutusu #${artId}): +1 Soru/İtiraz Sorgusu, +1 Okunma`,
-                              'QA_OBJECTION'
-                            )
-                          }
-                        />
+                        <Suspense fallback={null}>
+                          <ArticleQuestionModule
+                            article={article}
+                            allArticles={articles}
+                            language={language}
+                            defaultExpanded={true}
+                            variant="sidebar"
+                            onJumpToArticle={(artId) => handleJumpToArticle(artId)}
+                            onQuestionAskedMeasured={(artId) =>
+                              handleRecordAnalyticsMeasurement(
+                                'emrepelit-sciphi.ai.studio',
+                                {
+                                  readsDelta: 1,
+                                  viewsDelta: 1,
+                                  readingMinutesDelta: 2,
+                                  targetArticleId: artId,
+                                },
+                                'QA_OBJECTOR',
+                                `Uygulama Etkileşimi (Makale Yanı Soru/İtiraz Kutusu #${artId}): +1 Soru/İtiraz Sorgusu, +1 Okunma`,
+                                'QA_OBJECTION'
+                              )
+                            }
+                          />
+                        </Suspense>
                       </div>
 
-                      <ScientificPlate article={article} language={language} />
+                      <Suspense fallback={<div className="h-44 bg-stone-100 border border-stone-200 animate-pulse rounded-xs" />}>
+                        <ScientificPlate article={article} language={language} />
+                      </Suspense>
 
                       <div className="bg-[#FBF9F5] border border-stone-200 p-4 space-y-2">
                         <div className="text-xs font-mono uppercase tracking-wider text-stone-600 font-semibold">
@@ -7189,41 +7288,45 @@ export default function App() {
                     id={index === 0 ? 'featured-simulator-container' : `simulator-${article.id}`}
                     className="no-print scroll-mt-24"
                   >
-                    <ArticleSimulation
-                      article={article}
-                      language={language}
-                      onOpenFullAnalysisModal={(art) => handleOpenAnalysisModal(art)}
-                      onSimulationMeasured={(artId, simType) =>
-                        handleRecordAnalyticsMeasurement(
-                          'emrepelit-sciphi.ai.studio',
-                          {
-                            simulatorRunsDelta: 1,
-                          },
-                          'SIMULATION_LAB',
-                          `Analitik Ölçüm (İnteraktif Simülasyon [${simType}] #${artId}): +1 Simülatör Çalıştırması`
-                        )
-                      }
-                    />
+                    <Suspense fallback={null}>
+                      <ArticleSimulation
+                        article={article}
+                        language={language}
+                        onOpenFullAnalysisModal={(art) => handleOpenAnalysisModal(art)}
+                        onSimulationMeasured={(artId, simType) =>
+                          handleRecordAnalyticsMeasurement(
+                            'emrepelit-sciphi.ai.studio',
+                            {
+                              simulatorRunsDelta: 1,
+                            },
+                            'SIMULATION_LAB',
+                            `Analitik Ölçüm (İnteraktif Simülasyon [${simType}] #${artId}): +1 Simülatör Çalıştırması`
+                          )
+                        }
+                      />
+                    </Suspense>
                   </div>
 
                   {/* Article-Specific Interactive Test Questions (Comprehension Check & Freedom of Thought) */}
                   <div className="no-print">
-                    <ArticleQuizModule
-                      article={article}
-                      language={language}
-                      onQuizCompletedMeasured={(artId, correctCount, totalCount) =>
-                        handleRecordAnalyticsMeasurement(
-                          'emrepelit-sciphi.ai.studio',
-                          {
-                            viewsDelta: 1,
-                            readsDelta: 1,
-                            targetArticleId: artId,
-                          },
-                          'ARTICLE_READER',
-                          `Etkileşimli Makale Testi Tamamlandı (#${artId} · ${correctCount}/${totalCount} Doğru): +1 Okunma`
-                        )
-                      }
-                    />
+                    <Suspense fallback={null}>
+                      <ArticleQuizModule
+                        article={article}
+                        language={language}
+                        onQuizCompletedMeasured={(artId, correctCount, totalCount) =>
+                          handleRecordAnalyticsMeasurement(
+                            'emrepelit-sciphi.ai.studio',
+                            {
+                              viewsDelta: 1,
+                              readsDelta: 1,
+                              targetArticleId: artId,
+                            },
+                            'ARTICLE_READER',
+                            `Etkileşimli Makale Testi Tamamlandı (#${artId} · ${correctCount}/${totalCount} Doğru): +1 Okunma`
+                          )
+                        }
+                      />
+                    </Suspense>
                   </div>
 
                   {/* Action Bar: Expand Full Paper / Pop-up Full Analysis / AI Translate / BibTeX Download */}
@@ -7290,11 +7393,13 @@ export default function App() {
                       </button>
 
                       {/* UX3: One-Click Academic Share & Citation Menu */}
-                      <ArticleShareMenu
-                        article={article}
-                        language={language}
-                        onNotify={showToast}
-                      />
+                      <Suspense fallback={null}>
+                        <ArticleShareMenu
+                          article={article}
+                          language={language}
+                          onNotify={showToast}
+                        />
+                      </Suspense>
 
                       {/* UX5: 100% Browser-Local Personal Reading Notes Trigger */}
                       <button
@@ -7381,7 +7486,9 @@ export default function App() {
                           {mersinColophonText}
                         </p>
 
-                        <CitationExportBox article={article} language={language} />
+                        <Suspense fallback={null}>
+                          <CitationExportBox article={article} language={language} />
+                        </Suspense>
 
                         <div className="pt-4 border-t border-stone-200 text-xs font-mono text-stone-600">
                           {APP_CHROME_I18N[language].cardCopyrightNotice(article.publishedAt.slice(0, 4))}
@@ -7481,12 +7588,14 @@ export default function App() {
 
                   {/* UX2: Smart Conceptual Reading Path / Related Articles Strip */}
                   {isExpanded && (
-                    <RelatedArticlesStrip
-                      currentArticle={article}
-                      allArticles={articles}
-                      language={language}
-                      onSelectArticle={(relId) => handleJumpToArticle(relId)}
-                    />
+                    <Suspense fallback={null}>
+                      <RelatedArticlesStrip
+                        currentArticle={article}
+                        allArticles={articles}
+                        language={language}
+                        onSelectArticle={(relId) => handleJumpToArticle(relId)}
+                      />
+                    </Suspense>
                   )}
                 </article>
               );

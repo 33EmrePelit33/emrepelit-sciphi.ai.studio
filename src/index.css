@@ -211,6 +211,7 @@
 .ux-focus-mode #control-cloud,
 .ux-focus-mode #interactive-apps-suite,
 .ux-focus-mode #homepage-qa-objection-engine,
+.ux-focus-mode #interactive-arena,
 .ux-focus-mode #emre-pelit-cv {
   display: none !important;
 }
@@ -252,6 +253,7 @@
   #control-cloud,
   #interactive-apps-suite,
   #homepage-qa-objection-engine,
+  #interactive-arena,
   #emre-pelit-cv,
   nav[aria-label="Makale Külliyatı Sayfalama"] {
     display: none !important;
@@ -313,6 +315,13 @@
     display: none !important;
   }
 }
+
+/* Performance: Defer layout & paint of off-screen article cards until scrolled near viewport */
+.article-card-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: 920px;
+}
+
 
 
 

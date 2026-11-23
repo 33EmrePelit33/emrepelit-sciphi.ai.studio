@@ -940,7 +940,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xs font-extrabold rounded-xs cursor-pointer transition-colors disabled:opacity-60"
               >
                 <Calculator className={`w-3.5 h-3.5 ${isRecalculatingAllNodes ? 'animate-spin' : ''}`} />
-                <span>{isRecalculatingAllNodes ? 'Hesaplanıyor...' : `${strictNodes.length} Düğüm Analitiğini Yeniden Hesapla`}</span>
+                <span>{isRecalculatingAllNodes ? 'Senkronize Ediliyor...' : `Tüm ${strictNodes.length} Düğümü Senkronize Et`}</span>
               </button>
             )}
             {onForceLiveSync && (
@@ -967,6 +967,12 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
             <button
               type="button"
               onClick={() => {
+                if (!kvkkAnalyticsGranted) {
+                  setAnalyticsNotice(
+                    'KVKK (6698) & AB GDPR m.6(1)(a): Analitik açık rızası verilmeden yeni tarayıcı görüntülenme ölçümü kaydedilmez. Rıza tercihlerinden analitiği etkinleştirebilirsiniz.'
+                  );
+                  return;
+                }
                 onRecordAnalyticsMeasurement?.(
                   'emrepelit-sciphi.ai.studio',
                   {
@@ -2458,25 +2464,26 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <span className="truncate">{c.countryName}</span>
                       <span className="text-emerald-400 shrink-0">%{c.sharePct}</span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] tabular-nums">
+                    <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] tabular-nums">
                       <span className="text-amber-300 font-bold">
-                        {c.reads.toLocaleString('tr-TR')} Toplam Ok.
+                        {c.reads.toLocaleString('tr-TR')} Ok. · {c.views.toLocaleString('tr-TR')} Göst.
                       </span>
                       <span className="text-emerald-300 font-bold">
-                        {c.academicReads.toLocaleString('tr-TR')} Akademik
+                        Akad: {c.academicReads.toLocaleString('tr-TR')} / {c.academicViews.toLocaleString('tr-TR')}
                       </span>
                     </div>
-                    <div className="space-y-0.5 pt-0.5">
+                    <div className="space-y-1 pt-0.5">
                       {c.academicCenters.map((center) => (
                         <div
                           key={center.id}
-                          className="flex items-center justify-between gap-1 text-[9px] text-slate-300 tabular-nums"
+                          className="flex items-start justify-between gap-1.5 text-[9px] text-slate-200 tabular-nums"
+                          title={`${center.name} (${center.city})`}
                         >
-                          <span className="truncate" title={`${center.name} (${center.city})`}>
-                            {center.name}
-                          </span>
-                          <span className="text-emerald-300 font-bold shrink-0">
-                            {center.reads.toLocaleString('tr-TR')}
+                          <span className="leading-snug">{center.name}</span>
+                          <span className="shrink-0 text-right whitespace-nowrap">
+                            <strong className="text-emerald-300">{center.reads.toLocaleString('tr-TR')} ok.</strong>
+                            <span className="text-slate-500"> · </span>
+                            <strong className="text-cyan-300">{center.views.toLocaleString('tr-TR')} göst.</strong>
                           </span>
                         </div>
                       ))}
@@ -2491,11 +2498,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                   <div className="text-sky-300 font-bold text-xs flex items-center gap-1.5">
                     <Cpu className="w-4 h-4 text-amber-300" />
                     <span>
-                      SİLİKON VADİSİ &amp; 6 BÜYÜK SANAYİ EKOSİSTEMİ — KURULUŞ BAZLI KÜMÜLATİF OKUNMALAR ({strictNodes.length} DÜĞÜM × {activeArticles.length} MAKALE)
+                      SİLİKON VADİSİ &amp; 6 BÜYÜK SANAYİ EKOSİSTEMİ — KURULUŞ BAZLI KÜMÜLATİF OKUNMA &amp; GÖSTERİMLER ({strictNodes.length} DÜĞÜM × {activeArticles.length} MAKALE)
                     </span>
                   </div>
                   <div className="text-[11px] font-mono tabular-nums text-amber-300 font-bold">
-                    Σ {articleCumulativeData.totalIndustrialReads.toLocaleString('tr-TR')} Sanayi Okunması (Silikon Vadisi: {articleCumulativeData.totalSiliconValleyReads.toLocaleString('tr-TR')})
+                    Σ {articleCumulativeData.totalIndustrialReads.toLocaleString('tr-TR')} Ok. / {articleCumulativeData.totalIndustrialViews.toLocaleString('tr-TR')} Göst. (Silikon Vadisi: {articleCumulativeData.totalSiliconValleyReads.toLocaleString('tr-TR')} ok. · {articleCumulativeData.totalSiliconValleyViews.toLocaleString('tr-TR')} göst.)
                   </div>
                 </div>
 
@@ -2519,8 +2526,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                             <div className="text-[9px] text-slate-400">{eco.regionLabel}</div>
                           </div>
                           <div className="text-right tabular-nums shrink-0">
-                            <div className="text-xs font-extrabold text-amber-300">
-                              {eco.reads.toLocaleString('tr-TR')}
+                            <div className="text-[11px] font-extrabold text-amber-300">
+                              {eco.reads.toLocaleString('tr-TR')} ok.
+                            </div>
+                            <div className="text-[10px] font-bold text-cyan-300">
+                              {eco.views.toLocaleString('tr-TR')} göst.
                             </div>
                             <div className="text-[9px] text-slate-400">
                               Sanayi %{eco.shareOfIndustrialPct}
@@ -2532,15 +2542,20 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                           {eco.organizations.map((org) => (
                             <div
                               key={`corpus-org-${org.id}`}
-                              className="flex items-center justify-between gap-2 bg-slate-950/80 border border-slate-800/80 px-2 py-1 rounded-xs"
+                              className="flex items-start justify-between gap-2 bg-slate-950/80 border border-slate-800/80 px-2 py-1 rounded-xs"
                             >
                               <div className="min-w-0">
-                                <div className="truncate font-semibold text-slate-100">{org.name}</div>
-                                <div className="truncate text-[9px] text-slate-400">{org.sector}</div>
+                                <div className="font-semibold text-slate-100 leading-snug">{org.name}</div>
+                                <div className="text-[9px] text-slate-400 leading-snug">{org.sector}</div>
                               </div>
-                              <span className="text-sky-300 font-extrabold shrink-0">
-                                {org.reads.toLocaleString('tr-TR')}
-                              </span>
+                              <div className="text-right shrink-0 whitespace-nowrap">
+                                <div className="text-sky-300 font-extrabold">
+                                  {org.reads.toLocaleString('tr-TR')} ok.
+                                </div>
+                                <div className="text-[9px] text-cyan-300 font-bold">
+                                  {org.views.toLocaleString('tr-TR')} göst.
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2914,17 +2929,48 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                               <div className="font-extrabold text-amber-300 text-xs">
                                 {row.reads.toLocaleString('tr-TR')}
                               </div>
-                              <div className="text-[9px] text-slate-400">%{row.readSharePercent} · 11 düğüm</div>
+                              <div className="text-[9px] text-slate-400">
+                                %{row.readSharePercent} · İzole ({row.readToViewRatePct}%)
+                              </div>
                             </td>
-                            <td className="py-2 px-2.5 text-right whitespace-nowrap">
-                              <div className="text-[10px] font-bold text-emerald-300">
-                                Akad: {row.academicTotalReads.toLocaleString('tr-TR')}
-                              </div>
-                              <div className="text-[10px] font-bold text-sky-300">
-                                Sanayi: {row.industrialTotalReads.toLocaleString('tr-TR')}
-                              </div>
-                              <div className="text-[9px] text-amber-200">
-                                Silikon V.: {row.siliconValleyReads.toLocaleString('tr-TR')}
+                            <td className="py-2 px-2.5 text-left min-w-[270px] max-w-[340px]">
+                              <div className="space-y-1 text-[9.5px] leading-snug">
+                                <div className="text-emerald-300">
+                                  <strong>Akademik:</strong>{' '}
+                                  {row.topAcademicCenters[0] ? (
+                                    <span className="text-emerald-100">
+                                      {row.topAcademicCenters[0].name} ({row.topAcademicCenters[0].privacySafeReadLabel} ok. / {row.topAcademicCenters[0].privacySafeViewLabel} göst.)
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      {row.academicTotalReads.toLocaleString('tr-TR')} ok. / {row.academicTotalViews.toLocaleString('tr-TR')} göst.
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-amber-300">
+                                  <strong>Silikon V.:</strong>{' '}
+                                  {row.topSiliconValleyOrgs[0] ? (
+                                    <span className="text-amber-100">
+                                      {row.topSiliconValleyOrgs[0].name} ({row.topSiliconValleyOrgs[0].privacySafeReadLabel} ok. / {row.topSiliconValleyOrgs[0].privacySafeViewLabel} göst.)
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      {row.siliconValleyReads.toLocaleString('tr-TR')} ok. / {row.siliconValleyViews.toLocaleString('tr-TR')} göst.
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-sky-300">
+                                  <strong>Sanayi:</strong>{' '}
+                                  {row.topNonSvIndustrialOrgs[0] ? (
+                                    <span className="text-sky-100">
+                                      {row.topNonSvIndustrialOrgs[0].name} ({row.topNonSvIndustrialOrgs[0].privacySafeReadLabel} ok. / {row.topNonSvIndustrialOrgs[0].privacySafeViewLabel} göst.)
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      {row.industrialTotalReads.toLocaleString('tr-TR')} ok. / {row.industrialTotalViews.toLocaleString('tr-TR')} göst.
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td className="py-2 px-2.5 text-right whitespace-nowrap">
@@ -3007,13 +3053,19 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                     <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
                                       <MapPin className="w-4 h-4 text-emerald-400" />
                                       <span>
-                                        MAKALE #{row.rank} GLOBAL OKUNMA ({row.reads.toLocaleString('tr-TR')}) — 12 ÜLKE AKADEMİK MERKEZLER, SİLİKON VADİSİ &amp; SANAYİ KURULUŞLARI, 11 DÜĞÜM — {row.title}
+                                        MAKALE #{row.rank} İZOLE OKUNMA ({row.reads.toLocaleString('tr-TR')}) &amp; GÖRÜNTÜLENME ({row.views.toLocaleString('tr-TR')}) — AKADEMİK, SİLİKON VADİSİ, SANAYİ &amp; 11 DÜĞÜM — {row.title}
                                       </span>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5">
                                       <button
                                         type="button"
                                         onClick={() => {
+                                          if (!kvkkAnalyticsGranted) {
+                                            setAnalyticsNotice(
+                                              'KVKK (6698) & AB GDPR m.6(1)(a): Analitik açık rızası verilmeden yeni tarayıcı video izlenme ölçümü kaydedilmez. Rıza tercihlerinden analitiği etkinleştirebilirsiniz.'
+                                            );
+                                            return;
+                                          }
                                           onRecordAnalyticsMeasurement?.(
                                             'emrepelit-sciphi.ai.studio',
                                             {
@@ -3115,7 +3167,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                   <div className="space-y-1.5">
                                     <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
                                       <span className="font-bold text-emerald-300 uppercase">
-                                        2) 12 Ülke &amp; 60 Akademik Merkez Okunma Dağılımı (Σ {row.academicTotalReads.toLocaleString('tr-TR')} Akademik · k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})
+                                        2) 12 Ülke &amp; 60 Akademik Kurum — Okunma &amp; Gösterim Dağılımı (Σ {row.academicTotalReads.toLocaleString('tr-TR')} Okunma · {row.academicTotalViews.toLocaleString('tr-TR')} Gösterim · k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})
                                       </span>
                                       <span className="text-slate-400">
                                         KVKK m.4 &amp; GDPR Recital 26: Sıfır Kişisel Veri / Küçük Hücre Maskelemesi Aktif
@@ -3133,29 +3185,46 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                               %{c.sharePercent}
                                             </span>
                                           </div>
-                                          <div className="flex items-center justify-between text-[10px] tabular-nums">
-                                            <span className="text-amber-300 font-bold">{c.reads.toLocaleString('tr-TR')} Toplam</span>
-                                            <span className="text-emerald-300 font-bold">{c.academicReads.toLocaleString('tr-TR')} Akademik</span>
+                                          <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] tabular-nums">
+                                            <span className="text-amber-300 font-bold">
+                                              {c.reads.toLocaleString('tr-TR')} Ok. · {c.views.toLocaleString('tr-TR')} Göst.
+                                            </span>
+                                            <span className="text-emerald-300 font-bold">
+                                              Akad: {c.academicReads.toLocaleString('tr-TR')} / {c.academicViews.toLocaleString('tr-TR')}
+                                            </span>
                                           </div>
-                                          <div className="space-y-0.5 text-[9px] tabular-nums">
-                                            {c.academicCenters.map((center) => (
+                                          <div className="space-y-1 text-[9px] tabular-nums">
+                                            {(c.academicCenters.some((ct) => ct.reads > 0 || ct.views > 0)
+                                              ? c.academicCenters.filter((ct) => ct.reads > 0 || ct.views > 0)
+                                              : c.academicCenters.slice(0, 2)
+                                            ).map((center) => (
                                               <div
                                                 key={`${row.articleId}-${center.id}`}
-                                                className="flex items-center justify-between gap-1 text-slate-300"
+                                                className="flex items-start justify-between gap-1.5 text-slate-200"
                                                 title={
-                                                  center.isKAnonymityMasked
+                                                  center.isKAnonymityMasked || center.isViewsKAnonymityMasked
                                                     ? `KVKK & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD})`
                                                     : `${center.name} (${center.city})`
                                                 }
                                               >
-                                                <span className="truncate">{center.name}</span>
-                                                <strong
-                                                  className={`shrink-0 ${
-                                                    center.isKAnonymityMasked ? 'text-slate-400' : 'text-emerald-300'
-                                                  }`}
-                                                >
-                                                  {center.privacySafeReadLabel}
-                                                </strong>
+                                                <span className="leading-snug">{center.name}</span>
+                                                <span className="shrink-0 whitespace-nowrap text-right">
+                                                  <strong
+                                                    className={
+                                                      center.isKAnonymityMasked ? 'text-slate-400' : 'text-emerald-300'
+                                                    }
+                                                  >
+                                                    {center.privacySafeReadLabel} ok.
+                                                  </strong>
+                                                  <span className="text-slate-500"> · </span>
+                                                  <strong
+                                                    className={
+                                                      center.isViewsKAnonymityMasked ? 'text-slate-400' : 'text-cyan-300'
+                                                    }
+                                                  >
+                                                    {center.privacySafeViewLabel} göst.
+                                                  </strong>
+                                                </span>
                                               </div>
                                             ))}
                                           </div>
@@ -3167,7 +3236,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                   {/* Silicon Valley & 6 Global Industrial Ecosystems (KVKK / GDPR Recital 26 k >= 5 Anonymity) */}
                                   <div className="space-y-1.5">
                                     <div className="text-[10px] font-bold text-sky-300 uppercase">
-                                      3) Silikon Vadisi &amp; 6 Büyük Sanayi Ekosistemi — Kuruluş Bazlı Okunma Dağılımı (Σ {row.industrialTotalReads.toLocaleString('tr-TR')} Sanayi · Silikon Vadisi: {row.siliconValleyReads.toLocaleString('tr-TR')} · k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})
+                                      3) Silikon Vadisi &amp; 6 Büyük Sanayi Ekosistemi — Kuruluş Bazlı Okunma &amp; Gösterim Dağılımı (Σ {row.industrialTotalReads.toLocaleString('tr-TR')} Ok. · {row.industrialTotalViews.toLocaleString('tr-TR')} Göst. | Silikon Vadisi: {row.siliconValleyReads.toLocaleString('tr-TR')} ok. · {row.siliconValleyViews.toLocaleString('tr-TR')} göst. · k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                       {row.industrialEcosystems.map((eco) => (
@@ -3179,33 +3248,48 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                                               : 'bg-slate-950 border-slate-800'
                                           }`}
                                         >
-                                          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                                          <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-1">
                                             <span className={`font-bold text-[10px] ${eco.id === 'silicon-valley' ? 'text-amber-300' : 'text-sky-200'}`}>
                                               {eco.name}
                                             </span>
-                                            <span className="text-amber-300 font-extrabold text-[10px] tabular-nums shrink-0">
-                                              {eco.reads.toLocaleString('tr-TR')} ok.
+                                            <span className="text-[10px] tabular-nums shrink-0 text-right whitespace-nowrap">
+                                              <strong className="text-amber-300">{eco.reads.toLocaleString('tr-TR')} ok.</strong>
+                                              <span className="text-slate-500"> · </span>
+                                              <strong className="text-cyan-300">{eco.views.toLocaleString('tr-TR')} göst.</strong>
                                             </span>
                                           </div>
-                                          <div className="space-y-0.5 text-[9px] tabular-nums">
-                                            {eco.organizations.map((org) => (
+                                          <div className="space-y-1 text-[9px] tabular-nums">
+                                            {(eco.organizations.some((o) => o.reads > 0 || o.views > 0)
+                                              ? eco.organizations.filter((o) => o.reads > 0 || o.views > 0)
+                                              : eco.organizations.slice(0, 2)
+                                            ).map((org) => (
                                               <div
                                                 key={`${row.articleId}-tbl-org-${org.id}`}
-                                                className="flex items-center justify-between gap-1 text-slate-300"
+                                                className="flex items-start justify-between gap-1.5 text-slate-200"
                                                 title={
-                                                  org.isKAnonymityMasked
+                                                  org.isKAnonymityMasked || org.isViewsKAnonymityMasked
                                                     ? `KVKK & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD})`
                                                     : `${org.name} — ${org.sector} (${org.city})`
                                                 }
                                               >
-                                                <span className="truncate">{org.name}</span>
-                                                <strong
-                                                  className={`shrink-0 ${
-                                                    org.isKAnonymityMasked ? 'text-slate-400' : 'text-sky-300'
-                                                  }`}
-                                                >
-                                                  {org.privacySafeReadLabel}
-                                                </strong>
+                                                <span className="leading-snug">{org.name}</span>
+                                                <span className="shrink-0 whitespace-nowrap text-right">
+                                                  <strong
+                                                    className={
+                                                      org.isKAnonymityMasked ? 'text-slate-400' : 'text-sky-300'
+                                                    }
+                                                  >
+                                                    {org.privacySafeReadLabel} ok.
+                                                  </strong>
+                                                  <span className="text-slate-500"> · </span>
+                                                  <strong
+                                                    className={
+                                                      org.isViewsKAnonymityMasked ? 'text-slate-400' : 'text-cyan-300'
+                                                    }
+                                                  >
+                                                    {org.privacySafeViewLabel} göst.
+                                                  </strong>
+                                                </span>
                                               </div>
                                             ))}
                                           </div>
@@ -3249,10 +3333,16 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                       <td className="py-3 px-2.5 text-right text-amber-300">
                         {articleCumulativeData.totalReads.toLocaleString('tr-TR')}
                       </td>
-                      <td className="py-3 px-2.5 text-right text-[10px]">
-                        <div className="text-emerald-300">Ak: {articleCumulativeData.totalAcademicReads.toLocaleString('tr-TR')}</div>
-                        <div className="text-sky-300">San: {articleCumulativeData.totalIndustrialReads.toLocaleString('tr-TR')}</div>
-                        <div className="text-amber-200">SV: {articleCumulativeData.totalSiliconValleyReads.toLocaleString('tr-TR')}</div>
+                      <td className="py-3 px-2.5 text-left text-[10px]">
+                        <div className="text-emerald-300">
+                          Akademik: {articleCumulativeData.totalAcademicReads.toLocaleString('tr-TR')} ok. · {articleCumulativeData.totalAcademicViews.toLocaleString('tr-TR')} göst.
+                        </div>
+                        <div className="text-amber-200">
+                          Silikon V.: {articleCumulativeData.totalSiliconValleyReads.toLocaleString('tr-TR')} ok. · {articleCumulativeData.totalSiliconValleyViews.toLocaleString('tr-TR')} göst.
+                        </div>
+                        <div className="text-sky-300">
+                          Sanayi: {articleCumulativeData.totalIndustrialReads.toLocaleString('tr-TR')} ok. · {articleCumulativeData.totalIndustrialViews.toLocaleString('tr-TR')} göst.
+                        </div>
                       </td>
                       <td className="py-3 px-2.5 text-right text-cyan-200">
                         Σ {cumulative.readingHours.toLocaleString('tr-TR')}s {cumulative.readingMins}d

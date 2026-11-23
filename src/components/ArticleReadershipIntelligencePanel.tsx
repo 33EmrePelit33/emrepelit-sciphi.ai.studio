@@ -36,7 +36,7 @@ export const ArticleReadershipIntelligencePanel: React.FC<
   onOpenKvkkModal,
   onOpenConsentPrefs,
 }) => {
-  const [activeTab, setActiveTab] = useState<'academic' | 'industrial' | 'nodes'>('academic');
+  const [activeTab, setActiveTab] = useState<'overview' | 'academic' | 'industrial' | 'nodes'>('overview');
   const [showAllCountries, setShowAllCountries] = useState(false);
   const [showAllEcosystems, setShowAllEcosystems] = useState(false);
 
@@ -54,20 +54,21 @@ export const ArticleReadershipIntelligencePanel: React.FC<
   return (
     <section
       id={`article-readership-${stats.articleId}`}
-      aria-label={`Makale #${stats.rank} Global Okunma, Akademik Merkezler ve Sanayi Ekosistemi Dağılımı`}
+      aria-label={`Makale #${stats.rank} Global Okunma, Akademik Merkezler, Silikon Vadisi ve Sanayi Kuruluşları Dağılımı`}
       className="no-print bg-[#0F172A] text-slate-100 border-2 border-amber-400/80 rounded-xs overflow-hidden shadow-xs"
     >
-      {/* Top Global Readership Banner (All 11 301 Nodes Combined) */}
+      {/* Top Global Readership Banner (Strictly Isolated to THIS Article across All 11 Synced 301 Nodes) */}
       <div className="bg-slate-950 border-b border-slate-800 px-3.5 py-3 space-y-2.5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold">
               <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>GLOBAL OKUNMA &amp; ANONİM KURUMSAL DAĞILIM ({totalNodesCount} DÜĞÜM · 301 AĞI)</span>
+              <span>MAKALE BAZLI OKUNMA &amp; KURUMSAL DAĞILIM ({totalNodesCount} SENKRON DÜĞÜM)</span>
             </div>
             <div className="text-[11px] font-mono text-slate-400">
-              Makale #{stats.rank} · 11 düğüm toplamı ({totalNetworkReads.toLocaleString('tr-TR')}) içinde{' '}
-              <strong className="text-emerald-300">%{stats.readSharePercent}</strong> pay
+              Makale #{stats.rank} · Sadece bu makalenin okunma/görüntülenmesine göre izole hesap · Ağ payı:{' '}
+              <strong className="text-emerald-300">%{stats.readSharePercent}</strong>{' '}
+              <span className="text-slate-500">({totalNetworkReads.toLocaleString('tr-TR')} toplam)</span>
             </div>
           </div>
 
@@ -86,15 +87,19 @@ export const ArticleReadershipIntelligencePanel: React.FC<
         {/* 4 Core KPI Cells */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 font-mono tabular-nums">
           <div className="bg-slate-900 border border-amber-400/50 px-2.5 py-2 rounded-xs">
-            <div className="text-[9px] uppercase text-amber-200/90">Global Toplam Okunma</div>
+            <div className="text-[9px] uppercase text-amber-200/90">Bu Makale Okunma</div>
             <div className="text-base font-extrabold text-amber-300 leading-tight mt-0.5">
               {stats.reads.toLocaleString('tr-TR')}
             </div>
-            <div className="text-[9px] text-slate-400">{totalNodesCount} düğüm (1:1)</div>
+            <div className="text-[9px] text-slate-400">
+              {stats.ownLiveBoostReads > 0
+                ? `+${stats.ownLiveBoostReads} canlı · ${totalNodesCount} düğüm`
+                : `${totalNodesCount} düğüm (izole)`}
+            </div>
           </div>
 
           <div className="bg-slate-900 border border-emerald-500/40 px-2.5 py-2 rounded-xs">
-            <div className="text-[9px] uppercase text-emerald-200/90">Akademik Merkezler</div>
+            <div className="text-[9px] uppercase text-emerald-200/90">Akademik Kuruluş</div>
             <div className="text-base font-extrabold text-emerald-300 leading-tight mt-0.5">
               {stats.academicTotalReads.toLocaleString('tr-TR')}
             </div>
@@ -102,7 +107,7 @@ export const ArticleReadershipIntelligencePanel: React.FC<
           </div>
 
           <div className="bg-slate-900 border border-sky-500/40 px-2.5 py-2 rounded-xs">
-            <div className="text-[9px] uppercase text-sky-200/90">Sanayi Ekosistemleri</div>
+            <div className="text-[9px] uppercase text-sky-200/90">Silikon V. &amp; Sanayi</div>
             <div className="text-base font-extrabold text-sky-300 leading-tight mt-0.5">
               {stats.industrialTotalReads.toLocaleString('tr-TR')}
             </div>
@@ -111,50 +116,64 @@ export const ArticleReadershipIntelligencePanel: React.FC<
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-700 px-2.5 py-2 rounded-xs">
-            <div className="text-[9px] uppercase text-slate-300">Bağımsız Küresel</div>
-            <div className="text-base font-extrabold text-slate-100 leading-tight mt-0.5">
-              {stats.independentGlobalReads.toLocaleString('tr-TR')}
+          <div className="bg-slate-900 border border-cyan-500/40 px-2.5 py-2 rounded-xs">
+            <div className="text-[9px] uppercase text-cyan-200/90">Bu Makale Görüntülenme</div>
+            <div className="text-base font-extrabold text-cyan-300 leading-tight mt-0.5">
+              {stats.views.toLocaleString('tr-TR')}
             </div>
-            <div className="text-[9px] text-slate-400">%{independentPct} · Açık web</div>
+            <div className="text-[9px] text-slate-400">
+              Okuma oranı: %{stats.readToViewRatePct}
+            </div>
           </div>
         </div>
 
-        {/* Reconciliation Strip */}
+        {/* Strict Isolation & Reconciliation Strip */}
         <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] font-mono text-slate-300 bg-slate-900/70 border border-slate-800 px-2.5 py-1 rounded-xs tabular-nums">
           <span className="inline-flex items-center gap-1 text-emerald-300">
             <CheckCircle2 className="w-3 h-3 shrink-0" />
             <span>
               {stats.academicTotalReads.toLocaleString('tr-TR')} Akademik +{' '}
               {stats.industrialTotalReads.toLocaleString('tr-TR')} Sanayi +{' '}
-              {stats.independentGlobalReads.toLocaleString('tr-TR')} Bağımsız ={' '}
-              <strong className="text-amber-300">{stats.reads.toLocaleString('tr-TR')} Global Okunma</strong>
+              {stats.independentGlobalReads.toLocaleString('tr-TR')} Bağımsız (%{independentPct}) ={' '}
+              <strong className="text-amber-300">{stats.reads.toLocaleString('tr-TR')}</strong>
             </span>
           </span>
-          <span className="text-cyan-300">
-            Görüntülenme: {stats.views.toLocaleString('tr-TR')}
+          <span className="text-cyan-300 text-[9.5px]">
+            İzole Makale Motoru (Diğer makalelerden etkilenmez)
           </span>
         </div>
       </div>
 
-      {/* 3-Tab Switcher */}
-      <div className="grid grid-cols-3 border-b border-slate-800 bg-slate-900 font-mono text-[10px] font-bold">
+      {/* 4-Tab Switcher */}
+      <div className="grid grid-cols-4 border-b border-slate-800 bg-slate-900 font-mono text-[10px] font-bold">
+        <button
+          type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`flex items-center justify-center gap-1 py-2 px-1 border-r border-slate-800 transition-colors cursor-pointer ${
+            activeTab === 'overview'
+              ? 'bg-[#1E3A8A] text-white'
+              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+          }`}
+        >
+          <Globe className="w-3 h-3 shrink-0 text-amber-300" />
+          <span className="truncate">Özet (3 Kurum)</span>
+        </button>
         <button
           type="button"
           onClick={() => setActiveTab('academic')}
-          className={`flex items-center justify-center gap-1 py-2 px-1.5 border-r border-slate-800 transition-colors cursor-pointer ${
+          className={`flex items-center justify-center gap-1 py-2 px-1 border-r border-slate-800 transition-colors cursor-pointer ${
             activeTab === 'academic'
               ? 'bg-[#1E3A8A] text-white'
               : 'text-slate-300 hover:bg-slate-800 hover:text-white'
           }`}
         >
           <Building2 className="w-3 h-3 shrink-0 text-emerald-300" />
-          <span className="truncate">Akademik (12 Ülke)</span>
+          <span className="truncate">Akademik</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('industrial')}
-          className={`flex items-center justify-center gap-1 py-2 px-1.5 border-r border-slate-800 transition-colors cursor-pointer ${
+          className={`flex items-center justify-center gap-1 py-2 px-1 border-r border-slate-800 transition-colors cursor-pointer ${
             activeTab === 'industrial'
               ? 'bg-[#1E3A8A] text-white'
               : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -166,79 +185,211 @@ export const ArticleReadershipIntelligencePanel: React.FC<
         <button
           type="button"
           onClick={() => setActiveTab('nodes')}
-          className={`flex items-center justify-center gap-1 py-2 px-1.5 transition-colors cursor-pointer ${
+          className={`flex items-center justify-center gap-1 py-2 px-1 transition-colors cursor-pointer ${
             activeTab === 'nodes'
               ? 'bg-[#1E3A8A] text-white'
               : 'text-slate-300 hover:bg-slate-800 hover:text-white'
           }`}
         >
           <Network className="w-3 h-3 shrink-0 text-sky-300" />
-          <span className="truncate">{totalNodesCount} Düğüm (301)</span>
+          <span className="truncate">{totalNodesCount} Düğüm</span>
         </button>
       </div>
 
       {/* Tab Body */}
       <div className="p-3 space-y-2.5 text-[11px]">
+        {activeTab === 'overview' && (
+          <div className="space-y-2.5">
+            {/* 1. Silicon Valley Organizations Reading & Viewing THIS Article */}
+            <div className="bg-slate-950 border border-amber-400/70 p-2.5 rounded-xs space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                <div className="font-mono text-[10px] font-extrabold text-amber-300 uppercase flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Silikon Vadisi Kuruluşları (Kurum Bazlı Okunma &amp; Gösterim)</span>
+                </div>
+                <span className="font-mono text-[10px] font-extrabold tabular-nums">
+                  <span className="text-amber-300">{stats.siliconValleyReads.toLocaleString('tr-TR')} ok.</span>
+                  <span className="text-slate-500"> · </span>
+                  <span className="text-cyan-300">{stats.siliconValleyViews.toLocaleString('tr-TR')} göst.</span>
+                </span>
+              </div>
+              {stats.topSiliconValleyOrgs.length > 0 ? (
+                <div className="grid grid-cols-1 gap-1 font-mono text-[10px] tabular-nums">
+                  {stats.topSiliconValleyOrgs.map((org) => (
+                    <div
+                      key={`${stats.articleId}-ov-sv-${org.id}`}
+                      className="flex items-center justify-between gap-2 bg-slate-900/90 border border-amber-500/30 px-2.5 py-1.5 rounded-xs"
+                      title={`${org.name} — ${org.sector} (${org.city})`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-white font-semibold leading-snug">{org.name}</div>
+                        <div className="text-[9px] text-slate-400">{org.sector} · {org.city}</div>
+                      </div>
+                      <div className="text-right shrink-0 whitespace-nowrap">
+                        <div className="font-extrabold text-amber-300">{org.privacySafeReadLabel} okunma</div>
+                        <div className="text-[9px] font-bold text-cyan-300">{org.privacySafeViewLabel} gösterim</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[10px] font-mono text-slate-400">
+                  Bu makale henüz yeni yayınlandığı için Silikon Vadisi okunma/gösterim kaydı birikmektedir.
+                </div>
+              )}
+            </div>
+
+            {/* 2. Top Academic Institutions Reading & Viewing THIS Article */}
+            <div className="bg-slate-950/95 border border-emerald-500/40 p-2.5 rounded-xs space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                <div className="font-mono text-[10px] font-extrabold text-emerald-300 uppercase flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Akademik Kuruluşlar (Üniversite &amp; Enstitü Bazlı)</span>
+                </div>
+                <span className="font-mono text-[10px] font-extrabold tabular-nums">
+                  <span className="text-emerald-300">{stats.academicTotalReads.toLocaleString('tr-TR')} ok.</span>
+                  <span className="text-slate-500"> · </span>
+                  <span className="text-cyan-300">{stats.academicTotalViews.toLocaleString('tr-TR')} göst.</span>
+                </span>
+              </div>
+              {stats.topAcademicCenters.length > 0 ? (
+                <div className="grid grid-cols-1 gap-1 font-mono text-[10px] tabular-nums">
+                  {stats.topAcademicCenters.slice(0, 6).map((center) => (
+                    <div
+                      key={`${stats.articleId}-ov-acad-${center.id}`}
+                      className="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 rounded-xs"
+                      title={`${center.name} (${center.city}, ${center.countryName})`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-slate-100 font-semibold leading-snug">
+                          <span className="text-amber-300 font-bold mr-1">[{center.countryCode}]</span>
+                          {center.name}
+                        </div>
+                        <div className="text-[9px] text-slate-400">{center.city} · {center.countryName}</div>
+                      </div>
+                      <div className="text-right shrink-0 whitespace-nowrap">
+                        <div className="font-extrabold text-emerald-300">{center.privacySafeReadLabel} okunma</div>
+                        <div className="text-[9px] font-bold text-cyan-300">{center.privacySafeViewLabel} gösterim</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[10px] font-mono text-slate-400">
+                  Bu makale için henüz akademik kuruluş okunma/gösterim kaydı oluşmadı.
+                </div>
+              )}
+            </div>
+
+            {/* 3. Other Global & National Industrial R&D Organizations Reading & Viewing THIS Article */}
+            <div className="bg-slate-950/95 border border-sky-500/40 p-2.5 rounded-xs space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                <div className="font-mono text-[10px] font-extrabold text-sky-300 uppercase flex items-center gap-1.5">
+                  <Network className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Küresel &amp; Ulusal Sanayi Kuruluşları (Kurum Bazlı)</span>
+                </div>
+                <span className="font-mono text-[10px] font-extrabold tabular-nums">
+                  <span className="text-sky-300">{(stats.industrialTotalReads - stats.siliconValleyReads).toLocaleString('tr-TR')} ok.</span>
+                  <span className="text-slate-500"> · </span>
+                  <span className="text-cyan-300">{(stats.industrialTotalViews - stats.siliconValleyViews).toLocaleString('tr-TR')} göst.</span>
+                </span>
+              </div>
+              {stats.topNonSvIndustrialOrgs.length > 0 ? (
+                <div className="grid grid-cols-1 gap-1 font-mono text-[10px] tabular-nums">
+                  {stats.topNonSvIndustrialOrgs.slice(0, 6).map((org) => (
+                    <div
+                      key={`${stats.articleId}-ov-ind-${org.id}`}
+                      className="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 rounded-xs"
+                      title={`${org.name} — ${org.sector} (${org.city})`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-slate-100 font-semibold leading-snug">{org.name}</div>
+                        <div className="text-[9px] text-slate-400">{org.ecosystemShortName} · {org.city}</div>
+                      </div>
+                      <div className="text-right shrink-0 whitespace-nowrap">
+                        <div className="font-extrabold text-sky-300">{org.privacySafeReadLabel} okunma</div>
+                        <div className="text-[9px] font-bold text-cyan-300">{org.privacySafeViewLabel} gösterim</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[10px] font-mono text-slate-400">
+                  Bu makale için sanayi kuruluşu okunma/gösterim kaydı birikmektedir.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'academic' && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span>Ülke Bazlı Akademik Merkez Okunma Sayıları (k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})</span>
-              <span className="text-emerald-300 font-bold tabular-nums">
-                Σ {stats.academicTotalReads.toLocaleString('tr-TR')} Akademik Okunma
+            <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] font-mono text-slate-400">
+              <span>12 Ülke · Akademik Kuruluş Okunma &amp; Gösterim (k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})</span>
+              <span className="font-bold tabular-nums">
+                <span className="text-emerald-300">Σ {stats.academicTotalReads.toLocaleString('tr-TR')} ok.</span>
+                <span className="text-slate-500"> · </span>
+                <span className="text-cyan-300">{stats.academicTotalViews.toLocaleString('tr-TR')} göst.</span>
               </span>
             </div>
 
             <div className="space-y-2 max-h-[370px] overflow-y-auto pr-1">
-              {displayedCountries.map((country) => (
-                <div
-                  key={`${stats.articleId}-acad-${country.code}`}
-                  className="bg-slate-950/90 border border-slate-800 p-2.5 rounded-xs space-y-1.5"
-                >
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1">
-                    <div className="font-bold text-white text-[11px] flex items-center gap-1.5">
-                      <span className="font-mono text-[10px] px-1 py-0.5 bg-slate-800 text-amber-300 rounded-xs">
-                        {country.code}
-                      </span>
-                      <span>{country.countryName}</span>
-                    </div>
-                    <div className="font-mono text-[10px] tabular-nums text-right">
-                      <span className="text-amber-300 font-bold">
-                        {country.reads.toLocaleString('tr-TR')} toplam
-                      </span>
-                      <span className="text-slate-500"> · </span>
-                      <span className="text-emerald-300 font-bold">
-                        {country.academicReads.toLocaleString('tr-TR')} akademik
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 font-mono text-[10px] tabular-nums">
-                    {country.academicCenters.map((center) => (
-                      <div
-                        key={center.id}
-                        className="flex items-center justify-between gap-1.5 bg-slate-900/80 border border-slate-800/80 px-2 py-1 rounded-xs"
-                        title={
-                          center.isKAnonymityMasked
-                            ? `KVKK (6698) & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD}): Tekilleştirme riskini önlemek için küçük hücre maskelendi`
-                            : `${center.name} (${center.city})`
-                        }
-                      >
-                        <div className="truncate text-slate-200">
-                          {center.name}
-                          <span className="text-slate-500"> · {center.city}</span>
-                        </div>
-                        <span
-                          className={`font-extrabold shrink-0 ${
-                            center.isKAnonymityMasked ? 'text-slate-300 text-[9px]' : 'text-emerald-300'
-                          }`}
-                        >
-                          {center.privacySafeReadLabel}
+              {displayedCountries.map((country) => {
+                const activeCenters = country.academicCenters.filter((c) => c.reads > 0 || c.views > 0);
+                const centersToRender = activeCenters.length > 0 ? activeCenters : country.academicCenters.slice(0, 2);
+                return (
+                  <div
+                    key={`${stats.articleId}-acad-${country.code}`}
+                    className="bg-slate-950/90 border border-slate-800 p-2.5 rounded-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1">
+                      <div className="font-bold text-white text-[11px] flex items-center gap-1.5">
+                        <span className="font-mono text-[10px] px-1 py-0.5 bg-slate-800 text-amber-300 rounded-xs">
+                          {country.code}
+                        </span>
+                        <span>{country.countryName}</span>
+                      </div>
+                      <div className="font-mono text-[10px] tabular-nums text-right">
+                        <span className="text-emerald-300 font-bold">
+                          {country.academicReads.toLocaleString('tr-TR')} ok.
+                        </span>
+                        <span className="text-slate-500"> · </span>
+                        <span className="text-cyan-300 font-bold">
+                          {country.academicViews.toLocaleString('tr-TR')} göst.
                         </span>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-1 font-mono text-[10px] tabular-nums">
+                      {centersToRender.map((center) => (
+                        <div
+                          key={center.id}
+                          className="flex items-center justify-between gap-2 bg-slate-900/80 border border-slate-800/80 px-2 py-1 rounded-xs"
+                          title={
+                            center.isKAnonymityMasked
+                              ? `KVKK (6698) & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD}): Küçük hücre maskelendi`
+                              : `${center.name} (${center.city})`
+                          }
+                        >
+                          <div className="min-w-0 text-slate-200">
+                            <span className="font-semibold text-white">{center.name}</span>
+                            <span className="text-slate-400"> · {center.city}</span>
+                          </div>
+                          <div className="shrink-0 whitespace-nowrap text-right">
+                            <span className={`font-extrabold ${center.isKAnonymityMasked ? 'text-slate-300 text-[9px]' : 'text-emerald-300'}`}>
+                              {center.privacySafeReadLabel} ok.
+                            </span>
+                            <span className="text-slate-600 mx-1">/</span>
+                            <span className={`font-bold ${center.isViewsKAnonymityMasked ? 'text-slate-400 text-[9px]' : 'text-cyan-300'}`}>
+                              {center.privacySafeViewLabel} göst.
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <button
@@ -263,16 +414,20 @@ export const ArticleReadershipIntelligencePanel: React.FC<
 
         {activeTab === 'industrial' && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span>Silikon Vadisi &amp; Küresel Sanayi Kuruluşları (k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})</span>
-              <span className="text-sky-300 font-bold tabular-nums">
-                Σ {stats.industrialTotalReads.toLocaleString('tr-TR')} Sanayi (%{industrialPct})
+            <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] font-mono text-slate-400">
+              <span>Silikon Vadisi &amp; Sanayi Kuruluşları — Okunma &amp; Gösterim (k ≥ {PRIVACY_K_ANONYMITY_THRESHOLD})</span>
+              <span className="font-bold tabular-nums">
+                <span className="text-sky-300">Σ {stats.industrialTotalReads.toLocaleString('tr-TR')} ok.</span>
+                <span className="text-slate-500"> · </span>
+                <span className="text-cyan-300">{stats.industrialTotalViews.toLocaleString('tr-TR')} göst. (%{industrialPct})</span>
               </span>
             </div>
 
             <div className="space-y-2 max-h-[370px] overflow-y-auto pr-1">
               {displayedEcosystems.map((eco) => {
                 const isSiliconValley = eco.id === 'silicon-valley';
+                const activeOrgs = eco.organizations.filter((o) => o.reads > 0 || o.views > 0);
+                const orgsToRender = activeOrgs.length > 0 ? activeOrgs : eco.organizations.slice(0, 2);
                 return (
                   <div
                     key={`${stats.articleId}-eco-${eco.id}`}
@@ -297,17 +452,17 @@ export const ArticleReadershipIntelligencePanel: React.FC<
                         <div className="text-amber-300 font-extrabold">
                           {eco.reads.toLocaleString('tr-TR')} okunma
                         </div>
-                        <div className="text-[9px] text-slate-400">
-                          Sanayi %{eco.shareOfIndustrialPct}
+                        <div className="text-[9px] font-bold text-cyan-300">
+                          {eco.views.toLocaleString('tr-TR')} gösterim
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 font-mono text-[10px] tabular-nums">
-                      {eco.organizations.map((org) => (
+                    <div className="grid grid-cols-1 gap-1 font-mono text-[10px] tabular-nums">
+                      {orgsToRender.map((org) => (
                         <div
                           key={org.id}
-                          className="flex items-center justify-between gap-1.5 bg-slate-900/85 border border-slate-800/80 px-2 py-1 rounded-xs"
+                          className="flex items-center justify-between gap-2 bg-slate-900/85 border border-slate-800/80 px-2 py-1 rounded-xs"
                           title={
                             org.isKAnonymityMasked
                               ? `KVKK (6698) & GDPR Recital 26 k-Anonimlik (k ≥ ${PRIVACY_K_ANONYMITY_THRESHOLD}): Küçük hücre maskelendi`
@@ -315,16 +470,17 @@ export const ArticleReadershipIntelligencePanel: React.FC<
                           }
                         >
                           <div className="min-w-0">
-                            <div className="truncate text-slate-100 font-semibold">{org.name}</div>
-                            <div className="truncate text-[9px] text-slate-400">{org.sector}</div>
+                            <div className="text-slate-100 font-semibold leading-snug">{org.name}</div>
+                            <div className="text-[9px] text-slate-400">{org.sector} · {org.city}</div>
                           </div>
-                          <span
-                            className={`font-extrabold shrink-0 ${
-                              org.isKAnonymityMasked ? 'text-slate-300 text-[9px]' : 'text-sky-300'
-                            }`}
-                          >
-                            {org.privacySafeReadLabel}
-                          </span>
+                          <div className="shrink-0 whitespace-nowrap text-right">
+                            <div className={`font-extrabold ${org.isKAnonymityMasked ? 'text-slate-300 text-[9px]' : isSiliconValley ? 'text-amber-300' : 'text-sky-300'}`}>
+                              {org.privacySafeReadLabel} ok.
+                            </div>
+                            <div className={`text-[9px] font-bold ${org.isViewsKAnonymityMasked ? 'text-slate-400' : 'text-cyan-300'}`}>
+                              {org.privacySafeViewLabel} göst.
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -358,7 +514,7 @@ export const ArticleReadershipIntelligencePanel: React.FC<
         {activeTab === 'nodes' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span>Tüm {stats.nodeBreakdown.length} Düğümün (301 Ağı) Bu Makaleye Katkısı</span>
+              <span>Tüm {stats.nodeBreakdown.length} Senkron Düğümün (301 Ağı) Bu Makaleye Katkısı</span>
               <span className="text-amber-300 font-bold tabular-nums">
                 Σ {stats.reads.toLocaleString('tr-TR')} Okunma
               </span>

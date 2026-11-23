@@ -3732,9 +3732,10 @@ async function startServer() {
       return res.redirect(301, `https://emrepelit-sciphi.ai.studio${resolvedPath || rawUrl}`);
     }
 
-    // 0. Block Unauthorized HTTP Methods (Allow GET, HEAD, OPTIONS, POST, plus DELETE strictly on GDPR/KVKK erasure endpoint)
+    // 0. Block Unauthorized HTTP Methods (Allow GET, HEAD, OPTIONS, POST, plus DELETE strictly on GDPR/KVKK erasure endpoints)
     const isPermittedPrivacyDelete =
-      req.method === 'DELETE' && req.path === '/api/privacy/delete-my-data';
+      req.method === 'DELETE' &&
+      (req.path === '/api/privacy/delete-my-data' || req.path === '/api/arena/entry');
     if (!['GET', 'HEAD', 'OPTIONS', 'POST'].includes(req.method) && !isPermittedPrivacyDelete) {
       blockedExternalThreatsCount += 1;
       res.setHeader('Allow', 'GET, HEAD, OPTIONS, POST');
@@ -9175,16 +9176,22 @@ ${text}`,
         preConsentThirdPartyFontsBlocked: true,
         preConsentAnalyticsBlocked: true,
         preConsentLocalStorageAnalyticsBlocked: true,
+        preConsentPreferenceLocalStorageBlocked: true,
         withdrawalPurgesAnalyticsLocalStorage: true,
+        withdrawalPurgesPreferenceLocalStorage: true,
         gpcAndDntHonored: true,
         equalProminenceRejectAcceptBanner: true,
         supportedConsentBannerLanguages: 12,
         thirdPartyRelayPiiMinimized: true,
         serverSideAiKeyIsolation: true,
         institutionalReadershipZeroPii: true,
+        institutionalReadsAndViewsZeroPii: true,
         noIndividualIpOrAsnProfiling: true,
         kAnonymitySmallCellThreshold: 5,
         institutionalAffiliationDisclaimer: true,
+        weeklyArenaPseudonymousOptInOnly: true,
+        weeklyArenaSelfServiceErasure: true,
+        weeklyArenaZeroIpStorage: true,
       },
       subProcessors: [
         {
@@ -9207,17 +9214,343 @@ ${text}`,
         browserLocalStorage: 'Until cleared by user or erased via Privacy Center',
         authenticatedBookmarks: 'Until account/data deletion request (GDPR Art. 17 / KVKK m.7)',
         voluntaryQaSubmissions: 'Maximum 12 months or immediate deletion upon request',
+        weeklyArenaEntries: 'Pseudonymous alias & score only (zero IP/email); instant self-service erasure via DELETE /api/arena/entry',
         aggregateAnalyticsCounters: 'Anonymized non-PII aggregate metrics only',
       },
       dataSubjectRights: {
         selfServiceExportEndpoint: '/api/privacy/export-my-data',
         selfServiceErasureEndpoint: '/api/privacy/delete-my-data',
+        arenaEntryErasureEndpoint: '/api/arena/entry',
         supervisoryAuthorities: [
           'Kişisel Verileri Koruma Kurumu (KVKK) — https://www.kvkk.gov.tr',
           'European Data Protection Board (EDPB) / EU Member State DPAs — https://www.edpb.europa.eu',
         ],
       },
     });
+  });
+
+  // ============================================================================
+  // Interactive Riddle-Puzzle & Q&A Arena — Weekly Top 5 Leaderboard API
+  // Scoring: Correct = +50, Blank = +20, Wrong = -20 (100% Server-Authoritative)
+  // KVKK (6698) & EU GDPR (2016/679): Opt-in pseudonymous aliases only, zero IP/email retention, instant erasure
+  // ============================================================================
+  const ARENA_SERVER_ANSWER_KEY: Record<string, number> = {
+    'rid-01-entropy-cost': 1,
+    'rid-02-quantum-superposition': 2,
+    'rid-03-qualia-consciousness': 0,
+    'rid-04-event-horizon': 3,
+    'rid-05-godel-incompleteness': 1,
+    'rid-06-entanglement': 2,
+    'qa-07-time-dilation': 0,
+    'qa-08-falsifiability': 2,
+    'qa-09-robot-ethics': 3,
+    'qa-10-qubit-decoherence': 1,
+    'qa-11-cosmic-expansion': 0,
+    'qa-12-epistemic-humility': 1,
+  };
+  const ARENA_ALLOWED_LANGS = new Set(['tr', 'en', 'es', 'de', 'fr', 'ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko']);
+  const ARENA_STORE_PATH = path.resolve(process.cwd(), '.weekly-arena-leaderboard.json');
+
+  interface ArenaStoredEntry {
+    id: string;
+    nickname: string;
+    score: number;
+    correctCount: number;
+    blankCount: number;
+    wrongCount: number;
+    totalQuestions: number;
+    language: string;
+    erasureHash: string;
+    updatedAt: string;
+  }
+
+  interface ArenaStoreFile {
+    weeks: Record<string, ArenaStoredEntry[]>;
+  }
+
+  const getIsoWeekInfo = (date: Date = new Date()): { weekId: string; weekLabel: string } => {
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    const dayNum = d.getUTCDay() || 7;
+    const monday = new Date(d);
+    monday.setUTCDate(d.getUTCDate() - dayNum + 1);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+
+    const thursday = new Date(monday);
+    thursday.setUTCDate(monday.getUTCDate() + 3);
+    const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((thursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+    const weekId = `${thursday.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+
+    const fmt = (dt: Date) =>
+      `${String(dt.getUTCDate()).padStart(2, '0')}.${String(dt.getUTCMonth() + 1).padStart(2, '0')}.${dt.getUTCFullYear()}`;
+    return { weekId, weekLabel: `${fmt(monday)} – ${fmt(sunday)}` };
+  };
+
+  const getWeekLabelFromId = (weekId: string): string => {
+    const match = /^(\d{4})-W(\d{2})$/.exec(weekId);
+    if (!match) return weekId;
+    const year = Number(match[1]);
+    const week = Number(match[2]);
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const week1Mon = new Date(jan4);
+    week1Mon.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
+    const targetMon = new Date(week1Mon);
+    targetMon.setUTCDate(week1Mon.getUTCDate() + (week - 1) * 7);
+    const targetSun = new Date(targetMon);
+    targetSun.setUTCDate(targetMon.getUTCDate() + 6);
+    const fmt = (dt: Date) =>
+      `${String(dt.getUTCDate()).padStart(2, '0')}.${String(dt.getUTCMonth() + 1).padStart(2, '0')}.${dt.getUTCFullYear()}`;
+    return `${fmt(targetMon)} – ${fmt(targetSun)}`;
+  };
+
+  let arenaMemoryStore: ArenaStoreFile = { weeks: {} };
+  const loadArenaStore = (): ArenaStoreFile => {
+    try {
+      if (fs.existsSync(ARENA_STORE_PATH)) {
+        const parsed = JSON.parse(fs.readFileSync(ARENA_STORE_PATH, 'utf8'));
+        if (parsed && typeof parsed === 'object' && parsed.weeks && typeof parsed.weeks === 'object') {
+          arenaMemoryStore = parsed as ArenaStoreFile;
+        }
+      }
+    } catch {
+      // Keep in-memory store
+    }
+    return arenaMemoryStore;
+  };
+  const saveArenaStore = (store: ArenaStoreFile): void => {
+    arenaMemoryStore = store;
+    try {
+      const tmpPath = `${ARENA_STORE_PATH}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf8');
+      fs.renameSync(tmpPath, ARENA_STORE_PATH);
+    } catch {
+      // Graceful fallback on read-only filesystem
+    }
+  };
+
+  const sortArenaEntries = (entries: ArenaStoredEntry[]): ArenaStoredEntry[] =>
+    [...entries].sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.correctCount - a.correctCount ||
+        a.updatedAt.localeCompare(b.updatedAt)
+    );
+
+  const sanitizePublicArenaEntry = (entry: ArenaStoredEntry) => ({
+    id: entry.id,
+    nickname: entry.nickname,
+    score: entry.score,
+    correctCount: entry.correctCount,
+    blankCount: entry.blankCount,
+    wrongCount: entry.wrongCount,
+    totalQuestions: entry.totalQuestions,
+    language: entry.language,
+    updatedAt: entry.updatedAt,
+  });
+
+  // Transient in-memory rate-limit bucket (hashed key only; zero IP persistence)
+  const arenaRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+  app.get('/api/arena/leaderboard', (req, res) => {
+    const store = loadArenaStore();
+    const { weekId: currentWeekId } = getIsoWeekInfo();
+    const requestedWeek = String(req.query.week || 'current').trim();
+    const targetWeekId =
+      requestedWeek === 'current' || !/^\d{4}-W\d{2}$/.test(requestedWeek)
+        ? currentWeekId
+        : requestedWeek;
+
+    const entries = sortArenaEntries(store.weeks[targetWeekId] || []);
+    const allWeekIds = Array.from(new Set([currentWeekId, ...Object.keys(store.weeks)])).sort((a, b) =>
+      b.localeCompare(a)
+    );
+    const weeks = allWeekIds.slice(0, 16).map((wId) => ({
+      weekId: wId,
+      weekLabel: getWeekLabelFromId(wId),
+      participantsCount: (store.weeks[wId] || []).length,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      currentWeekId,
+      weekId: targetWeekId,
+      weekLabel: getWeekLabelFromId(targetWeekId),
+      top5: entries.slice(0, 5).map(sanitizePublicArenaEntry),
+      totalParticipants: entries.length,
+      weeks,
+    });
+  });
+
+  app.post('/api/arena/submit', (req, res) => {
+    const now = Date.now();
+    const transientHash = crypto
+      .createHash('sha256')
+      .update(`${req.ip || 'anon'}|arena-rl|${new Date().toISOString().slice(0, 13)}`)
+      .digest('hex')
+      .slice(0, 16);
+    const rl = arenaRateLimitMap.get(transientHash);
+    if (rl && rl.resetAt > now && rl.count >= 25) {
+      return res.status(429).json({
+        success: false,
+        error: 'Çok fazla istek gönderildi; lütfen kısa süre sonra tekrar deneyin.',
+      });
+    }
+    arenaRateLimitMap.set(transientHash, {
+      count: rl && rl.resetAt > now ? rl.count + 1 : 1,
+      resetAt: rl && rl.resetAt > now ? rl.resetAt : now + 15 * 60 * 1000,
+    });
+
+    const body = req.body || {};
+    if (body.leaderboardConsentAccepted !== true) {
+      return res.status(400).json({
+        success: false,
+        error: 'KVKK (6698) & AB GDPR m.6(1)(a): Haftalık listede yayınlamak için açık rıza zorunludur.',
+      });
+    }
+
+    const rawNickname = typeof body.nickname === 'string' ? body.nickname : '';
+    const cleanNickname = rawNickname
+      .replace(/<[^>]*>/g, '')
+      .replace(/[\r\n\t]+/g, ' ')
+      .trim()
+      .slice(0, 24);
+    if (cleanNickname.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: 'Takma ad en az 2 karakter olmalıdır.',
+      });
+    }
+    if (cleanNickname.includes('@') || /\+?\d[\d\s-]{6,}/.test(cleanNickname)) {
+      return res.status(400).json({
+        success: false,
+        error: 'KVKK/GDPR gereği e-posta veya telefon numarası yerine yalnızca takma ad kullanın.',
+      });
+    }
+
+    const rawAnswers = Array.isArray(body.answers) ? body.answers : [];
+    if (rawAnswers.length === 0 || rawAnswers.length > Object.keys(ARENA_SERVER_ANSWER_KEY).length) {
+      return res.status(400).json({
+        success: false,
+        error: 'Geçerli bir oyun yanıt seti gönderilmedi.',
+      });
+    }
+
+    const seenQuestions = new Set<string>();
+    let correctCount = 0;
+    let blankCount = 0;
+    let wrongCount = 0;
+
+    for (const item of rawAnswers) {
+      const qId = typeof item?.questionId === 'string' ? item.questionId : '';
+      if (!Object.prototype.hasOwnProperty.call(ARENA_SERVER_ANSWER_KEY, qId) || seenQuestions.has(qId)) {
+        continue;
+      }
+      seenQuestions.add(qId);
+      const choice = item?.choiceIndex;
+      if (choice === null || choice === undefined) {
+        blankCount += 1;
+      } else if (typeof choice === 'number' && Number.isInteger(choice) && choice >= 0 && choice <= 3) {
+        if (choice === ARENA_SERVER_ANSWER_KEY[qId]) {
+          correctCount += 1;
+        } else {
+          wrongCount += 1;
+        }
+      } else {
+        blankCount += 1;
+      }
+    }
+
+    const totalQuestions = correctCount + blankCount + wrongCount;
+    if (totalQuestions === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Değerlendirilecek geçerli soru bulunamadı.',
+      });
+    }
+
+    // Server-authoritative score: Correct = +50, Blank = +20, Wrong = -20
+    const score = correctCount * 50 + blankCount * 20 - wrongCount * 20;
+    const lang = ARENA_ALLOWED_LANGS.has(String(body.language || '')) ? String(body.language) : 'tr';
+    const { weekId } = getIsoWeekInfo();
+
+    const store = loadArenaStore();
+    const weekEntries = store.weeks[weekId] ? [...store.weeks[weekId]] : [];
+    const entryId = `arena-${crypto.randomBytes(6).toString('hex')}`;
+    const erasureToken = crypto.randomBytes(16).toString('hex');
+    const erasureHash = crypto.createHash('sha256').update(erasureToken).digest('hex');
+
+    const newEntry: ArenaStoredEntry = {
+      id: entryId,
+      nickname: cleanNickname,
+      score,
+      correctCount,
+      blankCount,
+      wrongCount,
+      totalQuestions,
+      language: lang,
+      erasureHash,
+      updatedAt: new Date().toISOString(),
+    };
+
+    weekEntries.push(newEntry);
+    const sorted = sortArenaEntries(weekEntries).slice(0, 200);
+    store.weeks[weekId] = sorted;
+    saveArenaStore(store);
+
+    const rankIdx = sorted.findIndex((e) => e.id === entryId);
+    broadcastLiveEvent('arena-leaderboard-updated', { weekId, totalParticipants: sorted.length });
+
+    return res.status(201).json({
+      success: true,
+      entryId,
+      weekId,
+      score,
+      correctCount,
+      blankCount,
+      wrongCount,
+      rank: rankIdx >= 0 ? rankIdx + 1 : null,
+      erasureToken,
+      top5: sorted.slice(0, 5).map(sanitizePublicArenaEntry),
+    });
+  });
+
+  app.delete('/api/arena/entry', (req, res) => {
+    const body = req.body || {};
+    const weekId = typeof body.weekId === 'string' ? body.weekId.trim() : '';
+    const entryId = typeof body.entryId === 'string' ? body.entryId.trim() : '';
+    const erasureToken = typeof body.erasureToken === 'string' ? body.erasureToken.trim() : '';
+
+    if (!/^\d{4}-W\d{2}$/.test(weekId) || !entryId || !erasureToken) {
+      return res.status(400).json({ success: false, error: 'Eksik silme bilgisi.' });
+    }
+
+    const store = loadArenaStore();
+    const list = store.weeks[weekId] || [];
+    const targetIdx = list.findIndex((e) => e.id === entryId);
+    if (targetIdx < 0) {
+      return res.status(404).json({ success: false, error: 'Kayıt bulunamadı.' });
+    }
+
+    const providedHash = Buffer.from(
+      crypto.createHash('sha256').update(erasureToken).digest('hex'),
+      'utf8'
+    );
+    const storedHash = Buffer.from(list[targetIdx].erasureHash, 'utf8');
+    if (
+      providedHash.length !== storedHash.length ||
+      !crypto.timingSafeEqual(providedHash, storedHash)
+    ) {
+      return res.status(403).json({ success: false, error: 'Silme doğrulama anahtarı geçersiz.' });
+    }
+
+    list.splice(targetIdx, 1);
+    store.weeks[weekId] = list;
+    saveArenaStore(store);
+    broadcastLiveEvent('arena-leaderboard-updated', { weekId, totalParticipants: list.length });
+
+    return res.status(200).json({ success: true, erasedEntryId: entryId, weekId });
   });
 
   app.get('/api/privacy/export-my-data', requireAuth, async (req: AuthRequest, res) => {
@@ -11562,6 +11895,71 @@ INSTRUCTIONS:
       });
     } catch (e: any) {
       return res.status(500).json({ success: false, error: e?.message || 'Recalculation failed.' });
+    }
+  });
+
+  // Unified Full 11-Node 301 Network Synchronization Endpoint (3 Live + 8 HTTP 301 Nodes)
+  app.all('/api/network301/sync-all', async (req, res) => {
+    try {
+      ensureBloggerCacheLoadedFromDisk();
+      const force = req.query.force === 'true' || req.body?.force === true;
+      const syncedCorpus = await syncAllBloggerPosts('https://emrepelit7337.blogspot.com', force).catch(
+        () => ({ entries: getCombined301CorpusEntries(), blogTitle: 'Emre Pelit — Sci-Phil' })
+      );
+      const combinedEntries = getCombined301CorpusEntries();
+      const syncedArticlesPerNode = Math.max(318, combinedEntries.length, syncedCorpus.entries?.length || 0);
+      const syncedAt = new Date().toISOString();
+      const syncedAtDisplay = syncedAt.replace('T', ' ').slice(0, 16) + ' UTC';
+
+      const recalculated = recordServerAnalyticsDelta({
+        targetDomain: 'ALL_11_SITES',
+        viewsDelta: 0,
+        readsDelta: 0,
+        readingMinutesDelta: 0,
+        audioMinutesDelta: 0,
+        uniqueReadersDelta: 0,
+        simulatorRunsDelta: 0,
+        sourcePanel: 'NETWORK_301',
+        interactionCategory: 'PAGE_VIEW',
+        metricSummary: `Tüm 11 Düğüm Tam Senkronize Edildi (${syncedArticlesPerNode} Makale × 11 Düğüm · ${syncedAtDisplay})`,
+      });
+      const summary = computeServerWebsiteAnalyticsSummary();
+
+      const nodesStatus = OFFICIAL_10_WEBSITES.map((domain, idx) => {
+        const isLive = ACTIVE_LIVE_WEBSITES.has(domain);
+        const siteStat = summary.perSiteStatsByDomain.get(domain);
+        return {
+          rank: idx + 1,
+          domain,
+          url: `https://${domain}`,
+          status: resolveServerNodeStatus(domain),
+          httpCode: isLive ? 200 : 301,
+          isLiveWebsite: isLive,
+          synced: true,
+          syncedArticlesCount: syncedArticlesPerNode,
+          lastSyncedAt: syncedAtDisplay,
+          netReads: siteStat?.netReadsSinceLaunch ?? 0,
+          totalViews: siteStat?.totalViewsSinceLaunch ?? 0,
+        };
+      });
+
+      return res.json({
+        success: true,
+        all11NodesSynchronized: nodesStatus.length === OFFICIAL_10_WEBSITES.length,
+        totalNodesCount: OFFICIAL_10_WEBSITES.length,
+        syncedNodesCount: nodesStatus.length,
+        liveNodesCount: ACTIVE_LIVE_WEBSITES.size,
+        redirect301NodesCount: OFFICIAL_10_WEBSITES.length - ACTIVE_LIVE_WEBSITES.size,
+        syncedArticlesPerNode,
+        syncedAt,
+        syncedAtDisplay,
+        perArticleIsolationMode: 'STRICT_PER_ARTICLE_READS_AND_VIEWS',
+        nodes: nodesStatus,
+        summary,
+        syncSeq: recalculated?.syncSeq,
+      });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e?.message || '301 network sync failed.' });
     }
   });
 

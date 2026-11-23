@@ -1,5 +1,4 @@
-import React, { useMemo, useState } from 'react';
-import katex from 'katex';
+import React, { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
 interface MathFormulaProps {
@@ -10,6 +9,44 @@ interface MathFormulaProps {
   darkSurface?: boolean;
 }
 
+type KatexModule = typeof import('katex');
+
+let cachedKatex: KatexModule | null = null;
+let katexLoaderPromise: Promise<KatexModule | null> | null = null;
+
+function loadKatexLazy(): Promise<KatexModule | null> {
+  if (cachedKatex) return Promise.resolve(cachedKatex);
+  if (!katexLoaderPromise) {
+    katexLoaderPromise = Promise.all([
+      import('katex'),
+      import('katex/dist/katex.min.css'),
+    ])
+      .then(([mod]) => {
+        cachedKatex = mod;
+        return mod;
+      })
+      .catch(() => null);
+  }
+  return katexLoaderPromise;
+}
+
+function renderWithKatex(katexMod: KatexModule, tex: string, displayMode: boolean): string {
+  const cleaned = (tex || '').trim();
+  if (!cleaned) return '';
+  try {
+    const renderer = (katexMod as unknown as { default?: KatexModule }).default || katexMod;
+    return renderer.renderToString(cleaned, {
+      displayMode,
+      throwOnError: false,
+      strict: false,
+      trust: false,
+      output: 'htmlAndMathml',
+    });
+  } catch {
+    return '';
+  }
+}
+
 export const MathFormula: React.FC<MathFormulaProps> = ({
   tex,
   displayMode = false,
@@ -18,21 +55,29 @@ export const MathFormula: React.FC<MathFormulaProps> = ({
   darkSurface = false,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [renderedHtml, setRenderedHtml] = useState<string>(() =>
+    cachedKatex ? renderWithKatex(cachedKatex, tex, displayMode) : ''
+  );
 
-  const renderedHtml = useMemo(() => {
+  useEffect(() => {
     const cleaned = (tex || '').trim();
-    if (!cleaned) return '';
-    try {
-      return katex.renderToString(cleaned, {
-        displayMode,
-        throwOnError: false,
-        strict: false,
-        trust: false,
-        output: 'htmlAndMathml',
-      });
-    } catch {
-      return '';
+    if (!cleaned) {
+      setRenderedHtml('');
+      return;
     }
+    if (cachedKatex) {
+      setRenderedHtml(renderWithKatex(cachedKatex, cleaned, displayMode));
+      return;
+    }
+    let cancelled = false;
+    void loadKatexLazy().then((mod) => {
+      if (!cancelled && mod) {
+        setRenderedHtml(renderWithKatex(mod, cleaned, displayMode));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [tex, displayMode]);
 
   const handleCopyLatex = async () => {

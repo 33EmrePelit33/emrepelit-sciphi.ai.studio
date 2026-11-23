@@ -50,8 +50,7 @@
       "source": "/assets/emre-pelit-cv.pdf",
       "headers": [
         { "key": "Content-Type", "value": "application/pdf" },
-        { "key": "Content-Disposition", "value": "inline; filename=\"Emre_Pelit_Ozgecmis_CV.pdf\"" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        { "key": "Content-Disposition", "value": "inline; filename=\"Emre_Pelit_Ozgecmis_CV.pdf\"" }
       ]
     }
   ]

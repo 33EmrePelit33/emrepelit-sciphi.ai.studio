@@ -517,7 +517,7 @@ function cleanSentence(text: string): string {
 function protectNonSentenceDots(text: string): string {
   const DOT_TOKEN = '\uE000';
   return text
-    // Protect decimal numbers (e.g. 3.14, 10.5281)
+    // Protect decimal numbers (e.g. 3.14, 2.718)
     .replace(/(\d)\.(\d)/g, `$1${DOT_TOKEN}$2`)
     // Protect alphanumeric figure/version/domain dots and Unicode abbreviations (e.g. FIG. BLG.316, ör., doç., v2.1, ai.studio)
     .replace(/(^|[\s([{"'“«])(FIG|BLG|NO|DR|PROF|DOÇ|YRD|VB|VS|ÖR|BKZ|DK|SN|ST|YY|E\.G|I\.E|ETC|MR|MRS|MS|VOL|CH)\./gi, `$1$2${DOT_TOKEN}`)

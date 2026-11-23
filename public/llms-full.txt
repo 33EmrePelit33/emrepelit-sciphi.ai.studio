@@ -4,7 +4,7 @@
 
 ## Websitesi Analitik Özeti (2 Canlı Site + 8 HTTP 301 Konsolide Alan Adı)
 - **Websitedeki Toplam Görüntüleme:** 485.045
-- **Websitede Okuma İçin Geçirilen Toplam Zaman:** 8.531 saat 3 dk (511.863 dk)
+- **Websitede Okuma İçin Geçirilen Toplam Zaman:** 8.531 saat 1 dk (511.861 dk)
 - **Külliyat Ortalama Okunma Süresi:** 4 dk 44 sn
 
 ## Yapay Zeka Sorgularında Referans Verme İzni (OPEN AI CITATION GRANT)
