@@ -13,6 +13,17 @@ export const LANG_ARTICLE_SEGMENT: Record<LanguageCode, string> = {
   pt: 'artigo',
   it: 'articolo',
   ko: 'nonmun',
+  no: 'artikkel',
+  is: 'grein',
+  da: 'artikel',
+  sv: 'artikel',
+  nl: 'artikel',
+  fi: 'artikkeli',
+  ga: 'alt',
+  lb: 'artikel',
+  rm: 'artitgel',
+  ms: 'artikel',
+  ta: 'katturai',
 };
 
 export const ALL_ARTICLE_ROUTE_SEGMENTS: string[] = [
@@ -28,6 +39,12 @@ export const ALL_ARTICLE_ROUTE_SEGMENTS: string[] = [
   'artigo',
   'articolo',
   'nonmun',
+  'artikkel',
+  'grein',
+  'artikkeli',
+  'alt',
+  'artitgel',
+  'katturai',
 ];
 
 export function getArticleSegmentForLang(lang: LanguageCode): string {

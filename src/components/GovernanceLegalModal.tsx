@@ -32,14 +32,13 @@ interface GovernanceLegalModalProps {
   onOpenConsentBanner?: () => void;
 }
 
-const TAB_LABELS: Record<
-  LanguageCode,
-  Record<GovernanceTab, string> & {
-    modalTitle: string;
-    independentBadge: string;
-    close: string;
-  }
-> = {
+type GovernanceTabLabels = Record<GovernanceTab, string> & {
+  modalTitle: string;
+  independentBadge: string;
+  close: string;
+};
+
+const TAB_LABELS: Partial<Record<LanguageCode, GovernanceTabLabels>> & { en: GovernanceTabLabels } = {
   tr: {
     modalTitle: 'Yönetişim, Gizlilik, KVKK (6698) & AB GDPR (2016/679), Künye & Metodoloji',
     independentBadge: 'Bağımsız Yazar Arşivi · KVKK & GDPR Uyumlu',
@@ -295,6 +294,9 @@ export const GovernanceLegalModal: React.FC<GovernanceLegalModalProps> = ({
         });
         if (res.ok) {
           serverErased = true;
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('sciphil:arena-leaderboard-updated'));
+          }
         }
       }
 

@@ -10,10 +10,8 @@ interface ScientificPlateProps {
   language: LanguageCode;
 }
 
-const PLATE_LABELS: Record<
-  LanguageCode,
-  { toggleTitle: string; standardView: string; wideView: string; modelTag: string }
-> = {
+type PlateLabelSet = { toggleTitle: string; standardView: string; wideView: string; modelTag: string };
+const PLATE_LABELS: Partial<Record<LanguageCode, PlateLabelSet>> & { en: PlateLabelSet } = {
   tr: {
     toggleTitle: 'Plaka Ölçeğini Değiştir',
     standardView: 'Standart Görünüm',

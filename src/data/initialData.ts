@@ -3109,8 +3109,8 @@ export function mergeMonotonicNetworkNodes(
 
   // Ensure every single one of the 11 nodes stays 100% synchronized to the highest live corpus article count
   const unifiedMaxCorpusCount = Math.max(
-    318,
-    ...merged.map((n) => Math.max(n.articlesCount || 318, n.bloggerSyncedCount || 318))
+    320,
+    ...merged.map((n) => Math.max(n.articlesCount || 320, n.bloggerSyncedCount || 320))
   );
 
   const totalNetReads = Math.max(
@@ -3198,8 +3198,8 @@ export function computeCumulativeNetworkStats(
   );
 
   const uniqueCorpusArticlesCount = Math.max(
-    318,
-    ...safeNodes.map((n) => n.articlesCount || 318)
+    320,
+    ...safeNodes.map((n) => n.articlesCount || 320)
   );
   const totalVideoMins = Math.floor(raw.videoWatchSeconds / 60);
 

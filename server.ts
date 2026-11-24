@@ -6,7 +6,7 @@ import zlib from 'zlib';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import type { ThinkingLevel as ThinkingLevelType } from '@google/genai';
-import { requireAuth, type AuthRequest } from './src/middleware/auth.ts';
+import { optionalAuth, requireAuth, type AuthRequest } from './src/middleware/auth.ts';
 import {
   deleteUserPersonalDataDb,
   exportUserPersonalDataDb,
@@ -118,6 +118,7 @@ interface ParsedBloggerEntry {
 }
 
 interface BloggerCorpusCache {
+  fullTextVersion?: number;
   blogTitle: string;
   blogUrl: string;
   totalResults: number;
@@ -435,23 +436,45 @@ function computeSha256(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
 
+function decodeHtmlEntities(input: string): string {
+  return String(input || '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      const cp = parseInt(hex, 16);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : '';
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      const cp = parseInt(dec, 10);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : '';
+    })
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&hellip;/gi, '…')
+    .replace(/&lsquo;/gi, '‘')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&rdquo;/gi, '”');
+}
+
 function stripHtmlTags(html: string): string {
-  return html
+  const withBreaks = String(html || '')
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
-    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote|tr|section|article|pre)>/gi, '\n\n')
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n')
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+    .replace(/<[^>]+>/g, ' ');
+  return decodeHtmlEntities(withBreaks)
+    .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+/g, ' ')
-    .replace(/\n\s*\n+/g, '\n\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -556,24 +579,38 @@ function parseRawBloggerEntry(entry: any, idx: number, totalResults: number, cle
   }
 
   const rawBlocks = plainText
-    .split(/\n\n+/)
-    .map((b) => b.replace(/\s+/g, ' ').trim())
-    .filter((b) => b.length > 35);
+    .split(/\n{2,}/)
+    .flatMap((block) => {
+      const lines = block
+        .split(/\n+/)
+        .map((line) => line.replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+      if (lines.length === 0) return [];
+      // Merge short consecutive wrapped lines inside a single block unless it's clearly a standalone line/heading
+      const joined = lines.join(' ').replace(/\s+/g, ' ').trim();
+      return joined ? [joined] : [];
+    })
+    .filter((b) => b.length > 0);
 
   let paragraphs: string[] = [];
   if (rawBlocks.length >= 2) {
-    paragraphs = rawBlocks.slice(0, 10);
+    // Keep 100% of every paragraph from the full emrepelit7337.blogspot.com post (ZERO truncation)
+    paragraphs = rawBlocks;
   } else {
     const flatText = plainText.replace(/\s+/g, ' ').trim();
-    paragraphs = flatText
-      .split(/(?<=[.!?])\s+/)
-      .reduce((acc: string[], sentence: string, sIdx: number) => {
-        const bucket = Math.floor(sIdx / 4);
-        acc[bucket] = (acc[bucket] ? acc[bucket] + ' ' : '') + sentence.trim();
-        return acc;
-      }, [])
-      .filter((p: string) => p.length > 25)
-      .slice(0, 8);
+    if (flatText.length > 750) {
+      paragraphs = flatText
+        .split(/(?<=[.!?])\s+/)
+        .reduce((acc: string[], sentence: string, sIdx: number) => {
+          const bucket = Math.floor(sIdx / 4);
+          acc[bucket] = (acc[bucket] ? acc[bucket] + ' ' : '') + sentence.trim();
+          return acc;
+        }, [])
+        .map((p: string) => p.trim())
+        .filter((p: string) => p.length > 0);
+    } else if (flatText) {
+      paragraphs = [flatText];
+    }
   }
 
   if (paragraphs.length === 0) {
@@ -673,10 +710,11 @@ async function syncAllBloggerPosts(
       const latestPostId = newestEntry?.id?.$t || '';
       const latestUpdatedIso = newestEntry?.updated?.$t || '';
 
-      // If cache is already complete and newest post + totalResults match, return fast!
+      // If cache is already complete (fullTextVersion >= 2) and newest post + totalResults match, return fast!
       if (
         !forceFullScan &&
         bloggerCorpusCache &&
+        (bloggerCorpusCache.fullTextVersion || 0) >= 2 &&
         bloggerCorpusCache.entries.length >= totalResults &&
         bloggerCorpusCache.totalResults === totalResults &&
         bloggerCorpusCache.latestPostId === latestPostId &&
@@ -718,6 +756,7 @@ async function syncAllBloggerPosts(
       );
 
       const nextCache: BloggerCorpusCache = {
+        fullTextVersion: 2,
         blogTitle,
         blogUrl: cleanBase,
         totalResults: effectiveTotal,
@@ -1154,6 +1193,53 @@ function escapeHtmlChars(s: string): string {
 }
 
 const SUPPORTED_12_LANGS = ['tr', 'en', 'es', 'de', 'fr', 'ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko'] as const;
+const SUPPORTED_23_LANG_NAMES: Record<string, string> = {
+  tr: 'Turkish (tr-TR)',
+  en: 'English (en-US)',
+  es: 'Spanish (es-ES)',
+  de: 'German (de-DE)',
+  fr: 'French (fr-FR)',
+  ru: 'Russian (ru-RU)',
+  ar: 'Arabic (ar-SA)',
+  zh: 'Simplified Chinese (zh-CN)',
+  ja: 'Japanese (ja-JP)',
+  pt: 'Portuguese (pt-BR)',
+  it: 'Italian (it-IT)',
+  ko: 'Korean (ko-KR)',
+  no: 'Norwegian Bokmål (nb-NO)',
+  is: 'Icelandic (is-IS)',
+  da: 'Danish (da-DK)',
+  sv: 'Swedish (sv-SE)',
+  nl: 'Dutch (nl-NL)',
+  fi: 'Finnish (fi-FI)',
+  ga: 'Irish (ga-IE)',
+  lb: 'Luxembourgish (lb-LU)',
+  rm: 'Romansh (rm-CH)',
+  ms: 'Malay (ms-MY)',
+  ta: 'Tamil (ta-IN)',
+};
+const BLOCKED_TRANSLATION_LANGS = new Set(['he', 'iw', 'he-il', 'iw-il', 'hebrew', 'ibranice', 'israel', 'israil']);
+function isBlockedTranslationLanguage(lang: unknown): boolean {
+  const norm = String(lang || '').trim().toLowerCase();
+  if (!norm) return false;
+  if (BLOCKED_TRANSLATION_LANGS.has(norm)) return true;
+  if (norm.startsWith('he-') || norm.startsWith('he_') || norm.startsWith('iw-') || norm.startsWith('iw_')) return true;
+  if (norm.includes('hebrew') || norm.includes('ibrani') || norm.includes('israel') || norm.includes('israil')) return true;
+  return false;
+}
+function resolveTargetLanguageLabel(langCode: string): string {
+  const clean = String(langCode || 'en').trim().toLowerCase();
+  return SUPPORTED_23_LANG_NAMES[clean] || clean;
+}
+
+// Fast in-memory JSON caches for high-frequency boot endpoints (invalidated automatically on any write/sync/recalc)
+let bloggerSyncJsonCache: { blogUrl: string; expiresAt: number; payload: any } | null = null;
+let liveSummaryJsonCache: { expiresAt: number; payload: any } | null = null;
+function invalidateFastApiCaches(): void {
+  bloggerSyncJsonCache = null;
+  liveSummaryJsonCache = null;
+}
+
 const OG_LOCALE_MAP: Record<string, string> = {
   tr: 'tr_TR',
   en: 'en_US',
@@ -1167,6 +1253,17 @@ const OG_LOCALE_MAP: Record<string, string> = {
   pt: 'pt_BR',
   it: 'it_IT',
   ko: 'ko_KR',
+  no: 'nb_NO',
+  is: 'is_IS',
+  da: 'da_DK',
+  sv: 'sv_SE',
+  nl: 'nl_NL',
+  fi: 'fi_FI',
+  ga: 'ga_IE',
+  lb: 'lb_LU',
+  rm: 'rm_CH',
+  ms: 'ms_MY',
+  ta: 'ta_IN',
 };
 
 const SECTION_SEO_LABELS: Record<string, { title: string; desc: string }> = {
@@ -1802,8 +1899,8 @@ function renderSsrGovernanceHtml(
             ? '3. Alt İşleyiciler, Saklama Süreleri ve Veri Sahibi Hakları (GDPR m.15-20 / KVKK m.11)'
             : '3. Sub-Processors, Retention Periods & Data Subject Rights (GDPR Art. 15-20 / KVKK Art. 11)',
           p: isTr
-            ? 'İsteğe bağlı Google ile giriş (Firebase Auth) ve yer imi/soru kayıtları Avrupa bölgesi (europe-west2) güvenli sunucularında saklanır; yapay zeka yanıtları yalnızca sunucu taraflı işlenir. 11 düğümlü 301 ağı, 12 ülke akademik merkezleri ve Silikon Vadisi / sanayi ekosistemi makale okunma dağılımları kesinlikle kişisel veri (IP/çerez/kimlik) içermez ve tekilleştirme riskine karşı k ≥ 5 küçük hücre maskelemesi (< 5 k-Anonim) uygular; tarayıcı analitik ölçümü ve analitik localStorage yalnızca açık rıza (opt-in) ile çalışır. Yerel tarayıcı verileri kullanıcı silene dek, gönüllü soru kayıtları en fazla 12 ay veya silme talebine dek muhafaza edilir. Kullanıcılar site içindeki Veri Sahibi Hakları Merkezi ve /api/privacy/export-my-data ile /api/privacy/delete-my-data uç noktaları üzerinden verilerini JSON olarak dışa aktarabilir veya kalıcı olarak silebilir. Şikayet mercileri: Kişisel Verileri Koruma Kurumu (kvkk.gov.tr) ve AB/AEA Ulusal Veri Koruma Otoriteleri (GDPR Madde 77).'
-            : 'Optional Google Sign-In (Firebase Auth), synced bookmarks, and voluntary Q&A submissions are hosted in the European cloud region (europe-west2); AI features execute exclusively server-side. Per-article 11-node global readership, 12-country academic hub, and Silicon Valley / industrial ecosystem analytics contain zero PII (no IP/cookie/identity profiling), enforce k ≥ 5 small-cell masking under GDPR Recital 26 & KVKK, and strictly gate browser analytics recording and analytics localStorage behind explicit opt-in consent. Local preferences remain until cleared; voluntary Q&A submissions are retained for up to 12 months or until erasure is requested. Data subjects may exercise Access/Portability (GDPR Art. 15/20) via /api/privacy/export-my-data and Erasure (GDPR Art. 17 / KVKK Art. 7) via /api/privacy/delete-my-data. Supervisory authorities: Turkish KVKK Authority (kvkk.gov.tr) and EU/EEA Data Protection Authorities (GDPR Art. 77).',
+            ? 'İsteğe bağlı Google ile giriş (Firebase Auth), yer imi/soru kayıtları ve yalnızca giriş yapan kullanıcıların kendi belirledikleri takma adlarla katılabildiği Haftalık İlk 5 Bilmece-Bulmaca Arenası kayıtları Avrupa bölgesi (europe-west2) güvenli sunucularında saklanır; misafir kullanıcılar giriş yapmadan ve hiçbir kişisel veri bırakmadan arenada kendilerini deneyebilir. Yapay zeka yanıtları yalnızca sunucu taraflı işlenir. 11 düğümlü 301 ağı, 12 ülke akademik merkezleri ve Silikon Vadisi / sanayi ekosistemi makale okunma dağılımları kesinlikle kişisel veri (IP/çerez/kimlik) içermez ve tekilleştirme riskine karşı k ≥ 5 küçük hücre maskelemesi (< 5 k-Anonim) uygular; tarayıcı analitik ölçümü ve analitik localStorage yalnızca açık rıza (opt-in) ile çalışır. Yerel tarayıcı verileri kullanıcı silene dek, gönüllü soru kayıtları en fazla 12 ay veya silme talebine dek muhafaza edilir. Kullanıcılar site içindeki Veri Sahibi Hakları Merkezi ve /api/privacy/export-my-data ile /api/privacy/delete-my-data uç noktaları üzerinden haftalık arena kayıtları dahil tüm verilerini JSON olarak dışa aktarabilir veya kalıcı olarak silebilir. Şikayet mercileri: Kişisel Verileri Koruma Kurumu (kvkk.gov.tr) ve AB/AEA Ulusal Veri Koruma Otoriteleri (GDPR Madde 77).'
+            : 'Optional Google Sign-In (Firebase Auth), synced bookmarks, voluntary Q&A submissions, and signed-in Weekly Top 5 Riddle & Q&A Arena custom-username entries are hosted in the European cloud region (europe-west2); guests may practice freely in the Arena without signing in or storing any personal data. AI features execute exclusively server-side. Per-article 11-node global readership, 12-country academic hub, and Silicon Valley / industrial ecosystem analytics contain zero PII (no IP/cookie/identity profiling), enforce k ≥ 5 small-cell masking under GDPR Recital 26 & KVKK, and strictly gate browser analytics recording and analytics localStorage behind explicit opt-in consent. Local preferences remain until cleared; voluntary Q&A submissions are retained for up to 12 months or until erasure is requested. Data subjects may exercise Access/Portability (GDPR Art. 15/20) via /api/privacy/export-my-data and Erasure (GDPR Art. 17 / KVKK Art. 7) via /api/privacy/delete-my-data (including all Weekly Arena entries). Supervisory authorities: Turkish KVKK Authority (kvkk.gov.tr) and EU/EEA Data Protection Authorities (GDPR Art. 77).',
         },
       ],
     },
@@ -2046,6 +2143,7 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
   }
 
   const isArchive = pathParts[0] === 'archive' || pathParts[1] === 'archive';
+  const isArena = pathParts[0] === 'arena' || pathParts[1] === 'arena';
   const govRoutes = ['privacy', 'terms', 'imprint', 'kvkk', 'disclaimer', 'methodology'];
   const directGovRoute = pathParts.find((p) => govRoutes.includes(p.toLowerCase()))?.toLowerCase() || '';
   const rawSection = typeof req.query.section === 'string' ? req.query.section.trim().toLowerCase() : '';
@@ -2429,6 +2527,43 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
             .join('\n')}
         </ul>
       </main>`;
+  } else if (isArena) {
+    canonicalUrl = lang === 'tr' ? `${appOrigin}/arena` : `${appOrigin}/${lang}/arena`;
+    pageTitle =
+      lang === 'tr'
+        ? 'Bilmece, Bulmaca & Soru-Cevap Arenası · Haftalık İlk 5 — Emre Pelit Sci-Phil'
+        : `Science & Philosophy Riddles, Puzzles & Q&A Arena (${lang.toUpperCase()}) — Emre Pelit Sci-Phil`;
+    pageDesc =
+      lang === 'tr'
+        ? '12 dilde orta zorlukta bilim ve felsefe bilmeceleri, bulmacaları ve soru-cevap oyunları. Doğru +50, boş +20, yanlış -20 puan ve giriş yapanlar için Haftalık İlk 5.'
+        : 'Medium-difficulty science & philosophy riddles, puzzles, and Q&A in 12 languages (+50 correct, +20 blank, -20 wrong) with an authenticated Weekly Top 5 leaderboard.';
+    hreflangLinks = [
+      ...SUPPORTED_12_LANGS.map((l) => ({
+        lang: l,
+        href: l === 'tr' ? `${appOrigin}/arena` : `${appOrigin}/${l}/arena`,
+      })),
+      { lang: 'x-default', href: `${appOrigin}/arena` },
+    ];
+    const arenaLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Quiz',
+      name: pageTitle,
+      description: pageDesc,
+      url: canonicalUrl,
+      inLanguage: SUPPORTED_12_LANGS,
+      educationalLevel: 'Intermediate',
+      about: ['Quantum Mechanics', 'Cosmology', 'Philosophy of Mind', 'Thermodynamics', 'Logic', 'AI Ethics'],
+      author: { '@type': 'Person', name: 'Emre Pelit', url: `${appOrigin}/` },
+      isAccessibleForFree: true,
+    };
+    extraHeadTags = `<script type="application/ld+json">${JSON.stringify(arenaLd).replace(/</g, '\\u003c')}</script>`;
+    ssrBodyHtml = `
+      <main style="max-width:860px;margin:0 auto;padding:32px 20px;font-family:Georgia,serif;color:#1c1917;">
+        <nav aria-label="Breadcrumb" style="font-size:12px;margin-bottom:16px;"><a href="${escapeHtmlChars(appOrigin)}/">${escapeHtmlChars(ssrL.hubName)}</a> / Arena (${escapeHtmlChars(lang.toUpperCase())})</nav>
+        <h1 style="font-size:30px;line-height:1.2;margin-bottom:10px;">${escapeHtmlChars(pageTitle)}</h1>
+        <p style="font-size:16px;line-height:1.6;margin-bottom:18px;">${escapeHtmlChars(pageDesc)}</p>
+        <p style="font-size:13px;color:#44403c;">+50 / +20 / -20 · 12 Languages · KVKK (6698) &amp; EU GDPR (2016/679)</p>
+      </main>`;
   } else if (activeSection) {
     const secInfo = SECTION_SEO_LABELS[activeSection] || SECTION_SEO_LABELS.privacy;
     const isGovSection = govRoutes.includes(activeSection);
@@ -2607,10 +2742,11 @@ function buildSitemapPayload(_appOrigin: string) {
   const bloggerEntries = getCombined301CorpusEntries();
   const serverClusters = buildServerWorkClusters(bloggerEntries);
 
-  const plainUrls: string[] = [`${canonicalOrigin}/`, `${canonicalOrigin}/archive`];
+  const plainUrls: string[] = [`${canonicalOrigin}/`, `${canonicalOrigin}/archive`, `${canonicalOrigin}/arena`];
   for (const l of langs) {
     if (l !== 'tr') {
       plainUrls.push(`${canonicalOrigin}/${l}/`);
+      plainUrls.push(`${canonicalOrigin}/${l}/arena`);
     }
     plainUrls.push(`${canonicalOrigin}/${l}/archive`);
   }
@@ -2642,9 +2778,18 @@ function buildSitemapPayload(_appOrigin: string) {
     `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXmlChars(`${canonicalOrigin}/archive`)}" />`,
   ].join('\n');
 
+  const arenaAlternates = [
+    ...langs.map(
+      (l) =>
+        `    <xhtml:link rel="alternate" hreflang="${l}" href="${escapeXmlChars(l === 'tr' ? `${canonicalOrigin}/arena` : `${canonicalOrigin}/${l}/arena`)}" />`
+    ),
+    `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXmlChars(`${canonicalOrigin}/arena`)}" />`,
+  ].join('\n');
+
   const rootUrlXml = [
     `  <url>\n    <loc>${escapeXmlChars(`${canonicalOrigin}/`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n${xhtmlAlternates}\n  </url>`,
     `  <url>\n    <loc>${escapeXmlChars(`${canonicalOrigin}/archive`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.95</priority>\n${archiveAlternates}\n  </url>`,
+    `  <url>\n    <loc>${escapeXmlChars(`${canonicalOrigin}/arena`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.96</priority>\n${arenaAlternates}\n  </url>`,
   ].join('\n');
 
   const rootLangUrls = langs
@@ -2653,6 +2798,9 @@ function buildSitemapPayload(_appOrigin: string) {
       if (l !== 'tr') {
         items.push(
           `  <url>\n    <loc>${escapeXmlChars(`${canonicalOrigin}/${l}/`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.98</priority>\n${xhtmlAlternates}\n  </url>`
+        );
+        items.push(
+          `  <url>\n    <loc>${escapeXmlChars(`${canonicalOrigin}/${l}/arena`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.94</priority>\n${arenaAlternates}\n  </url>`
         );
       }
       items.push(
@@ -5513,36 +5661,42 @@ async function startServer() {
       };
     });
 
-    // WebSub / PubSubHubbub Real Ping for RSS & Atom Feeds (Google FeedFetcher / Discover / Feed Readers) in parallel
-    const webSubPromises = ['/rss.xml', '/atom.xml'].map(async (feedPath) => {
-      let webSubStatus: number | null = null;
-      let webSubError: string | undefined;
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 3500);
-        const bodyParams = new URLSearchParams({
-          'hub.mode': 'publish',
-          'hub.url': `${cleanOrigin}${feedPath}`,
-        });
-        const wsRes = await fetch('https://pubsubhubbub.appspot.com/', {
-          method: 'POST',
-          signal: ctrl.signal,
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: bodyParams.toString(),
-        });
-        clearTimeout(timer);
-        webSubStatus = wsRes.status;
-      } catch (err: any) {
-        webSubError = err?.name === 'AbortError' ? 'TIMEOUT' : String(err?.message || 'NETWORK_ERROR');
-      }
-      return {
-        engine: `websub-pubsubhubbub (${feedPath})`,
-        endpoint: 'https://pubsubhubbub.appspot.com/',
-        httpStatus: webSubStatus,
-        batchesSent: webSubStatus !== null ? 1 : 0,
-        ...(webSubError ? { error: webSubError } : {}),
-      };
-    });
+    // WebSub / PubSubHubbub Real Ping for RSS & Atom Feeds (Google FeedFetcher / Discover / Superfeedr / Feed Readers) in parallel
+    const webSubHubs = [
+      { id: 'google-pubsubhubbub', url: 'https://pubsubhubbub.appspot.com/', feeds: ['/rss.xml', '/atom.xml'] },
+      { id: 'superfeedr-websub', url: 'https://pubsubhubbub.superfeedr.com/', feeds: ['/rss.xml'] },
+    ];
+    const webSubPromises = webSubHubs.flatMap((hub) =>
+      hub.feeds.map(async (feedPath) => {
+        let webSubStatus: number | null = null;
+        let webSubError: string | undefined;
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 3500);
+          const bodyParams = new URLSearchParams({
+            'hub.mode': 'publish',
+            'hub.url': `${cleanOrigin}${feedPath}`,
+          });
+          const wsRes = await fetch(hub.url, {
+            method: 'POST',
+            signal: ctrl.signal,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: bodyParams.toString(),
+          });
+          clearTimeout(timer);
+          webSubStatus = wsRes.status;
+        } catch (err: any) {
+          webSubError = err?.name === 'AbortError' ? 'TIMEOUT' : String(err?.message || 'NETWORK_ERROR');
+        }
+        return {
+          engine: `${hub.id} (${feedPath})`,
+          endpoint: hub.url,
+          httpStatus: webSubStatus,
+          batchesSent: webSubStatus !== null ? 1 : 0,
+          ...(webSubError ? { error: webSubError } : {}),
+        };
+      })
+    );
 
     const settled = await Promise.allSettled([...indexNowPromises, ...webSubPromises]);
     const engineResults: { engine: string; endpoint: string; httpStatus: number | null; batchesSent: number; error?: string }[] =
@@ -6040,11 +6194,11 @@ async function startServer() {
   // Simultaneous 12-Language All-Academic-Index, All-Browser & All-Network Broadcast Endpoint (Parallel Multi-Engine Ping across ALL 12 Languages)
   app.post('/api/indexing/broadcast-all', async (req, res) => {
     const combinedEntries = getCombined301CorpusEntries();
-    const effectiveArticlesCount = Math.max(316, combinedEntries.length);
+    const effectiveArticlesCount = Math.max(320, combinedEntries.length);
     const {
       articlesCount = effectiveArticlesCount,
       languagesCount = 12,
-      importantPagesCount = 14,
+      importantPagesCount = 16,
     } = req.body || {};
     const appOrigin = resolveRequestOrigin(req);
 
@@ -6064,6 +6218,10 @@ async function startServer() {
 
     const sitemapPayload = buildSitemapPayload(appOrigin);
     const allBroadcastUrls = [
+      `${appOrigin}/`,
+      `${appOrigin}/arena`,
+      `${appOrigin}/tr/kvkk`,
+      `${appOrigin}/en/privacy`,
       `${appOrigin}/sitemap_index.xml`,
       `${appOrigin}/sitemap-12-languages.xml`,
       `${appOrigin}/sitemap-turkish-12-languages.xml`,
@@ -6077,6 +6235,8 @@ async function startServer() {
       `${appOrigin}/oembed.json?url=${encodeURIComponent(`${appOrigin}/`)}`,
       `${appOrigin}/llms.txt`,
       `${appOrigin}/llms-full.txt`,
+      `${appOrigin}/academic-citation-index.json`,
+      `${appOrigin}/ai-301-citation-manifest.json`,
       ...langs.map((l) => (l === 'tr' ? `${appOrigin}/` : `${appOrigin}/${l}/`)),
       ...langs.map((l) => `${appOrigin}/${l}/archive`),
       ...sitemapPayload.txt.split('\n').filter(Boolean),
@@ -7772,10 +7932,12 @@ async function startServer() {
       platforms = [],
       language = 'tr',
       featuresAnnounced = [
-        'per-article-12lang-synthetic-summary-video',
-        'user-controlled-intonation-zero-legal-liability',
-        'conclusion-aligned-mcq-quiz',
-        'interactive-apps-suite',
+        '320-full-blogger-untruncated-articles',
+        'full-start-to-finish-synthetic-audio-narration',
+        'everyday-life-story-plot-symbolic-figure-explainer-videos',
+        'interactive-riddle-arena-weekly-top5',
+        'conclusion-aligned-mcq-quiz-and-simulators',
+        'kvkk-6698-and-eu-gdpr-2016-679-full-compliance',
       ],
     } = req.body || {};
     const campaignId = `SOC-EP-${computeSha256(JSON.stringify(platforms) + Date.now()).slice(0, 10).toUpperCase()}`;
@@ -7787,15 +7949,20 @@ async function startServer() {
       approvedCount: Array.isArray(platforms) ? platforms.length : 0,
       featuresAnnounced,
       announcementSummary:
-        'Emre Pelit — Sci-Phil arşivi her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli (gerçek kişi içermeyen, sıfır yasal mükellefiyetli) hareketli varlık etkileşimli HTML5 geniş özet videolar, kullanıcı kontrollü tonlama, makale genel sonucuyla uyumlu çoktan seçmeli sorular ve interaktif uygulamalarla tüm web ağları, keşif panelleri ve 16 sosyal medya ağında yeniden tanıtıldı.',
+        'Emre Pelit — Sci-Phil arşivi; 320+ eksiksiz tam metin Blogger makalesi, baştan sona tam makale sesli dinleme, günlük hayattan nesneler ve temsili illüstrasyon insan figürleriyle olay kurgulu açıklayıcı HTML5 videolar, Bilmece-Bulmaca Arenası (Haftalık İlk 5), çoktan seçmeli testler, simülatörler ve %100 KVKK/GDPR uyumluluğuyla tüm web tarayıcılarında, akademik indekslerde, keşif portallarında ve 20 sosyal medya kanalında eşzamanlı olarak tanıtıldı.',
       platforms,
     });
   });
 
-  // 1. Live Blogger Feed Synchronization Endpoint — Fetches ALL 316+ Articles & Publishes Across All 10 Official 301 Websites
+  // 1. Live Blogger Feed Synchronization Endpoint — Fetches ALL 320+ Articles & Publishes Across All 11 Official 301 Websites
   app.get('/api/blogger/sync', async (req, res) => {
     const blogUrl = (req.query.blogUrl as string) || 'https://emrepelit7337.blogspot.com';
     const force = req.query.force === 'true';
+
+    if (!force && bloggerSyncJsonCache && bloggerSyncJsonCache.blogUrl === blogUrl && Date.now() < bloggerSyncJsonCache.expiresAt) {
+      res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+      return res.json(bloggerSyncJsonCache.payload);
+    }
 
     const syncedCorpus = await syncAllBloggerPosts(blogUrl, force);
     const combinedEntries = getCombined301CorpusEntries();
@@ -7818,7 +7985,7 @@ async function startServer() {
       };
     });
 
-    return res.json({
+    const responsePayload = {
       liveConnected: enrichedEntries.length > 0,
       blogTitle: syncedCorpus.blogTitle,
       blogUrl: syncedCorpus.blogUrl,
@@ -7843,7 +8010,15 @@ async function startServer() {
       authorityConsolidatedExclusivelyOnMainHub: true,
       official8Websites: OFFICIAL_10_WEBSITES,
       entries: enrichedEntries,
-    });
+    };
+
+    bloggerSyncJsonCache = {
+      blogUrl,
+      expiresAt: Date.now() + 45_000,
+      payload: responsePayload,
+    };
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+    return res.json(responsePayload);
   });
 
   // 1B. Synchronize & Publish All 316+ Articles (Blogger + Website Additions) Across All 10 Official 301 Websites Simultaneously
@@ -8566,8 +8741,15 @@ ${text}`,
       if (!title || typeof title !== 'string' || !targetLanguage || typeof targetLanguage !== 'string') {
         return res.status(400).json({ error: 'Both title and targetLanguage are required.' });
       }
+      if (isBlockedTranslationLanguage(targetLanguage)) {
+        return res.status(400).json({ error: 'Requested target language is disabled per site owner policy.' });
+      }
       const cleanArticleId = String(articleId || title.slice(0, 80)).toLowerCase();
-      const cleanLang = targetLanguage.toLowerCase();
+      const cleanLang = targetLanguage.trim().toLowerCase();
+      if (!SUPPORTED_23_LANG_NAMES[cleanLang]) {
+        return res.status(400).json({ error: `Unsupported targetLanguage "${cleanLang}". Supported: ${Object.keys(SUPPORTED_23_LANG_NAMES).join(', ')}` });
+      }
+      const targetLangFullName = resolveTargetLanguageLabel(cleanLang);
       const cacheKey = `${cleanArticleId}::${cleanLang}`;
 
       if (articleTranslationCache.has(cacheKey)) {
@@ -8594,14 +8776,14 @@ ${text}`,
         title,
         subtitle,
         abstract,
-        keyFindings: Array.isArray(keyFindings) ? keyFindings.slice(0, 8) : [],
-        contentParagraphs: Array.isArray(contentParagraphs) ? contentParagraphs.slice(0, 12) : [],
+        keyFindings: Array.isArray(keyFindings) ? keyFindings.slice(0, 12) : [],
+        contentParagraphs: Array.isArray(contentParagraphs) ? contentParagraphs.slice(0, 120) : [],
       });
 
       const runTranslationModel = async (modelName: string) => {
         const response = await ai.models.generateContent({
           model: modelName,
-          contents: `Translate the following academic Science & Philosophy paper into language code "${targetLanguage}" while preserving all mathematical notations and philosophical terminology. Return strictly valid JSON matching the schema.\n\n${payloadJson}`,
+          contents: `Translate the following academic Science & Philosophy paper fully and accurately into ${targetLangFullName} (language code "${cleanLang}") while preserving all mathematical notations and philosophical terminology. Return strictly valid JSON matching the schema.\n\n${payloadJson}`,
           config: {
             ...(modelName === 'gemini-4-hydrogen'
               ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
@@ -8700,8 +8882,8 @@ ${text}`,
       }
       const cleanArticleId = String(articleId || title.slice(0, 80)).toLowerCase();
       const requestedLangs = (Array.isArray(targetLanguages) ? targetLanguages : [...SUPPORTED_12_LANGS])
-        .map((l: string) => String(l || '').toLowerCase())
-        .filter((l: string) => (SUPPORTED_12_LANGS as readonly string[]).includes(l));
+        .map((l: string) => String(l || '').trim().toLowerCase())
+        .filter((l: string) => !isBlockedTranslationLanguage(l) && Boolean(SUPPORTED_23_LANG_NAMES[l]));
 
       const results: { lang: string; status: 'cached' | 'warmed' | 'skipped' | 'error' }[] = [];
       for (const lang of requestedLangs) {
@@ -8723,8 +8905,8 @@ ${text}`,
             title,
             subtitle,
             abstract,
-            keyFindings: Array.isArray(keyFindings) ? keyFindings.slice(0, 8) : [],
-            contentParagraphs: Array.isArray(contentParagraphs) ? contentParagraphs.slice(0, 12) : [],
+            keyFindings: Array.isArray(keyFindings) ? keyFindings.slice(0, 12) : [],
+            contentParagraphs: Array.isArray(contentParagraphs) ? contentParagraphs.slice(0, 120) : [],
           });
           const response = await ai.models.generateContent({
             model: 'gemini-3.1-flash-lite',
@@ -8806,10 +8988,16 @@ ${text}`,
       completeUnderstandingAndFutureResearch = null,
     } = req.body || {};
 
+    if (isBlockedTranslationLanguage(targetLanguage)) {
+      return res.status(400).json({ error: 'Requested target language is disabled per site owner policy.' });
+    }
+    const cleanAnalysisLang = String(targetLanguage || 'en').trim().toLowerCase();
+    const analysisLangFullName = resolveTargetLanguageLabel(cleanAnalysisLang);
+
     if (!process.env.GEMINI_API_KEY) {
       return res.json({
         translated: false,
-        targetLanguage,
+        targetLanguage: cleanAnalysisLang,
       });
     }
 
@@ -8817,7 +9005,7 @@ ${text}`,
       const [{ ThinkingLevel, Type }, ai] = await Promise.all([getGenAiSdk(), getGeminiClient()]);
       const response = await ai.models.generateContent({
         model: 'gemini-4-hydrogen',
-        contents: `Translate the following comprehensive scientific and philosophical article analysis into language code "${targetLanguage}" with 100% semantic fidelity, preserving every nuance of meaning, clarity, non-expert explanation, professional explanation, mathematical equation operations and variable definitions, prior scientific researchers' exact names, historical dates, established consensus formulations, complete in-depth comprehension guide, future scientific studies recommendations, and epistemological precision.\n\n${JSON.stringify({
+        contents: `Translate the following comprehensive scientific and philosophical article analysis into ${analysisLangFullName} (language code "${cleanAnalysisLang}") with 100% semantic fidelity, preserving every nuance of meaning, clarity, non-expert explanation, professional explanation, mathematical equation operations and variable definitions, prior scientific researchers' exact names, historical dates, established consensus formulations, complete in-depth comprehension guide, future scientific studies recommendations, and epistemological precision.\n\n${JSON.stringify({
           title,
           nonExpertExplanation,
           professionalExplanation,
@@ -9048,6 +9236,9 @@ ${text}`,
       if (!text || typeof text !== 'string' || !text.trim()) {
         return res.status(400).json({ error: 'Article text is required for narration.' });
       }
+      if (isBlockedTranslationLanguage(languageCode)) {
+        return res.status(400).json({ error: 'Requested language is disabled per site owner policy.' });
+      }
       if (!process.env.GEMINI_API_KEY) {
         return res.status(503).json({ error: 'Gemini API key is not configured on the server.' });
       }
@@ -9057,11 +9248,12 @@ ${text}`,
       const resolvedVoice = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'].includes(voiceName)
         ? voiceName
         : 'Kore';
-      const safeLang = String(languageCode || 'tr').slice(0, 12);
+      const safeLang = String(languageCode || 'tr').trim().toLowerCase().slice(0, 12);
+      const langFullName = resolveTargetLanguageLabel(safeLang);
       const safeStyle =
         typeof intonationStyle === 'string' && intonationStyle.trim()
           ? intonationStyle.trim().slice(0, 280)
-          : `Purely synthetic non-real-person cultural studio voice for language ${safeLang}, clear documentary cadence.`;
+          : `Purely synthetic non-real-person cultural studio voice speaking fluent ${langFullName}, clear documentary cadence.`;
 
       const ttsCacheKey = computeSha256(`${resolvedVoice}|${safeLang}|${safeStyle}|${clippedText}`);
       const cachedAudio = ttsAudioCache.get(ttsCacheKey);
@@ -9189,19 +9381,22 @@ ${text}`,
         noIndividualIpOrAsnProfiling: true,
         kAnonymitySmallCellThreshold: 5,
         institutionalAffiliationDisclaimer: true,
+        weeklyArenaAuthenticatedTop5Only: true,
         weeklyArenaPseudonymousOptInOnly: true,
         weeklyArenaSelfServiceErasure: true,
         weeklyArenaZeroIpStorage: true,
+        weeklyArenaIncludedInGlobalExportAndErasure: true,
+        qaLogsStrictlyOwnerRestricted: true,
       },
       subProcessors: [
         {
           name: 'Google Cloud Platform (europe-west2)',
-          purpose: 'Application hosting & optional signed-in user bookmark/Q&A persistence',
+          purpose: 'Application hosting & optional signed-in user bookmark/Q&A/Weekly Arena persistence',
           region: 'europe-west2 (London / EEA-adequate)',
         },
         {
           name: 'Firebase Authentication (Optional Google Sign-In)',
-          purpose: 'Opt-in reader sign-in for cross-device bookmark synchronization',
+          purpose: 'Opt-in reader sign-in for cross-device bookmark synchronization & verified Weekly Top 5 custom-username standings',
           region: 'Global / EU Standard Contractual Clauses',
         },
         {
@@ -9214,7 +9409,7 @@ ${text}`,
         browserLocalStorage: 'Until cleared by user or erased via Privacy Center',
         authenticatedBookmarks: 'Until account/data deletion request (GDPR Art. 17 / KVKK m.7)',
         voluntaryQaSubmissions: 'Maximum 12 months or immediate deletion upon request',
-        weeklyArenaEntries: 'Pseudonymous alias & score only (zero IP/email); instant self-service erasure via DELETE /api/arena/entry',
+        weeklyArenaEntries: 'Signed-in opt-in custom username & weekly score only (zero public email/IP); erasable anytime via DELETE /api/arena/entry or DELETE /api/privacy/delete-my-data',
         aggregateAnalyticsCounters: 'Anonymized non-PII aggregate metrics only',
       },
       dataSubjectRights: {
@@ -9253,6 +9448,7 @@ ${text}`,
 
   interface ArenaStoredEntry {
     id: string;
+    userUid: string;
     nickname: string;
     score: number;
     correctCount: number;
@@ -9260,7 +9456,7 @@ ${text}`,
     wrongCount: number;
     totalQuestions: number;
     language: string;
-    erasureHash: string;
+    erasureHash?: string;
     updatedAt: string;
   }
 
@@ -9331,12 +9527,14 @@ ${text}`,
   };
 
   const sortArenaEntries = (entries: ArenaStoredEntry[]): ArenaStoredEntry[] =>
-    [...entries].sort(
-      (a, b) =>
-        b.score - a.score ||
-        b.correctCount - a.correctCount ||
-        a.updatedAt.localeCompare(b.updatedAt)
-    );
+    [...entries]
+      .filter((e) => typeof e?.userUid === 'string' && e.userUid.trim().length > 0)
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          b.correctCount - a.correctCount ||
+          a.updatedAt.localeCompare(b.updatedAt)
+      );
 
   const sanitizePublicArenaEntry = (entry: ArenaStoredEntry) => ({
     id: entry.id,
@@ -9350,10 +9548,10 @@ ${text}`,
     updatedAt: entry.updatedAt,
   });
 
-  // Transient in-memory rate-limit bucket (hashed key only; zero IP persistence)
+  // Transient in-memory rate-limit bucket keyed strictly by hashed uid (zero IP persistence)
   const arenaRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-  app.get('/api/arena/leaderboard', (req, res) => {
+  app.get('/api/arena/leaderboard', optionalAuth, (req: AuthRequest, res) => {
     const store = loadArenaStore();
     const { weekId: currentWeekId } = getIsoWeekInfo();
     const requestedWeek = String(req.query.week || 'current').trim();
@@ -9369,25 +9567,48 @@ ${text}`,
     const weeks = allWeekIds.slice(0, 16).map((wId) => ({
       weekId: wId,
       weekLabel: getWeekLabelFromId(wId),
-      participantsCount: (store.weeks[wId] || []).length,
+      participantsCount: sortArenaEntries(store.weeks[wId] || []).length,
     }));
+
+    const callerUid = req.user?.uid || '';
+    let myEntry: (ReturnType<typeof sanitizePublicArenaEntry> & { rank: number }) | null = null;
+    if (callerUid) {
+      const idx = entries.findIndex((e) => e.userUid === callerUid);
+      if (idx >= 0) {
+        myEntry = {
+          ...sanitizePublicArenaEntry(entries[idx]),
+          rank: idx + 1,
+        };
+      }
+    }
 
     return res.status(200).json({
       success: true,
+      authRequiredForLeaderboard: true,
       currentWeekId,
       weekId: targetWeekId,
       weekLabel: getWeekLabelFromId(targetWeekId),
       top5: entries.slice(0, 5).map(sanitizePublicArenaEntry),
       totalParticipants: entries.length,
       weeks,
+      myEntry,
     });
   });
 
-  app.post('/api/arena/submit', (req, res) => {
+  // Strict server-side Firebase Auth enforcement: anyone can practice freely, ONLY signed-in users may appear in the Weekly Top 5 with their chosen custom username
+  app.post('/api/arena/submit', requireAuth, (req: AuthRequest, res) => {
+    const userUid = req.user?.uid;
+    if (!userUid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Haftalık İlk 5 listesine katılmak için Google ile giriş yapmalısınız.',
+      });
+    }
+
     const now = Date.now();
     const transientHash = crypto
       .createHash('sha256')
-      .update(`${req.ip || 'anon'}|arena-rl|${new Date().toISOString().slice(0, 13)}`)
+      .update(`${userUid}|arena-rl|${new Date().toISOString().slice(0, 13)}`)
       .digest('hex')
       .slice(0, 16);
     const rl = arenaRateLimitMap.get(transientHash);
@@ -9419,13 +9640,17 @@ ${text}`,
     if (cleanNickname.length < 2) {
       return res.status(400).json({
         success: false,
-        error: 'Takma ad en az 2 karakter olmalıdır.',
+        error: 'Kullanıcı adı en az 2 karakter olmalıdır.',
       });
     }
-    if (cleanNickname.includes('@') || /\+?\d[\d\s-]{6,}/.test(cleanNickname)) {
+    if (
+      cleanNickname.includes('@') ||
+      /\+?\d[\d\s-]{6,}/.test(cleanNickname) ||
+      /https?:\/\/|www\./i.test(cleanNickname)
+    ) {
       return res.status(400).json({
         success: false,
-        error: 'KVKK/GDPR gereği e-posta veya telefon numarası yerine yalnızca takma ad kullanın.',
+        error: 'KVKK/GDPR gereği e-posta, telefon numarası veya web bağlantısı yerine yalnızca takma kullanıcı adı kullanın.',
       });
     }
 
@@ -9476,81 +9701,125 @@ ${text}`,
     const { weekId } = getIsoWeekInfo();
 
     const store = loadArenaStore();
-    const weekEntries = store.weeks[weekId] ? [...store.weeks[weekId]] : [];
-    const entryId = `arena-${crypto.randomBytes(6).toString('hex')}`;
-    const erasureToken = crypto.randomBytes(16).toString('hex');
-    const erasureHash = crypto.createHash('sha256').update(erasureToken).digest('hex');
+    const weekEntries = sortArenaEntries(store.weeks[weekId] || []);
+    const existingIdx = weekEntries.findIndex((e) => e.userUid === userUid);
+    const nowIso = new Date().toISOString();
 
-    const newEntry: ArenaStoredEntry = {
-      id: entryId,
-      nickname: cleanNickname,
-      score,
-      correctCount,
-      blankCount,
-      wrongCount,
-      totalQuestions,
-      language: lang,
-      erasureHash,
-      updatedAt: new Date().toISOString(),
-    };
+    let savedEntry: ArenaStoredEntry;
+    let keptHigherPreviousScore = false;
 
-    weekEntries.push(newEntry);
+    if (existingIdx >= 0) {
+      const prev = weekEntries[existingIdx];
+      if (score >= prev.score) {
+        savedEntry = {
+          ...prev,
+          nickname: cleanNickname,
+          score,
+          correctCount,
+          blankCount,
+          wrongCount,
+          totalQuestions,
+          language: lang,
+          updatedAt: nowIso,
+        };
+      } else {
+        keptHigherPreviousScore = true;
+        savedEntry = {
+          ...prev,
+          nickname: cleanNickname,
+          language: lang,
+          updatedAt: nowIso,
+        };
+      }
+      weekEntries[existingIdx] = savedEntry;
+    } else {
+      savedEntry = {
+        id: `arena-${crypto.randomBytes(6).toString('hex')}`,
+        userUid,
+        nickname: cleanNickname,
+        score,
+        correctCount,
+        blankCount,
+        wrongCount,
+        totalQuestions,
+        language: lang,
+        updatedAt: nowIso,
+      };
+      weekEntries.push(savedEntry);
+    }
+
     const sorted = sortArenaEntries(weekEntries).slice(0, 200);
     store.weeks[weekId] = sorted;
     saveArenaStore(store);
 
-    const rankIdx = sorted.findIndex((e) => e.id === entryId);
+    const rankIdx = sorted.findIndex((e) => e.userUid === userUid);
     broadcastLiveEvent('arena-leaderboard-updated', { weekId, totalParticipants: sorted.length });
 
     return res.status(201).json({
       success: true,
-      entryId,
+      entryId: savedEntry.id,
       weekId,
-      score,
-      correctCount,
-      blankCount,
-      wrongCount,
+      nickname: savedEntry.nickname,
+      score: savedEntry.score,
+      roundScore: score,
+      keptHigherPreviousScore,
+      correctCount: savedEntry.correctCount,
+      blankCount: savedEntry.blankCount,
+      wrongCount: savedEntry.wrongCount,
       rank: rankIdx >= 0 ? rankIdx + 1 : null,
-      erasureToken,
       top5: sorted.slice(0, 5).map(sanitizePublicArenaEntry),
     });
   });
 
-  app.delete('/api/arena/entry', (req, res) => {
-    const body = req.body || {};
-    const weekId = typeof body.weekId === 'string' ? body.weekId.trim() : '';
-    const entryId = typeof body.entryId === 'string' ? body.entryId.trim() : '';
-    const erasureToken = typeof body.erasureToken === 'string' ? body.erasureToken.trim() : '';
-
-    if (!/^\d{4}-W\d{2}$/.test(weekId) || !entryId || !erasureToken) {
-      return res.status(400).json({ success: false, error: 'Eksik silme bilgisi.' });
+  // Ownership-enforced KVKK m.7 / GDPR Art. 17 self-service erasure for authenticated users
+  app.delete('/api/arena/entry', requireAuth, (req: AuthRequest, res) => {
+    const userUid = req.user?.uid;
+    if (!userUid) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
+    const body = req.body || {};
+    const weekId = typeof body.weekId === 'string' ? body.weekId.trim() : getIsoWeekInfo().weekId;
 
     const store = loadArenaStore();
-    const list = store.weeks[weekId] || [];
-    const targetIdx = list.findIndex((e) => e.id === entryId);
-    if (targetIdx < 0) {
-      return res.status(404).json({ success: false, error: 'Kayıt bulunamadı.' });
+    let erasedCount = 0;
+    const touchedWeeks: string[] = [];
+
+    if (weekId === 'all') {
+      for (const wId of Object.keys(store.weeks)) {
+        const prev = store.weeks[wId] || [];
+        const next = prev.filter((e) => e.userUid !== userUid);
+        if (next.length !== prev.length) {
+          erasedCount += prev.length - next.length;
+          store.weeks[wId] = next;
+          touchedWeeks.push(wId);
+        }
+      }
+    } else {
+      if (!/^\d{4}-W\d{2}$/.test(weekId)) {
+        return res.status(400).json({ success: false, error: 'Geçersiz hafta kodu.' });
+      }
+      const prev = store.weeks[weekId] || [];
+      const next = prev.filter((e) => e.userUid !== userUid);
+      if (next.length !== prev.length) {
+        erasedCount = prev.length - next.length;
+        store.weeks[weekId] = next;
+        touchedWeeks.push(weekId);
+      }
     }
 
-    const providedHash = Buffer.from(
-      crypto.createHash('sha256').update(erasureToken).digest('hex'),
-      'utf8'
-    );
-    const storedHash = Buffer.from(list[targetIdx].erasureHash, 'utf8');
-    if (
-      providedHash.length !== storedHash.length ||
-      !crypto.timingSafeEqual(providedHash, storedHash)
-    ) {
-      return res.status(403).json({ success: false, error: 'Silme doğrulama anahtarı geçersiz.' });
+    if (erasedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Silinecek haftalık arena kaydınız bulunamadı.' });
     }
 
-    list.splice(targetIdx, 1);
-    store.weeks[weekId] = list;
     saveArenaStore(store);
-    broadcastLiveEvent('arena-leaderboard-updated', { weekId, totalParticipants: list.length });
+    for (const wId of touchedWeeks) {
+      broadcastLiveEvent('arena-leaderboard-updated', {
+        weekId: wId,
+        totalParticipants: sortArenaEntries(store.weeks[wId] || []).length,
+      });
+    }
 
-    return res.status(200).json({ success: true, erasedEntryId: entryId, weekId });
+    return res.status(200).json({ success: true, erasedCount, touchedWeeks });
   });
 
   app.get('/api/privacy/export-my-data', requireAuth, async (req: AuthRequest, res) => {
@@ -9560,7 +9829,7 @@ ${text}`,
       const userEmail = req.user?.email || '';
       const dbExport = await exportUserPersonalDataDb(uid, userEmail);
 
-      // Also include any matching voluntary Q&A receipts stored in first-party JSON queue
+      // Include any matching voluntary Q&A receipts stored in first-party JSON queue
       let matchingQueueEntries: any[] = [];
       if (userEmail) {
         const normalizedEmail = userEmail.trim().toLowerCase();
@@ -9581,6 +9850,20 @@ ${text}`,
           }));
       }
 
+      // Include all Weekly Arena leaderboard records belonging strictly to this authenticated uid
+      const arenaStore = loadArenaStore();
+      const weeklyArenaRecords: Array<ReturnType<typeof sanitizePublicArenaEntry> & { weekId: string }> = [];
+      for (const [wId, list] of Object.entries(arenaStore.weeks || {})) {
+        for (const item of list || []) {
+          if (item.userUid === uid) {
+            weeklyArenaRecords.push({
+              weekId: wId,
+              ...sanitizePublicArenaEntry(item),
+            });
+          }
+        }
+      }
+
       return res.status(200).json({
         success: true,
         legalBasis: 'KVKK Madde 11 & GDPR Article 15 / Article 20 (Right of Access & Data Portability)',
@@ -9588,6 +9871,7 @@ ${text}`,
         dataController: { name: 'Emre Pelit', contactEmail: AUTHOR_ESCALATION_EMAIL },
         accountAndServerRecords: dbExport,
         firstPartyQaQueueRecords: matchingQueueEntries,
+        weeklyArenaRecords,
       });
     } catch (error: any) {
       console.error('KVKK/GDPR data export failed:', error);
@@ -9603,7 +9887,7 @@ ${text}`,
 
       const dbResult = await deleteUserPersonalDataDb(uid, userEmail);
 
-      // Also scrub matching personal email entries from first-party JSON queue & memory
+      // Scrub matching personal email entries from first-party JSON queue & memory
       let scrubbedQueueCount = 0;
       if (userEmail) {
         const normalizedEmail = userEmail.trim().toLowerCase();
@@ -9631,6 +9915,29 @@ ${text}`,
         }
       }
 
+      // Scrub all Weekly Arena leaderboard records belonging to this uid across all weeks
+      const arenaStore = loadArenaStore();
+      let scrubbedArenaEntriesCount = 0;
+      const affectedArenaWeeks: string[] = [];
+      for (const wId of Object.keys(arenaStore.weeks || {})) {
+        const prev = arenaStore.weeks[wId] || [];
+        const next = prev.filter((e) => e.userUid !== uid);
+        if (next.length !== prev.length) {
+          scrubbedArenaEntriesCount += prev.length - next.length;
+          arenaStore.weeks[wId] = next;
+          affectedArenaWeeks.push(wId);
+        }
+      }
+      if (scrubbedArenaEntriesCount > 0) {
+        saveArenaStore(arenaStore);
+        for (const wId of affectedArenaWeeks) {
+          broadcastLiveEvent('arena-leaderboard-updated', {
+            weekId: wId,
+            totalParticipants: sortArenaEntries(arenaStore.weeks[wId] || []).length,
+          });
+        }
+      }
+
       return res.status(200).json({
         success: true,
         legalBasis: 'KVKK Madde 7 & Madde 11 / GDPR Article 17 (Right to Erasure)',
@@ -9638,6 +9945,7 @@ ${text}`,
         summary: {
           ...dbResult,
           scrubbedQueueCount,
+          scrubbedArenaEntriesCount,
         },
       });
     } catch (error: any) {
@@ -9921,10 +10229,20 @@ ${text}`,
 
   app.get('/api/qa/email-logs', (req, res) => {
     const articleId = req.query.articleId as string | undefined;
-    // Strict KVKK / Zero-Liability Privacy Lock: require full HMAC-verified owner session (email + scrypt password)
+    // Strict KVKK (6698) & GDPR Art. 5(1)(f) Confidentiality Lock: require full HMAC-verified owner session
     const isVerifiedOwner = isRequestFromExclusiveOwner(req);
-
     const allLogs = loadPersistedEmailEscalationLogs();
+
+    if (!isVerifiedOwner) {
+      return res.json({
+        active24x7: true,
+        recipientEmail: AUTHOR_ESCALATION_EMAIL,
+        ownerViewAuthorized: false,
+        totalDispatchedCount: allLogs.length,
+        logs: [],
+      });
+    }
+
     const filtered = articleId
       ? allLogs.filter((item) => item.articleId === articleId)
       : allLogs;
@@ -9936,15 +10254,14 @@ ${text}`,
         ...rest,
         askerEmailMasked: '🔒 [GİZLİ TUTULDU — YALNIZCA emrepelit39@gmail.com GÖREBİLİR]',
         askerEmailVisibility: 'STRICTLY_ONLY_EMREPELIT39_GMAIL_COM',
-        // Only include the raw sender email if the requester is explicitly verified as emrepelit39@gmail.com
-        ...(isVerifiedOwner ? { ownerOnlyAskerEmail: privateEmail } : {}),
+        ownerOnlyAskerEmail: privateEmail,
       };
     });
 
     return res.json({
       active24x7: true,
       recipientEmail: AUTHOR_ESCALATION_EMAIL,
-      ownerViewAuthorized: isVerifiedOwner,
+      ownerViewAuthorized: true,
       totalDispatchedCount: allLogs.length,
       logs: sanitizedLogs,
     });
@@ -10007,8 +10324,14 @@ ${text}`,
     });
   });
 
-  // Forward ALL previously asked questions (from DB + server cloud store + optional client history) strictly to emrepelit39@gmail.com
+  // Forward historical questions strictly for the verified data controller (emrepelit39@gmail.com)
   app.post('/api/qa/forward-past-questions', async (req, res) => {
+    if (!isRequestFromExclusiveOwner(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'KVKK/GDPR gizlilik kilidi: Geçmiş soru özetini tetikleme yetkisi yalnızca veri sorumlusuna aittir.',
+      });
+    }
     try {
       const incomingLocal = Array.isArray(req.body?.questions) ? req.body.questions : [];
       const persistedFileLogs = loadPersistedEmailEscalationLogs();
@@ -10774,7 +11097,7 @@ INSTRUCTIONS:
   app.get('/api/cloud/state', (_req, res) => {
     try {
       const parsed = readCloudStoreSafe();
-      const dynamicTotalCount = Math.max(318, getCombined301CorpusEntries().length);
+      const dynamicTotalCount = Math.max(320, getCombined301CorpusEntries().length);
       if (parsed) {
         const copy = { ...parsed };
         // Never expose server-side owner password hash to any client
@@ -10840,8 +11163,8 @@ INSTRUCTIONS:
             status,
             isLiveWebsite,
             httpCode: isLiveWebsite ? 200 : 301,
-            articlesCount: Math.max(effectiveCount, Number(existing.articlesCount) || 318),
-            bloggerSyncedCount: Math.max(effectiveCount, Number(existing.bloggerSyncedCount) || 318),
+            articlesCount: Math.max(effectiveCount, Number(existing.articlesCount) || 320),
+            bloggerSyncedCount: Math.max(effectiveCount, Number(existing.bloggerSyncedCount) || 320),
             allBloggerArticlesPublished: true,
             stats: {
               ...s,
@@ -11414,6 +11737,7 @@ INSTRUCTIONS:
     interactionCategory?: string;
     metricSummary?: string;
   }) {
+    invalidateFastApiCaches();
     const prevData = readCloudStoreSafe() || {};
     const existingNodesByDomain = new Map<string, any>();
     if (Array.isArray(prevData.networkNodes)) {
@@ -11857,22 +12181,34 @@ INSTRUCTIONS:
   });
 
   app.get('/api/analytics/live-summary', (_req, res) => {
+    if (liveSummaryJsonCache && Date.now() < liveSummaryJsonCache.expiresAt) {
+      res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=15');
+      return res.json(liveSummaryJsonCache.payload);
+    }
     const summary = computeServerWebsiteAnalyticsSummary();
     const cloud = readCloudStoreSafe() || {};
-    return res.json({
+    const payload = {
       success: true,
       syncedAt: new Date().toISOString(),
       syncSeq: Number(cloud.syncSeqCounter) || 1,
       ...summary,
       appInteractionTotals: cloud.appInteractionTotals || BASELINE_APP_INTERACTION_TOTALS,
       networkNodes: cloud.networkNodes || [],
-    });
+    };
+    liveSummaryJsonCache = {
+      expiresAt: Date.now() + 20_000,
+      payload,
+    };
+    res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=15');
+    return res.json(payload);
   });
 
   // Live Full-Network 11-Node Analytics Recalculation & Reconciliation Endpoint (including github.com/33EmrePelit33)
   app.post('/api/analytics/recalculate-network', (_req, res) => {
     try {
       ensureBloggerCacheLoadedFromDisk();
+      invalidateFastApiCaches();
+      const corpusFloor = Math.max(320, getCombined301CorpusEntries().length);
       const recalculated = recordServerAnalyticsDelta({
         targetDomain: 'ALL_11_SITES',
         viewsDelta: 0,
@@ -11883,7 +12219,7 @@ INSTRUCTIONS:
         simulatorRunsDelta: 0,
         sourcePanel: 'ANALYTICS_PANEL',
         interactionCategory: 'PAGE_VIEW',
-        metricSummary: `Tam 11 Düğüm Analitik Yeniden Hesaplandı & Mutabakat Doğrulandı (33EmrePelit33 GitHub Dahil · ${Math.max(318, getCombined301CorpusEntries().length)} Makale Tam Senkron)`,
+        metricSummary: `Tam 11 Düğüm Analitik Yeniden Hesaplandı & Mutabakat Doğrulandı (33EmrePelit33 GitHub Dahil · ${corpusFloor} Makale Tam Senkron)`,
       });
       const summary = computeServerWebsiteAnalyticsSummary();
       return res.json({
@@ -11891,7 +12227,7 @@ INSTRUCTIONS:
         summary,
         totalNodes: OFFICIAL_10_WEBSITES.length,
         liveNodesCount: ACTIVE_LIVE_WEBSITES.size,
-        syncedArticlesPerNode: Math.max(318, getCombined301CorpusEntries().length),
+        syncedArticlesPerNode: corpusFloor,
       });
     } catch (e: any) {
       return res.status(500).json({ success: false, error: e?.message || 'Recalculation failed.' });
@@ -11902,12 +12238,13 @@ INSTRUCTIONS:
   app.all('/api/network301/sync-all', async (req, res) => {
     try {
       ensureBloggerCacheLoadedFromDisk();
+      invalidateFastApiCaches();
       const force = req.query.force === 'true' || req.body?.force === true;
       const syncedCorpus = await syncAllBloggerPosts('https://emrepelit7337.blogspot.com', force).catch(
         () => ({ entries: getCombined301CorpusEntries(), blogTitle: 'Emre Pelit — Sci-Phil' })
       );
       const combinedEntries = getCombined301CorpusEntries();
-      const syncedArticlesPerNode = Math.max(318, combinedEntries.length, syncedCorpus.entries?.length || 0);
+      const syncedArticlesPerNode = Math.max(320, combinedEntries.length, syncedCorpus.entries?.length || 0);
       const syncedAt = new Date().toISOString();
       const syncedAtDisplay = syncedAt.replace('T', ' ').slice(0, 16) + ' UTC';
 

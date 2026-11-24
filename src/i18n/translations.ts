@@ -8,21 +8,36 @@ export interface WorldLanguageMeta {
   bcp47: string;
   speechLang: string;
   dir: 'ltr' | 'rtl';
+  tier?: 'world12' | 'hdi20';
+  countryHint?: string;
 }
 
 export const WORLD_LANGUAGES: WorldLanguageMeta[] = [
-  { code: 'tr', label: 'TR - Türkçe', shortLabel: 'TR', nativeName: 'Türkçe', bcp47: 'tr-TR', speechLang: 'tr-TR', dir: 'ltr' },
-  { code: 'en', label: 'EN - English', shortLabel: 'EN', nativeName: 'English', bcp47: 'en-US', speechLang: 'en-US', dir: 'ltr' },
-  { code: 'es', label: 'ES - Español', shortLabel: 'ES', nativeName: 'Español', bcp47: 'es-ES', speechLang: 'es-ES', dir: 'ltr' },
-  { code: 'de', label: 'DE - Deutsch', shortLabel: 'DE', nativeName: 'Deutsch', bcp47: 'de-DE', speechLang: 'de-DE', dir: 'ltr' },
-  { code: 'fr', label: 'FR - Français', shortLabel: 'FR', nativeName: 'Français', bcp47: 'fr-FR', speechLang: 'fr-FR', dir: 'ltr' },
-  { code: 'ru', label: 'RU - Русский', shortLabel: 'RU', nativeName: 'Русский', bcp47: 'ru-RU', speechLang: 'ru-RU', dir: 'ltr' },
-  { code: 'ar', label: 'AR - العربية', shortLabel: 'AR', nativeName: 'العربية', bcp47: 'ar-SA', speechLang: 'ar-SA', dir: 'rtl' },
-  { code: 'zh', label: 'ZH - 中文 (简体)', shortLabel: 'ZH', nativeName: '中文', bcp47: 'zh-CN', speechLang: 'zh-CN', dir: 'ltr' },
-  { code: 'ja', label: 'JA - 日本語', shortLabel: 'JA', nativeName: '日本語', bcp47: 'ja-JP', speechLang: 'ja-JP', dir: 'ltr' },
-  { code: 'pt', label: 'PT - Português', shortLabel: 'PT', nativeName: 'Português', bcp47: 'pt-BR', speechLang: 'pt-BR', dir: 'ltr' },
-  { code: 'it', label: 'IT - Italiano', shortLabel: 'IT', nativeName: 'Italiano', bcp47: 'it-IT', speechLang: 'it-IT', dir: 'ltr' },
-  { code: 'ko', label: 'KO - 한국어', shortLabel: 'KO', nativeName: '한국어', bcp47: 'ko-KR', speechLang: 'ko-KR', dir: 'ltr' },
+  // 12 World Languages
+  { code: 'tr', label: 'TR - Türkçe', shortLabel: 'TR', nativeName: 'Türkçe', bcp47: 'tr-TR', speechLang: 'tr-TR', dir: 'ltr', tier: 'world12', countryHint: 'Türkiye' },
+  { code: 'en', label: 'EN - English (USA / UK / AU / CA / NZ / SG)', shortLabel: 'EN', nativeName: 'English', bcp47: 'en-US', speechLang: 'en-US', dir: 'ltr', tier: 'world12', countryHint: 'USA · UK · AU · CA · NZ · SG' },
+  { code: 'es', label: 'ES - Español', shortLabel: 'ES', nativeName: 'Español', bcp47: 'es-ES', speechLang: 'es-ES', dir: 'ltr', tier: 'world12', countryHint: 'España · LATAM' },
+  { code: 'de', label: 'DE - Deutsch (DE / CH / AT / LI)', shortLabel: 'DE', nativeName: 'Deutsch', bcp47: 'de-DE', speechLang: 'de-DE', dir: 'ltr', tier: 'world12', countryHint: 'DE · CH · AT · LI' },
+  { code: 'fr', label: 'FR - Français (FR / CH / BE / LU / CA)', shortLabel: 'FR', nativeName: 'Français', bcp47: 'fr-FR', speechLang: 'fr-FR', dir: 'ltr', tier: 'world12', countryHint: 'FR · CH · BE · LU' },
+  { code: 'ru', label: 'RU - Русский', shortLabel: 'RU', nativeName: 'Русский', bcp47: 'ru-RU', speechLang: 'ru-RU', dir: 'ltr', tier: 'world12', countryHint: 'Россия' },
+  { code: 'ar', label: 'AR - العربية (BAE / MENA)', shortLabel: 'AR', nativeName: 'العربية', bcp47: 'ar-SA', speechLang: 'ar-SA', dir: 'rtl', tier: 'world12', countryHint: 'UAE · MENA' },
+  { code: 'zh', label: 'ZH - 中文 (简体 · HK / SG)', shortLabel: 'ZH', nativeName: '中文', bcp47: 'zh-CN', speechLang: 'zh-CN', dir: 'ltr', tier: 'world12', countryHint: 'CN · HK · SG' },
+  { code: 'ja', label: 'JA - 日本語 (Japonya)', shortLabel: 'JA', nativeName: '日本語', bcp47: 'ja-JP', speechLang: 'ja-JP', dir: 'ltr', tier: 'world12', countryHint: 'Japan' },
+  { code: 'pt', label: 'PT - Português', shortLabel: 'PT', nativeName: 'Português', bcp47: 'pt-BR', speechLang: 'pt-BR', dir: 'ltr', tier: 'world12', countryHint: 'PT · BR' },
+  { code: 'it', label: 'IT - Italiano (IT / CH)', shortLabel: 'IT', nativeName: 'Italiano', bcp47: 'it-IT', speechLang: 'it-IT', dir: 'ltr', tier: 'world12', countryHint: 'IT · CH' },
+  { code: 'ko', label: 'KO - 한국어 (Güney Kore)', shortLabel: 'KO', nativeName: '한국어', bcp47: 'ko-KR', speechLang: 'ko-KR', dir: 'ltr', tier: 'world12', countryHint: 'South Korea' },
+  // Additional Languages of the World's Top 20 Most Developed Countries (UN HDI Top 20)
+  { code: 'no', label: 'NO - Norsk (Norveç · HDI #2)', shortLabel: 'NO', nativeName: 'Norsk', bcp47: 'nb-NO', speechLang: 'nb-NO', dir: 'ltr', tier: 'hdi20', countryHint: 'Norway' },
+  { code: 'is', label: 'IS - Íslenska (İzlanda · HDI #3)', shortLabel: 'IS', nativeName: 'Íslenska', bcp47: 'is-IS', speechLang: 'is-IS', dir: 'ltr', tier: 'hdi20', countryHint: 'Iceland' },
+  { code: 'da', label: 'DA - Dansk (Danimarka · HDI #5)', shortLabel: 'DA', nativeName: 'Dansk', bcp47: 'da-DK', speechLang: 'da-DK', dir: 'ltr', tier: 'hdi20', countryHint: 'Denmark' },
+  { code: 'sv', label: 'SV - Svenska (İsveç · HDI #6)', shortLabel: 'SV', nativeName: 'Svenska', bcp47: 'sv-SE', speechLang: 'sv-SE', dir: 'ltr', tier: 'hdi20', countryHint: 'Sweden' },
+  { code: 'nl', label: 'NL - Nederlands (Hollanda & Belçika · HDI #10)', shortLabel: 'NL', nativeName: 'Nederlands', bcp47: 'nl-NL', speechLang: 'nl-NL', dir: 'ltr', tier: 'hdi20', countryHint: 'Netherlands · Belgium' },
+  { code: 'fi', label: 'FI - Suomi (Finlandiya · HDI #12)', shortLabel: 'FI', nativeName: 'Suomi', bcp47: 'fi-FI', speechLang: 'fi-FI', dir: 'ltr', tier: 'hdi20', countryHint: 'Finland' },
+  { code: 'ga', label: 'GA - Gaeilge (İrlanda · HDI #7)', shortLabel: 'GA', nativeName: 'Gaeilge', bcp47: 'ga-IE', speechLang: 'ga-IE', dir: 'ltr', tier: 'hdi20', countryHint: 'Ireland' },
+  { code: 'lb', label: 'LB - Lëtzebuergesch (Lüksemburg · HDI #20)', shortLabel: 'LB', nativeName: 'Lëtzebuergesch', bcp47: 'lb-LU', speechLang: 'lb-LU', dir: 'ltr', tier: 'hdi20', countryHint: 'Luxembourg' },
+  { code: 'rm', label: 'RM - Rumantsch (İsviçre · HDI #1)', shortLabel: 'RM', nativeName: 'Rumantsch', bcp47: 'rm-CH', speechLang: 'rm-CH', dir: 'ltr', tier: 'hdi20', countryHint: 'Switzerland' },
+  { code: 'ms', label: 'MS - Bahasa Melayu (Singapur · HDI #9)', shortLabel: 'MS', nativeName: 'Bahasa Melayu', bcp47: 'ms-MY', speechLang: 'ms-MY', dir: 'ltr', tier: 'hdi20', countryHint: 'Singapore' },
+  { code: 'ta', label: 'TA - தமிழ் (Singapur · HDI #9)', shortLabel: 'TA', nativeName: 'தமிழ்', bcp47: 'ta-IN', speechLang: 'ta-IN', dir: 'ltr', tier: 'hdi20', countryHint: 'Singapore' },
 ];
 
 export function getLanguageMeta(lang: LanguageCode): WorldLanguageMeta {
@@ -1282,5 +1297,82 @@ export const UI_TEXT: Record<LanguageCode, UITranslations> = {
       createSnapshot: '클라우드 스냅샷 생성',
       exportVault: '암호화된 아카이브 다운로드',
     },
+  },
+  no: {
+    ...BASE_EN,
+    nav: { articles: 'Artikler & Simulering', cvMenu: 'Emre Pelit CV & Opphavsrett', network301: 'Trafikk & 301-analyse', aiStudio: 'KI-produksjon & Analyse', controlCloud: 'Kontroll & Sky', primaryCta: 'Synkroniser direkte' },
+    hero: { ...BASE_EN.hero, title: 'Uavhengig flerspråklig arkiv i skjæringspunktet mellom vitenskap og filosofi', exploreBtn: 'Utforsk arkivet', networkBtn: 'Analyse & 301-nettverk' },
+    article: { ...BASE_EN.article, abstractTitle: 'Sammendrag', keyFindingsTitle: 'Sentrale funn', simulationTitle: 'Interaktiv matematisk simulering', listenArticleOnly: 'Lytt til hele artikkelen', stopListening: 'Stopp', pauseListening: 'Pause', resumeListening: 'Fortsett', selectAudioLang: 'Lydspråk:', readFullPaper: 'Åpne fulltekst, video & simulering', collapsePaper: 'Skjul artikkel', translateWithAi: 'Oversett med KI', translating: 'Oversetter...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Kumulativ statistikk siden åpning for alle noder i 301-nettverket', cumulativeRowLabel: 'KUMULATIV TOTALSUM (ALLE NODER SIDEN ÅPNING)' },
+  },
+  is: {
+    ...BASE_EN,
+    nav: { articles: 'Greinar & Hermun', cvMenu: 'Emre Pelit Ferilskrá', network301: 'Umferð & 301 Greining', aiStudio: 'Gervigreind & Greining', controlCloud: 'Stjórn & Ský', primaryCta: 'Samstilla í beinni' },
+    hero: { ...BASE_EN.hero, title: 'Óháð fjöltyngt safn á mótum vísinda og heimspeki', exploreBtn: 'Skoða greinasafn', networkBtn: 'Greining & 301-net' },
+    article: { ...BASE_EN.article, abstractTitle: 'Ágrip greinar', keyFindingsTitle: 'Helstu niðurstöður', simulationTitle: 'Gagnvirk stærðfræðihermun', listenArticleOnly: 'Hlusta á alla greinina', stopListening: 'Stöðva', pauseListening: 'Hlé', resumeListening: 'Halda áfram', selectAudioLang: 'Hljóðtungumál:', readFullPaper: 'Opna fullan texta og myndband', collapsePaper: 'Loka grein', translateWithAi: 'Þýða með gervigreind', translating: 'Þýðir...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Uppsöfnuð tölfræði allra 301-hnúta frá opnun', cumulativeRowLabel: 'UPPSÖFNUÐ HEILDARSAMTALA (ALLIR HNÚTAR FRÁ OPNUN)' },
+  },
+  da: {
+    ...BASE_EN,
+    nav: { articles: 'Artikler & Simulering', cvMenu: 'Emre Pelit CV & Ophavsret', network301: 'Trafik & 301-analyse', aiStudio: 'AI-produktion & Analyse', controlCloud: 'Kontrol & Sky', primaryCta: 'Synkronisér live' },
+    hero: { ...BASE_EN.hero, title: 'Uafhængigt flersproget arkiv i krydsfeltet mellem videnskab og filosofi', exploreBtn: 'Udforsk arkivet', networkBtn: 'Analyse & 301-netværk' },
+    article: { ...BASE_EN.article, abstractTitle: 'Resumé', keyFindingsTitle: 'Centrale konklusioner', simulationTitle: 'Interaktiv matematisk simulering', listenArticleOnly: 'Lyt til hele artiklen', stopListening: 'Stop', pauseListening: 'Pause', resumeListening: 'Fortsæt', selectAudioLang: 'Lydsprog:', readFullPaper: 'Åbn fuld tekst, video & simulering', collapsePaper: 'Skjul artikel', translateWithAi: 'Oversæt med AI', translating: 'Oversætter...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Kumulativ statistik siden åbning for alle noder i 301-netværket', cumulativeRowLabel: 'KUMULATIV SAMLET TOTAL (ALLE NODER SIDEN ÅBNING)' },
+  },
+  sv: {
+    ...BASE_EN,
+    nav: { articles: 'Artiklar & Simulering', cvMenu: 'Emre Pelit CV & Upphovsrätt', network301: 'Trafik & 301-analys', aiStudio: 'AI-studio & Analys', controlCloud: 'Kontroll & Moln', primaryCta: 'Synkronisera live' },
+    hero: { ...BASE_EN.hero, title: 'Oberoende flerspråkigt arkiv i skärningspunkten mellan vetenskap och filosofi', exploreBtn: 'Utforska arkivet', networkBtn: 'Analys & 301-nätverk' },
+    article: { ...BASE_EN.article, abstractTitle: 'Sammanfattning', keyFindingsTitle: 'Huvudsakliga slutsatser', simulationTitle: 'Interaktiv matematisk simulering', listenArticleOnly: 'Lyssna på hela artikeln', stopListening: 'Stoppa', pauseListening: 'Pausa', resumeListening: 'Fortsätt', selectAudioLang: 'Ljudspråk:', readFullPaper: 'Öppna fulltext, video & simulering', collapsePaper: 'Dölj artikel', translateWithAi: 'Översätt med AI', translating: 'Översätter...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Kumulativ statistik sedan start för alla noder i 301-nätverket', cumulativeRowLabel: 'KUMULATIV TOTALSUMMA (ALLA NODER SEDAN START)' },
+  },
+  nl: {
+    ...BASE_EN,
+    nav: { articles: 'Artikelen & Simulatie', cvMenu: 'Emre Pelit CV & Auteursrecht', network301: 'Verkeer & 301-analyse', aiStudio: 'AI-studio & Analyse', controlCloud: 'Beheer & Cloud', primaryCta: 'Live synchroniseren' },
+    hero: { ...BASE_EN.hero, title: 'Onafhankelijk meertalig archief op het snijvlak van wetenschap en filosofie', exploreBtn: 'Verken het archief', networkBtn: 'Analyse & 301-netwerk' },
+    article: { ...BASE_EN.article, abstractTitle: 'Samenvatting', keyFindingsTitle: 'Kernbevindingen', simulationTitle: 'Interactieve wiskundige simulatie', listenArticleOnly: 'Luister naar het volledige artikel', stopListening: 'Stoppen', pauseListening: 'Pauzeren', resumeListening: 'Hervatten', selectAudioLang: 'Audiotaal:', readFullPaper: 'Volledige tekst, video & simulatie openen', collapsePaper: 'Artikel inklappen', translateWithAi: 'Vertalen met AI', translating: 'Vertalen...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Cumulatieve statistieken sinds lancering van alle 301-netwerkknooppunten', cumulativeRowLabel: 'CUMULATIEF TOTAAL (ALLE KNOOPPUNTEN SINDS LANCERING)' },
+  },
+  fi: {
+    ...BASE_EN,
+    nav: { articles: 'Artikkelit & Simulaatio', cvMenu: 'Emre Pelit CV & Tekijänoikeus', network301: 'Liikenne & 301-analytiikka', aiStudio: 'Tekoäly & Analyysi', controlCloud: 'Hallinta & Pilvi', primaryCta: 'Synkronoi nyt' },
+    hero: { ...BASE_EN.hero, title: 'Itsenäinen monikielinen tieteen ja filosofian arkisto', exploreBtn: 'Tutki arkistoa', networkBtn: 'Analytiikka & 301-verkko' },
+    article: { ...BASE_EN.article, abstractTitle: 'Tiivistelmä', keyFindingsTitle: 'Keskeiset havainnot', simulationTitle: 'Interaktiivinen matemaattinen simulaatio', listenArticleOnly: 'Kuuntele koko artikkeli', stopListening: 'Pysäytä', pauseListening: 'Tauko', resumeListening: 'Jatka', selectAudioLang: 'Puhekieli:', readFullPaper: 'Avaa koko teksti, video & simulaatio', collapsePaper: 'Sulje artikkeli', translateWithAi: 'Käännä tekoälyllä', translating: 'Käännetään...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Kumulatiiviset tilastot avaamisesta alkaen kaikille 301-verkon solmuille', cumulativeRowLabel: 'KUMULATIIVINEN YHTEISSUMMA (KAIKKI SOLMUT AVAAMISESTA ALKAEN)' },
+  },
+  ga: {
+    ...BASE_EN,
+    nav: { articles: 'Ailt & Insamhladh', cvMenu: 'Emre Pelit CV & Cóipcheart', network301: 'Trácht & Anailísíocht 301', aiStudio: 'Stiúideo AI & Anailís', controlCloud: 'Rialú & Néal', primaryCta: 'Sioncrónaigh Beo' },
+    hero: { ...BASE_EN.hero, title: 'Cartlann Neamhspleách Ilteangach na hEolaíochta agus na Fealsúnachta', exploreBtn: 'Taiscéal an Chartlann', networkBtn: 'Anailísíocht & Líonra 301' },
+    article: { ...BASE_EN.article, abstractTitle: 'Achoimre', keyFindingsTitle: 'Príomhthorthaí', simulationTitle: 'Saotharlann Insamhalta Matamaitice', listenArticleOnly: 'Éist leis an alt iomlán', stopListening: 'Stad', pauseListening: 'Sos', resumeListening: 'Lean ar aghaidh', selectAudioLang: 'Teanga Fuaime:', readFullPaper: 'Oscail téacs iomlán & físeán', collapsePaper: 'Dún an t-alt', translateWithAi: 'Aistrigh le AI', translating: 'Ag aistriú...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Staitisticí carnacha ó osclaíodh gach nód sa líonra 301', cumulativeRowLabel: 'IOMLÁN CARNACH (GACH NÓD Ó OSCLAÍODH)' },
+  },
+  lb: {
+    ...BASE_EN,
+    nav: { articles: 'Artikelen & Simulatioun', cvMenu: 'Emre Pelit CV', network301: 'Verkéier & 301-Analyse', aiStudio: 'KI-Studio & Analyse', controlCloud: 'Kontroll & Cloud', primaryCta: 'Live synchroniséieren' },
+    hero: { ...BASE_EN.hero, title: 'Onofhängegt méisproochegt Archiv fir Wëssenschaft a Philosophie', exploreBtn: 'Archiv entdecken', networkBtn: 'Analyse & 301-Netz' },
+    article: { ...BASE_EN.article, abstractTitle: 'Zesummefaassung', keyFindingsTitle: 'Haaptresultater', simulationTitle: 'Interaktiv mathematesch Simulatioun', listenArticleOnly: 'De ganzen Artikel lauschteren', stopListening: 'Stopp', pauseListening: 'Paus', resumeListening: 'Weiderfueren', selectAudioLang: 'Sprooch:', readFullPaper: 'Volltext, Video & Simulatioun opmaachen', collapsePaper: 'Zoumaachen', translateWithAi: 'Mat KI iwwersetzen', translating: 'Iwwersetzt...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Kumulativ Statistike vun alle 301-Knuet zënter der Ouverture', cumulativeRowLabel: 'KUMULATIV GESAMTZUEL (ALL KNUET ZËNTER OUVERTURE)' },
+  },
+  rm: {
+    ...BASE_EN,
+    nav: { articles: 'Artitgels & Simulaziun', cvMenu: 'Emre Pelit CV', network301: 'Trafic & Analisa 301', aiStudio: 'Studio IA & Analisa', controlCloud: 'Controlla & Cloud', primaryCta: 'Sincronisar live' },
+    hero: { ...BASE_EN.hero, title: 'Archiv pluriling independent da scienza e filosofia', exploreBtn: 'Explorar l’archiv', networkBtn: 'Analisa & Rait 301' },
+    article: { ...BASE_EN.article, abstractTitle: 'Resumaziun', keyFindingsTitle: 'Resultats centrals', simulationTitle: 'Simulaziun matematica interactiva', listenArticleOnly: 'Tadlar l’entir artitgel', stopListening: 'Stop', pauseListening: 'Pausa', resumeListening: 'Cuntinuar', selectAudioLang: 'Lingua audio:', readFullPaper: 'Avrir text cumplet e video', collapsePaper: 'Serrar artitgel', translateWithAi: 'Translatar cun IA', translating: 'Translatescha...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Statisticas cumulativas da tut ils nufs 301 dapi l’avertura', cumulativeRowLabel: 'TOTAL CUMULATIV (TUT ILS NUFS DAPI L’AVERTURA)' },
+  },
+  ms: {
+    ...BASE_EN,
+    nav: { articles: 'Artikel & Simulasi', cvMenu: 'Emre Pelit CV & Hak Cipta', network301: 'Trafik & Analitik 301', aiStudio: 'Studio AI & Analisis', controlCloud: 'Kawalan & Awan', primaryCta: 'Segerak Langsung' },
+    hero: { ...BASE_EN.hero, title: 'Arkib Penyelidikan Sains dan Falsafah Berbilang Bahasa Bebas', exploreBtn: 'Terokai Arkib', networkBtn: 'Analitik & Rangkaian 301' },
+    article: { ...BASE_EN.article, abstractTitle: 'Abstrak Artikel', keyFindingsTitle: 'Penemuan Utama', simulationTitle: 'Makmal Simulasi Matematik Interaktif', listenArticleOnly: 'Dengar Artikel Penuh', stopListening: 'Henti', pauseListening: 'Jeda', resumeListening: 'Sambung', selectAudioLang: 'Bahasa Audio:', readFullPaper: 'Buka Teks Penuh, Video & Simulasi', collapsePaper: 'Tutup Artikel', translateWithAi: 'Terjemah dengan AI', translating: 'Menterjemah...' },
+    network: { ...BASE_EN.network, sectionTitle: 'Statistik Kumulatif Sejak Pembukaan Semua Nod Rangkaian 301', cumulativeRowLabel: 'JUMLAH KUMULATIF KESELURUHAN (SEMUA NOD SEJAK PEMBUKAAN)' },
+  },
+  ta: {
+    ...BASE_EN,
+    nav: { articles: 'கட்டுரைகள் & உருவகப்படுத்துதல்', cvMenu: 'எம்ரே பெலிட் சுயவிவரம்', network301: '301 பகுப்பாய்வு', aiStudio: 'AI ஆய்வு & உருவாக்கம்', controlCloud: 'கட்டுப்பாடு & மேகம்', primaryCta: 'நேரடி ஒத்திசைவு' },
+    hero: { ...BASE_EN.hero, title: 'அறிவியல் மற்றும் தத்துவத்தின் சந்திப்பில் பன்மொழி ஆய்வுக் காப்பகம்', exploreBtn: 'காப்பகத்தை ஆராய்க', networkBtn: 'பகுப்பாய்வு & 301 வலையமைப்பு' },
+    article: { ...BASE_EN.article, abstractTitle: 'கட்டுரைச் சுருக்கம்', keyFindingsTitle: 'முக்கிய முடிவுகள்', simulationTitle: 'ஊடாடும் கணித உருவகப்படுத்துதல் ஆய்வகம்', listenArticleOnly: 'முழு கட்டுரையையும் கேளுங்கள்', stopListening: 'நிறுத்து', pauseListening: 'இடைநிறுத்து', resumeListening: 'தொடர்க', selectAudioLang: 'ஒலி மொழி:', readFullPaper: 'முழு உரை, காணொளி & உருவகப்படுத்துதல்', collapsePaper: 'சுருக்கு', translateWithAi: 'AI மொழிபெயர்ப்பு', translating: 'மொழிபெயர்க்கிறது...' },
+    network: { ...BASE_EN.network, sectionTitle: '301 வலையமைப்பின் அனைத்து முனைகளின் தொடக்கத்திலிருந்து திரட்டப்பட்ட புள்ளிவிவரங்கள்', cumulativeRowLabel: 'மொத்த திரட்டப்பட்ட கூட்டுத்தொகை (அனைத்து முனைகளும்)' },
   },
 };

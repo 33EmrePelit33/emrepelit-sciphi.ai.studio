@@ -1,9 +1,9 @@
 {
-  "lastFullIndexedAt": "2026-11-22T15:31:39.998Z",
-  "lastBatchId": "AUTO-11N-12L-4B8C52D876",
-  "triggerReason": "AUTO_INDEX_NEW_ARTICLE:emrepelit-sciphi.ai.studio",
+  "lastFullIndexedAt": "2026-11-23T09:57:35.242Z",
+  "lastBatchId": "IDX-11N-12L-512F0EC85B9A",
+  "triggerReason": "MANUAL_FULL_11_NODE_12_LANG_INDEXING",
   "primaryHttpStatus": 200,
-  "totalUrlsSubmittedLastRun": 3496,
+  "totalUrlsSubmittedLastRun": 3522,
   "engineResults": [
     {
       "engine": "indexnow-org",
@@ -49,6 +49,36 @@
     }
   ],
   "autoIndexedNewArticles": [
+    {
+      "articleId": "blogger-8613609838574378326",
+      "postNumber": 320,
+      "title": "The Most Practical Way for a Human to Understand the Creator",
+      "sourceNodeDomain": "emrepelit7337.blogspot.com",
+      "indexedAt": "2026-11-23T08:59:10.829Z",
+      "nodesIndexedCount": 11,
+      "languagesIndexedCount": 12,
+      "urlsSubmittedCount": 20,
+      "primaryHttpStatus": 200,
+      "receiptHash": "AUTO-11N-12L-D580C9F024",
+      "browsersCount": 10,
+      "webProvidersCount": 18,
+      "searchEnginesCount": 12,
+      "academicIndexesCount": 18,
+      "urls12Langs": [
+        "https://emrepelit-sciphi.ai.studio/tr/makale/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/en/article/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/es/articulo/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/de/artikel/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/fr/article/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ru/statya/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ar/maqal/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ja/ronbun/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/pt/artigo/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/it/articolo/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ko/nonmun/the-most-practical-way-for-a-human-to-understand-the-creator-320"
+      ]
+    },
     {
       "articleId": "blogger-3291259342360549163",
       "postNumber": 318,

@@ -50,6 +50,10 @@ Disallow: /*?tab=
 # Canonical XML Sitemaps & Atom/RSS Feed (200 OK Canonical URLs Only)
 Sitemap: https://emrepelit-sciphi.ai.studio/sitemap_index.xml
 Sitemap: https://emrepelit-sciphi.ai.studio/sitemap.xml
+Sitemap: https://emrepelit-sciphi.ai.studio/sitemap-main.xml
 Sitemap: https://emrepelit-sciphi.ai.studio/sitemap-articles.xml
+Sitemap: https://emrepelit-sciphi.ai.studio/sitemap-turkish-12-languages.xml
+Sitemap: https://emrepelit-sciphi.ai.studio/sitemap-12-languages.xml
+Sitemap: https://emrepelit-sciphi.ai.studio/sitemap-scholar.xml
 Sitemap: https://emrepelit-sciphi.ai.studio/rss.xml
 Sitemap: https://emrepelit-sciphi.ai.studio/atom.xml

@@ -28,6 +28,12 @@ import {
   detectEntrySourceLanguage,
   getLocalizedArticlePath,
 } from '../utils/articleLocale';
+import {
+  buildCurrentSocialTemplates,
+  formatAllSocialTemplatesExportText,
+  SocialTemplateItem,
+  SocialTemplateLang,
+} from '../utils/socialTemplatesGenerator';
 
 interface GlobalIndexingAndSocialHubProps {
   articles: Article[];
@@ -90,20 +96,6 @@ const ALL_18_ACADEMIC_INDEXES = [
 ] as const;
 
 const NATIVE_CORPUS_LANG_CODES = new Set<string>(WORLD_LANGUAGES.map((w) => w.code));
-
-interface SocialTemplateItem {
-  id: string;
-  platformName: string;
-  handleOrChannel: string;
-  badge: string;
-  approved: boolean;
-  publishedStatus: 'READY' | 'PUBLISHED';
-  publishedAt?: string;
-  title: string;
-  content: string;
-  hashtags: string;
-  shareUrlBuilder: (text: string, url: string) => string;
-}
 
 export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProps> = ({
   articles,
@@ -297,242 +289,75 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
     browserReceipts: { browser: string; status: string; protocol: string }[];
   } | null>(null);
 
-  const [socialTemplates, setSocialTemplates] = useState<SocialTemplateItem[]>(() => [
-    {
-      id: 'soc-whatsapp',
-      platformName: 'WhatsApp',
-      handleOrChannel: 'WhatsApp Paylaşım Bağlantısı (Gizlilik Korumalı)',
-      badge: 'Web Sitesi Mobil Paylaşımı',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'WhatsApp Sci-Phil Güncellenen Web Sitesi Tanıtım Şablonu',
-      content: `*Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi*\n\n🔬 ${corpusCount} özgün bilim ve felsefe makalesi yenilendi!\n🎬 Her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video\n✅ Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli kavrama soruları\n🧩 4 modüllü interaktif uygulamalar, matematiksel fizik simülasyonları ve 12 dilde sesli anlatım:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub: https://github.com/emrepelit109\n▶️ YouTube: https://www.youtube.com/@science_only`,
-      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #EğitimVideosu #ÇoktanSeçmeliTest',
-      shareUrlBuilder: (text, _url) =>
-        `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-messenger',
-      platformName: 'Facebook Messenger',
-      handleOrChannel: 'Messenger Doğrudan Mesaj',
-      badge: 'Web Sitesi Mesaj Paylaşımı',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Messenger Web Sitesi Yenilenen Video & Test Tanıtım Şablonu',
-      content: `Merhaba! Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini barındıran Sci-Phil arşivine artık her makale için süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale genel sonucuyla uyumlu çoktan seçmeli test soruları ve interaktif uygulamalar eklendi. Buradan inceleyebilirsin:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #SciPhil #BilimSohbeti #VideoVeTest',
-      shareUrlBuilder: (text, url) =>
-        `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=291494419107518&redirect_uri=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-youtube',
-      platformName: 'YouTube (@science_only)',
-      handleOrChannel: '@science_only (youtube.com/@science_only)',
-      badge: 'Resmi İlişkili YouTube Kanalı & 12 Dilli Geniş Özet Videosu',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'YouTube (@science_only) Video & Çoktan Seçmeli Test Duyuru Şablonu',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi & Resmi YouTube Kanalı (@science_only)\n\n🎬 Web sitemizdeki her ${corpusCount} makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video ve makalenin genel sonucuyla bütünleşen çoktan seçmeli test soruları eklendi!\n▶️ Kanal: https://www.youtube.com/@science_only\n🌐 İnteraktif Videolu & Testli Külliyat: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#science_only #EmrePelit #SciPhil #BilimVeFelsefe #AçıklayıcıVideo #ÇoktanSeçmeliSorular',
-      shareUrlBuilder: (_text, _url) => `https://www.youtube.com/@science_only`,
-    },
-    {
-      id: 'soc-instagram',
-      platformName: 'Instagram',
-      handleOrChannel: '@bilimsohbeti (instagram.com/bilimsohbeti)',
-      badge: 'Web Sitesi Görsel Post & Story',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Instagram (@bilimsohbeti) Video + Çoktan Seçmeli Test Lansmanı',
-      content: `Emre Pelit — Sci-Phil Bilim ve Felsefe Arşivi Yenilendi! • @bilimsohbeti\n\n🔬 ${corpusCount} Özgün Bilim ve Felsefe Makalesi\n🎬 Her Makaleye Özel Süre Kısıtsız 12 Dilli Sentetik Kültürel Sesli HTML5 Geniş Özet Video (Sesli WebM indirilebilir)\n✅ Makalenin Genel Sonucuyla Örtüşen Çoktan Seçmeli Kavrama Soruları\n🌌 Kuantum, Higgs, Entropi ve Kozmoloji İnteraktif Uygulama & Simülatörleri\n🗣️ 12 Dünya Dilinde Sesli Okuma & Kullanıcı Kontrollü Tonlama\n🌐 Link: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#BilimSohbeti #science_only #EmrePelit #SciPhil #BilimVideosu #BilimTesti #KuantumFiziği',
-      shareUrlBuilder: (_text, _url) => `https://www.instagram.com/bilimsohbeti/`,
-    },
-    {
-      id: 'soc-threads',
-      platformName: 'Threads',
-      handleOrChannel: '@bilimsohbeti (threads.net/@bilimsohbeti)',
-      badge: 'Web Sitesi Threads Paylaşımı',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Threads (@bilimsohbeti) 12 Dilli Video & Çoktan Seçmeli Test Duyurusu',
-      content: `🔬 Emre Pelit — Sci-Phil arşivi yeni etkileşim katmanlarıyla yayında!\n\n• ${corpusCount} özgün makalenin HER BİRİNE özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video\n• Makale genel sonucuyla örtüşen profesyonel çoktan seçmeli test soruları\n• 4 interaktif bilimsel uygulama, fizik simülasyonları ve kullanıcı kontrollü tonlama\n\n🌐 Keşfedin: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#BilimSohbeti #EmrePelit #SciPhil #SciencePhilosophy #InteractiveLearning',
-      shareUrlBuilder: (text, _url) =>
-        `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-x-twitter',
-      platformName: 'X (Twitter)',
-      handleOrChannel: '@emrepelit109 (x.com/emrepelit109)',
-      badge: 'Küresel Web Sitesi Duyurusu',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'X (@emrepelit109) 12 Dilli Video & Çoktan Seçmeli Soru Güncellemesi',
-      content: `🔬 Emre Pelit (@emrepelit109) — Sci-Phil arşivi büyük güncellemeyle yayında!\n\n• ${corpusCount} özgün makalenin her birine özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video\n• Makalenin genel sonucuyla uyumlu profesyonel çoktan seçmeli kavrama testleri\n• İnteraktif uygulamalar, fizik/bilinç simülasyonları ve kullanıcı kontrollü tonlama\n\n🌐 https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #SciPhil #BilimSohbeti #InteractiveScience #Quiz #HTML5Video',
-      shareUrlBuilder: (text, url) =>
-        `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-    },
-    {
-      id: 'soc-linkedin',
-      platformName: 'LinkedIn',
-      handleOrChannel: 'www.linkedin.com/in/emrepelit109',
-      badge: 'Profesyonel & Araştırmacı Ağı',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'LinkedIn Etkileşimli Video, Çoktan Seçmeli Değerlendirme & Uygulamalar Lansmanı',
-      content: `Bilim ve felsefe kesişimindeki ${corpusCount} özgün makalemi yalnızca metin olarak değil; her makalenin geniş özetini, matematiksel modelini ve bütünsel sonucunu hareketli varlık etkileşimleriyle görselleştiren süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 açıklayıcı videolar, makale genel sonucuyla örtüşen çoktan seçmeli değerlendirme soruları ve interaktif uygulamalarla tek kanonik merkezde yeniden yapılandırdım.\n\n• Kapsam: Kuantum Fiziği, Termodinamik Entropi, Kozmoloji, Epistemoloji ve Zihin Felsefesi\n• Yeni Etkileşim: Her makale için Süre Kısıtsız 12 Dilli HTML5 Geniş Özet Video + Çoktan Seçmeli Kavrama Testi + İnteraktif Simülatörler\n• Kanonik Ana Hub (12 Dil): https://emrepelit-sciphi.ai.studio\n\n✉️ İletişim: emrepelit39@gmail.com`,
-      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #EğitimTeknolojileri #KuantumFiziği #Kozmoloji',
-      shareUrlBuilder: (_text, url) =>
-        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-    },
-    {
-      id: 'soc-bluesky',
-      platformName: 'Bluesky',
-      handleOrChannel: 'Open Graph & AT Protocol Share',
-      badge: 'Açık Sosyal Web (Bluesky)',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Bluesky 12 Dilli Video & Çoktan Seçmeli Test Tanıtımı',
-      content: `🔬 Emre Pelit — Sci-Phil Arşivi: ${corpusCount} özgün bilim & felsefe makalesine özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale sonucuyla örtüşen çoktan seçmeli kavrama soruları, interaktif uygulamalar ve kullanıcı kontrollü tonlama.\n\n🌐 https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#SciPhil #Science #Philosophy #ExplainerVideo #Quiz #EmrePelit',
-      shareUrlBuilder: (text, _url) =>
-        `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-mastodon',
-      platformName: 'Mastodon (Fediverse)',
-      handleOrChannel: 'WebFinger RFC 7033 + ActivityPub Discovery',
-      badge: 'Fediverse Bilim Toplulukları',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Mastodon / Fediverse Video & Çoktan Seçmeli Test Duyurusu',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n${corpusCount} özgün makalenin tamamında süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, bütünsel sonuç odaklı çoktan seçmeli testler, interaktif fizik simülasyonları, RSS/Atom/JSON Feed ve WebFinger desteğiyle yayında:\n🌐 https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#Science #Philosophy #Physics #OpenWeb #VideoLearning #SciPhil #EmrePelit',
-      shareUrlBuilder: (text, _url) =>
-        `https://mastodon.social/share?text=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-reddit',
-      platformName: 'Reddit',
-      handleOrChannel: 'r/PhilosophyofScience & r/Physics',
-      badge: 'Tartışma & Topluluk Paylaşımı',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Reddit (r/PhilosophyofScience) Video, Test & Simülasyon Tanıtım Başlığı',
-      content: `Emre Pelit Sci-Phil Archive — ${corpusCount} original essays on Quantum Mechanics, Cosmology & Philosophy of Mind, now featuring unrestricted speaker-synced 12-language synthetic cultural voice HTML5 summary videos, conclusion-aligned multiple-choice quizzes, interactive apps, and user-controlled intonation.`,
-      hashtags: 'https://emrepelit-sciphi.ai.studio/',
-      shareUrlBuilder: (text, url) =>
-        `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-medium',
-      platformName: 'Medium (@emrepelit39)',
-      handleOrChannel: 'medium.com/@emrepelit39',
-      badge: 'oEmbed 1.0 Zengin Kart & Makale Özeti',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Medium (@emrepelit39) Videolu & Testli Kanonik Arşiv Şablonu',
-      content: `Bilim ve felsefe üzerine hazırladığım ${corpusCount} özgün çalışmanın tamamını; her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale genel sonucuyla örtüşen çoktan seçmeli test soruları, KaTeX formülleri ve interaktif fizik/kozmoloji simülasyonlarıyla kanonik ana merkezde deneyimleyebilirsiniz:\n\n🔗 https://emrepelit-sciphi.ai.studio\n\nNot: oEmbed 1.0 + VideoObject & Quiz yapısal verisiyle tüm keşif akışlarında zengin kart olarak sunulmaktadır.`,
-      hashtags: '#Science #Philosophy #Physics #ExplainerVideo #MultipleChoiceQuiz #Cosmology',
-      shareUrlBuilder: (_text, _url) => `https://medium.com/@emrepelit39`,
-    },
-    {
-      id: 'soc-telegram',
-      platformName: 'Telegram',
-      handleOrChannel: 'Telegram Kanal & Gruplar',
-      badge: 'Anlık Web Sitesi Bülteni',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Telegram 12 Dilli Video & Çoktan Seçmeli Soru Duyurusu',
-      content: `📢 Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi Güncellendi!\n\nKuantum Gözlemci Etkisi, Higgs Alanları, Holografik Evren, Blok Evren ve Bilinç (IIT) dahil ${corpusCount} makalenin HER BİRİ için süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video, makale genel sonucunu ölçen çoktan seçmeli test soruları ve interaktif uygulamalar artık yayında!\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #BilimSohbeti #Bilim #Felsefe #VideoVeTest #SciPhil',
-      shareUrlBuilder: (text, url) =>
-        `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-facebook',
-      platformName: 'Facebook',
-      handleOrChannel: 'Bilim & Felsefe Toplulukları',
-      badge: 'Web Sitesi Sayfa Paylaşımı',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Facebook Bilim & Felsefe Web Sitesi Video + Test Paylaşımı',
-      content: `Emre Pelit'in ${corpusCount} özgün bilim ve felsefe makalesini, her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videoları, makale sonucuyla örtüşen çoktan seçmeli kavrama testlerini, interaktif uygulamaları ve kullanıcı kontrollü tonlamayı barındıran Sci-Phil arşivi yenilenmiş haliyle yayında:\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#EmrePelit #BilimSohbeti #BilimVeFelsefe #AçıklayıcıVideo #BilimTesti #Kozmoloji',
-      shareUrlBuilder: (text, url) =>
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
-    },
-    {
-      id: 'soc-email',
-      platformName: 'E-Posta Bülteni',
-      handleOrChannel: 'Korumalı İletişim Formu (emrepelit-sciphi.ai.studio)',
-      badge: 'Doğrudan Web Sitesi Daveti',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'Web Sitesi E-Posta Tanıtım ve Yeni Video/Test Daveti',
-      content: `Değerli Okurum,\n\nBilim ve felsefe üzerine hazırladığım ${corpusCount} özgün makaleyi barındıran Emre Pelit — Sci-Phil web siteme artık HER makale için özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makalenin genel sonucuyla uyumlu çoktan seçmeli kavrama soruları ve 4 modüllü interaktif uygulamalar eklenmiştir.\n\n🌐 Web Sitesi: https://emrepelit-sciphi.ai.studio\n💻 GitHub (@emrepelit109): https://github.com/emrepelit109\n▶️ YouTube (@science_only): https://www.youtube.com/@science_only\n✉️ Korumalı İletişim: https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine\n📸 Instagram & Threads: @bilimsohbeti\n🐦 X (Twitter): @emrepelit109\n\nSaygılarımla,\nEmre Pelit`,
-      hashtags: '#EmrePelit #SciPhil #BilimVeFelsefe #AçıklayıcıVideo #ÇoktanSeçmeliTest',
-      shareUrlBuilder: (text, _url) =>
-        `https://emrepelit-sciphi.ai.studio/#homepage-qa-objection-engine?subject=${encodeURIComponent('Emre Pelit — Sci-Phil')}&note=${encodeURIComponent(text.slice(0, 240))}`,
-    },
-    {
-      id: 'soc-github',
-      platformName: 'GitHub (@emrepelit109)',
-      handleOrChannel: 'github.com/emrepelit109 · Resmi Kod ve Açık Bilim Profili',
-      badge: 'Resmi GitHub Profili',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'GitHub (@emrepelit109) Açık Bilim, Video, Test & Simülasyon Profili',
-      content: `🔬 Emre Pelit — Sci-Phil Bilim, Felsefe ve İnteraktif Uygulama Arşivi\n\n• ${corpusCount} Makale × 12 Dil (Süre Kısıtsız 12 Dilli Sentetik Sesli HTML5 Video + Quiz Schema + İnteraktif Simülatörler)\n💻 Resmi GitHub Profili: https://github.com/emrepelit109\n🗂️ Pasif GitHub Pages Arşiv Düğümü: emrepelit.github.io/science-philosophy (Yeniden Aktifleştirme Bekliyor)\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio`,
-      hashtags: '#GitHub #EmrePelit #SciPhil #OpenScience #HTML5Video #InteractiveQuiz',
-      shareUrlBuilder: (_text, _url) => 'https://github.com/emrepelit109',
-    },
-    {
-      id: 'soc-researchgate',
-      platformName: 'ResearchGate (Emre Pelit)',
-      handleOrChannel: 'researchgate.net/profile/Emre-Pelit · HTTP 301 Akademik Köprü',
-      badge: 'Resmi ResearchGate & 301 Köprüsü',
-      approved: true,
-      publishedStatus: 'PUBLISHED',
-      publishedAt: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
-      title: 'ResearchGate Akademik Profili ↔ Sci-Phil Kanonik Ana Hub (Video + Test Güncellemesi)',
-      content: `🔬 Emre Pelit — ResearchGate Resmi Akademik Profili & Tek Kanonik Ana Hub\n\n🎓 Disiplinler: Instrumentation Engineering · Optical Engineering · Quality Assurance Engineering · Astronomy · Astrophysics\n📐 Uzmanlık: Engineering Mathematics · Calibration · Measurement\n🎬 Yeni Özellikler: Her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video + bütünsel sonuç odaklı çoktan seçmeli testler + interaktif simülasyon laboratuvarları\n\n🌐 Kanonik Ana Hub: https://emrepelit-sciphi.ai.studio\n🔗 301 Akademik Köprü: https://emrepelit-sciphi.ai.studio/researchgate\n📄 ResearchGate Profili: https://www.researchgate.net/profile/Emre-Pelit`,
-      hashtags: '#ResearchGate #EmrePelit #OpticalEngineering #Astrophysics #SciPhil #InteractiveLearning',
-      shareUrlBuilder: (_text, _url) => 'https://www.researchgate.net/profile/Emre-Pelit',
-    },
-  ]);
+  const [socialTemplateLang, setSocialTemplateLang] = useState<SocialTemplateLang>(
+    language === 'tr' ? 'tr' : 'en'
+  );
+  const [socialTemplates, setSocialTemplates] = useState<SocialTemplateItem[]>(() =>
+    buildCurrentSocialTemplates(corpusCount, language === 'tr' ? 'tr' : 'en', publicWebsiteUrl)
+  );
+  const [copiedAllTemplates, setCopiedAllTemplates] = useState<boolean>(false);
+
+  const handleSwitchSocialTemplateLang = (nextLang: SocialTemplateLang) => {
+    setSocialTemplateLang(nextLang);
+    setSocialTemplates((prev) => {
+      const approvalMap = new Map(prev.map((item) => [item.id, item.approved]));
+      return buildCurrentSocialTemplates(corpusCount, nextLang, publicWebsiteUrl).map((item) => ({
+        ...item,
+        approved: approvalMap.has(item.id) ? Boolean(approvalMap.get(item.id)) : true,
+      }));
+    });
+  };
+
+  useEffect(() => {
+    if (corpusCount >= 320) {
+      setSocialTemplates((prev) => {
+        const approvalMap = new Map(prev.map((item) => [item.id, item.approved]));
+        return buildCurrentSocialTemplates(corpusCount, socialTemplateLang, publicWebsiteUrl).map(
+          (item) => ({
+            ...item,
+            approved: approvalMap.has(item.id) ? Boolean(approvalMap.get(item.id)) : true,
+          })
+        );
+      });
+    }
+  }, [corpusCount]);
+
+  const handleDownloadAllSocialTemplates = () => {
+    const textBundle = formatAllSocialTemplatesExportText(socialTemplates, socialTemplateLang);
+    const blob = new Blob([textBundle], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `emre-pelit-sciphil-sosyal-medya-sablonlari-${socialTemplateLang}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyAllSocialTemplates = async () => {
+    const textBundle = formatAllSocialTemplatesExportText(socialTemplates, socialTemplateLang);
+    try {
+      await navigator.clipboard.writeText(textBundle);
+    } catch {
+      // clipboard fallback
+    }
+    setCopiedAllTemplates(true);
+    setTimeout(() => setCopiedAllTemplates(false), 2600);
+  };
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [publishingSocial, setPublishingSocial] = useState<boolean>(false);
   const [isRePromotingAll, setIsRePromotingAll] = useState<boolean>(false);
   const [socialBannerNotice, setSocialBannerNotice] = useState<string | null>(
-    `✓ Tüm ${distinctWorksCount} özgün eser (${corpusCount} makale × 12 dünya dili = ${(corpusCount * 12).toLocaleString('tr-TR')} URL), her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar, makale genel sonucuyla örtüşen çoktan seçmeli testler ve interaktif uygulamalarla tüm web ağlarında, keşif panellerinde ve 16 sosyal medya ağında kanonik olarak yayındadır.`
+    `✓ Tüm ${Math.max(320, corpusCount)} eksiksiz tam metin Blogger makalesi (× 12 dünya dili = ${(Math.max(320, corpusCount) * 12).toLocaleString('tr-TR')} kanonik URL); baştan sona sesli dinleme, günlük hayattan nesneli ve temsili figürlü olay kurgulu videolar, Bilmece-Bulmaca Arenası (Haftalık İlk 5) ve %100 KVKK/GDPR uyumuyla tüm web tarayıcılarında, akademik indekslerde, keşif portallarında ve 20 sosyal medya şablonunda hazırdır.`
   );
 
   const [serpEngine, setSerpEngine] = useState<'GOOGLE' | 'BING_EDGE' | 'DUCKDUCKGO_FIREFOX' | 'SCHOLAR'>('GOOGLE');
   const [serpSampleQuery, setSerpSampleQuery] = useState<string>(
-    `Emre Pelit Sci-Phil Bilim ve Felsefe ${corpusCount} Makale 12 Dil Video Test`
+    `Emre Pelit Sci-Phil Bilim ve Felsefe ${Math.max(320, corpusCount)} Tam Metin Makale Sesli Video Arena`
   );
   const [copiedAiCitation, setCopiedAiCitation] = useState<boolean>(false);
   const handleCopyAiCitation = async () => {
-    const citation = `Kaynak: Emre Pelit — Sci-Phil Bilim ve Felsefe Web Sitesi (https://emrepelit-sciphi.ai.studio) — 316+ makale, her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video, çoktan seçmeli test ve interaktif simülasyonlar. İletişim: emrepelit39@gmail.com.`;
+    const citation = `Kaynak: Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (https://emrepelit-sciphi.ai.studio) — ${Math.max(320, corpusCount)}+ eksiksiz tam metin Blogger makalesi, baştan sona tam sesli dinleme, günlük hayattan nesneler ve temsili figürlerle olay kurgulu açıklayıcı videolar, Bilmece-Bulmaca Arenası (Haftalık İlk 5), simülasyonlar ve 12 dilde KVKK/GDPR uyumlu arşiv. İletişim: emrepelit39@gmail.com.`;
     try {
       await navigator.clipboard.writeText(citation);
       setCopiedAiCitation(true);
@@ -927,12 +752,14 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
     }
   };
 
-  // Trigger simultaneous indexing, GSC queue sync & individual corpus queue on mount and explicit triggers
+  // Trigger simultaneous indexing, GSC queue sync & individual corpus queue ONLY on explicit user triggers (zero mount-time POST storms!)
   useEffect(() => {
-    handleSimultaneous12LangIndexing();
-    handleQueueAllArticlesIndividually(false);
-    handleRunGscQueueAll();
-  }, [externalTriggerCount, articles.length]);
+    if (externalTriggerCount > 0) {
+      handleSimultaneous12LangIndexing();
+      handleQueueAllArticlesIndividually(false);
+      handleRunGscQueueAll();
+    }
+  }, [externalTriggerCount]);
 
   useEffect(() => {
     if (externalQueueAllTriggerCount > 0) {
@@ -1069,8 +896,14 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          language,
-          featuresAnnounced: ['per-article-10min-animated-entity-html5-video', 'conclusion-aligned-mcq-quiz', 'interactive-apps-suite'],
+          language: socialTemplateLang,
+          featuresAnnounced: [
+            '320-full-blogger-untruncated-articles',
+            'full-start-to-finish-synthetic-audio-narration',
+            'everyday-life-story-plot-symbolic-figure-explainer-videos',
+            'interactive-riddle-arena-weekly-top5',
+            'kvkk-6698-and-eu-gdpr-2016-679-full-compliance',
+          ],
           platforms: approvedList.map((a) => ({
             id: a.id,
             platformName: a.platformName,
@@ -1093,10 +926,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         )
       );
       setSocialBannerNotice(
-        `Onayladığınız ${approvedList.length} platform şablonu (her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video, makale sonucuyla uyumlu çoktan seçmeli sorular & interaktif uygulamalar duyurusuyla — kampanya [${campaignCode}]) yayına alındı.`
+        `Onayladığınız ${approvedList.length} sosyal medya şablonu (${Math.max(320, corpusCount)}+ eksiksiz tam metin makale, baştan sona sesli dinleme, günlük hayattan nesneli ve temsili figürlü olay kurgulu videolar, Bilmece-Bulmaca Arenası ve %100 KVKK/GDPR uyumuyla — kampanya [${campaignCode}]) paylaşıma hazırlandı.`
       );
     } catch {
-      setSocialBannerNotice(`Onaylanan ${approvedList.length} platform şablonu 12 Dilli Geniş Özet Videosu + Çoktan Seçmeli Test duyurusuyla başarıyla yayına alındı.`);
+      setSocialBannerNotice(`Onaylanan ${approvedList.length} sosyal medya şablonu güncel web sitesi tanıtımı için paylaşıma hazırlandı.`);
     } finally {
       setPublishingSocial(false);
     }
@@ -1121,8 +954,14 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            language,
-            featuresAnnounced: ['per-article-12lang-synthetic-summary-html5-video', 'conclusion-aligned-mcq-quiz', 'interactive-apps-suite'],
+            language: socialTemplateLang,
+            featuresAnnounced: [
+              '320-full-blogger-untruncated-articles',
+              'full-start-to-finish-synthetic-audio-narration',
+              'everyday-life-story-plot-symbolic-figure-explainer-videos',
+              'interactive-riddle-arena-weekly-top5',
+              'kvkk-6698-and-eu-gdpr-2016-679-full-compliance',
+            ],
             platforms: approvedPayload,
           }),
         }),
@@ -1132,10 +971,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         prev.map((item) => ({ ...item, approved: true, publishedStatus: 'PUBLISHED', publishedAt: nowStr }))
       );
       setAll301SitesBanner(
-        `✓ Tüm 18 web sağlayıcısı, Google Arama/Scholar/Discover/Gemini ağları, IndexNow (Bing/Yandex/DuckDuckGo/Naver), GSC ve 16 sosyal medya kanalı; her makaleye özel süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet video + bütünsel sonuç odaklı çoktan seçmeli sorularla yeniden tanıtıldı (${nowStr}).`
+        `✓ Tüm 18 web tarayıcısı/arama motoru, 18 akademik indeks, Google/Superfeedr keşif portalları, IndexNow (Bing/Yandex/DuckDuckGo/Naver/Seznam), GSC ve ${socialTemplates.length} sosyal medya şablonu; ${Math.max(320, corpusCount)}+ eksiksiz tam metin makale, baştan sona sesli dinleme, olay kurgulu temsili figürlü videolar, Bilmece-Bulmaca Arenası ve %100 KVKK/GDPR uyumuyla eşzamanlı indekslendi ve tanıtıldı (${nowStr}).`
       );
       setSocialBannerNotice(
-        `✓ Tüm web ağları, keşif panelleri ve 16 sosyal medya platformu "12 Dilli Sentetik Sesli Geniş Özet HTML5 Video + Çoktan Seçmeli Kavrama Testleri + İnteraktif Uygulamalar" duyurusuyla yeniden eşitlendi (${nowStr}).`
+        `✓ Tüm web tarayıcıları, akademik indeksler, keşif portalları ve ${socialTemplates.length} sosyal medya kanalı sitenin en güncel haliyle eşzamanlı olarak indekslendi ve paylaşıma hazırlandı (${nowStr}).`
       );
     } finally {
       if (isMountedRef.current) {
@@ -1222,22 +1061,25 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   useEffect(() => {
     let active = true;
-    fetch('/api/indexing/turkish-77-status')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!active || !data) return;
-        setTurkish77Status((prev) => ({
-          ...prev,
-          turkishArticlesCount: data.turkishArticlesCount || 77,
-          languagesCount: data.languagesCount || 12,
-          totalCanonicalUrls: data.totalCanonicalUrls || 924,
-          sitemapUrl: data.sitemapUrl || prev.sitemapUrl,
-          items: Array.isArray(data.items) ? data.items : [],
-        }));
-      })
-      .catch(() => {});
+    const timer = window.setTimeout(() => {
+      fetch('/api/indexing/turkish-77-status')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!active || !data) return;
+          setTurkish77Status((prev) => ({
+            ...prev,
+            turkishArticlesCount: data.turkishArticlesCount || 77,
+            languagesCount: data.languagesCount || 12,
+            totalCanonicalUrls: data.totalCanonicalUrls || 924,
+            sitemapUrl: data.sitemapUrl || prev.sitemapUrl,
+            items: Array.isArray(data.items) ? data.items : [],
+          }));
+        })
+        .catch(() => {});
+    }, 900);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
   }, [articles.length]);
 
@@ -1300,25 +1142,28 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   useEffect(() => {
     let active = true;
-    fetch('/api/network/researchgate-bridge')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!active || !data) return;
-        if (data.profileUrl) setRgProfileUrl(data.profileUrl);
-        setRgBridgeState((prev) => ({
-          httpStatus: data.httpStatus ?? 301,
-          statusLabel: 'RESEARCHGATE_301_CANONICAL_BRIDGE_ACTIVE',
-          verificationToken: data.verificationToken || prev.verificationToken,
-          verifiedAt: data.verifiedAt || prev.verifiedAt,
-          disciplines: Array.isArray(data.disciplines) ? data.disciplines : prev.disciplines,
-          skillsAndExpertise: Array.isArray(data.skillsAndExpertise)
-            ? data.skillsAndExpertise
-            : prev.skillsAndExpertise,
-        }));
-      })
-      .catch(() => {});
+    const timer = window.setTimeout(() => {
+      fetch('/api/network/researchgate-bridge')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!active || !data) return;
+          if (data.profileUrl) setRgProfileUrl(data.profileUrl);
+          setRgBridgeState((prev) => ({
+            httpStatus: data.httpStatus ?? 301,
+            statusLabel: 'RESEARCHGATE_301_CANONICAL_BRIDGE_ACTIVE',
+            verificationToken: data.verificationToken || prev.verificationToken,
+            verifiedAt: data.verifiedAt || prev.verifiedAt,
+            disciplines: Array.isArray(data.disciplines) ? data.disciplines : prev.disciplines,
+            skillsAndExpertise: Array.isArray(data.skillsAndExpertise)
+              ? data.skillsAndExpertise
+              : prev.skillsAndExpertise,
+          }));
+        })
+        .catch(() => {});
+    }, 1100);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
   }, []);
 
@@ -1443,12 +1288,15 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
   };
 
   useEffect(() => {
-    void fetchFull11NodeIndexingStatus();
+    const timer = window.setTimeout(() => {
+      void fetchFull11NodeIndexingStatus();
+    }, 1250);
     const handleLiveIndexingUpdate = () => {
       void fetchFull11NodeIndexingStatus();
     };
     window.addEventListener('sciphil:indexing-status-updated', handleLiveIndexingUpdate);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener('sciphil:indexing-status-updated', handleLiveIndexingUpdate);
     };
   }, [articles.length, networkNodes.length]);
@@ -3737,17 +3585,69 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-stone-300">
           <div className="space-y-1">
             <div className="text-xs font-mono uppercase tracking-widest text-[#1E3A8A] font-semibold">
-              TÜM 16 SOSYAL MEDYA AĞI · 12 DİLLİ SENTETİK SESLİ GENİŞ ÖZET VİDEO &amp; TEST TANITIM MERKEZİ
+              TÜM {socialTemplates.length} SOSYAL MEDYA &amp; KEŞİF HESABI · GÜNCEL WEB SİTESİ TANITIM ŞABLONLARI
             </div>
             <h3 className="text-2xl sm:text-3xl font-editorial font-semibold text-stone-900">
-              Tüm Sosyal Medya Ağları &amp; YouTube (@science_only) Yeniden Tanıtım Şablonları
+              Tüm Sosyal Medya Hesapları İçin Hazır Tanıtım Şablonları ({socialTemplates.length} Platform)
             </h3>
             <p className="text-xs text-stone-600 max-w-3xl leading-relaxed">
-              Her makaleye eklenen <strong>süre kısıtsız 12 dilli sentetik kültürel sesli HTML5 geniş özet videolar</strong>, <strong>makale genel sonucuyla örtüşen çoktan seçmeli sorular</strong> ve <strong>interaktif uygulamalar</strong> duyurusu tüm 16 sosyal medya ağı için hazırlanmıştır. Web sitesinin resmi YouTube hesabı: <a href="https://www.youtube.com/@science_only" target="_blank" rel="me noopener noreferrer" className="font-mono font-bold text-red-700 hover:underline">@science_only ↗</a>.
+              Web sitesinin en güncel haliyle (<strong>{Math.max(320, corpusCount)}+ eksiksiz tam metin Blogger makalesi</strong>, <strong>baştan sona tam sesli dinleme</strong>, <strong>günlük hayattan nesneli ve temsili figürlü olay kurgulu videolar</strong>, <strong>Bilmece-Bulmaca Arenası + Haftalık İlk 5</strong> ve <strong>%100 KVKK/GDPR uyumu</strong>) tüm sosyal medya hesaplarınız için tek tıkla kopyalanabilir, düzenlenebilir ve indirilebilir tanıtım şablonları.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="inline-flex border border-stone-300 bg-[#FBF9F5] rounded-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => handleSwitchSocialTemplateLang('tr')}
+                className={`px-3 py-2 text-xs font-mono font-bold cursor-pointer transition-colors ${
+                  socialTemplateLang === 'tr'
+                    ? 'bg-[#1E3A8A] text-white'
+                    : 'text-stone-700 hover:bg-stone-100'
+                }`}
+              >
+                Türkçe
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchSocialTemplateLang('en')}
+                className={`px-3 py-2 text-xs font-mono font-bold cursor-pointer transition-colors ${
+                  socialTemplateLang === 'en'
+                    ? 'bg-[#1E3A8A] text-white'
+                    : 'text-stone-700 hover:bg-stone-100'
+                }`}
+              >
+                English
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopyAllSocialTemplates}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-semibold text-stone-800 bg-white border border-stone-300 hover:bg-stone-100 rounded-sm cursor-pointer"
+            >
+              {copiedAllTemplates ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="text-emerald-800">20 Şablon Kopyalandı</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Tümünü Kopyala</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadAllSocialTemplates}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-semibold text-stone-800 bg-[#FBF9F5] border border-stone-300 hover:bg-stone-100 rounded-sm cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Tüm Şablonları İndir (.txt)</span>
+            </button>
+
             <button
               type="button"
               onClick={handleRePromoteAllNetworksAndSocial}
@@ -3755,7 +3655,11 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono font-bold text-white bg-[#1E3A8A] hover:bg-blue-950 rounded-sm cursor-pointer disabled:opacity-50"
             >
               <Globe className={`w-3.5 h-3.5 text-amber-300 ${isRePromotingAll ? 'animate-spin' : ''}`} />
-              <span>{isRePromotingAll ? 'Tüm Ağlarda Tanıtılıyor...' : 'Web + Keşif + 16 Sosyal Medyada Yeniden Tanıt'}</span>
+              <span>
+                {isRePromotingAll
+                  ? 'Eşzamanlı İndeksleniyor...'
+                  : `Tarayıcı + Akademik + Keşif + ${socialTemplates.length} Sosyal Medyada Eşzamanlı İndeksle`}
+              </span>
             </button>
 
             <button

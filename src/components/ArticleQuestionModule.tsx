@@ -163,46 +163,7 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
     };
   }, [isOpen, showEmailQueueLog, ownerViewActive, activeArticle.id]);
 
-  // Automatically forward any previously asked client-side questions (from localStorage) strictly to emrepelit39@gmail.com once per browser session
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const syncFlagKey = 'emre_pelit_past_qa_synced_v1';
-    if (window.sessionStorage.getItem(syncFlagKey)) return;
-    window.sessionStorage.setItem(syncFlagKey, '1');
-    try {
-      const rawHistory = window.localStorage.getItem('emre_pelit_qa_asked_history_v1');
-      const parsedHistory = rawHistory ? JSON.parse(rawHistory) : [];
-      if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-        const forwardedRaw = window.localStorage.getItem('emre_pelit_qa_forwarded_keys_v1');
-        const forwardedSet = new Set<string>(forwardedRaw ? JSON.parse(forwardedRaw) : []);
-        const pending = parsedHistory.filter((item: any) => {
-          const k = `${String(item?.articleId || '')}::${String(item?.question || '').toLowerCase()}`;
-          return item?.question && !forwardedSet.has(k);
-        });
-        if (pending.length > 0) {
-          void fetch('/api/qa/forward-past-questions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ questions: pending, sendDigest: true }),
-          })
-            .then((r) => {
-              if (r.ok) {
-                for (const item of pending) {
-                  forwardedSet.add(`${String(item?.articleId || '')}::${String(item?.question || '').toLowerCase()}`);
-                }
-                window.localStorage.setItem(
-                  'emre_pelit_qa_forwarded_keys_v1',
-                  JSON.stringify(Array.from(forwardedSet).slice(-500))
-                );
-              }
-            })
-            .catch(() => {});
-        }
-      }
-    } catch {
-      // Non-fatal
-    }
-  }, []);
+  // KVKK (6698) & EU GDPR (2016/679) compliance: never silently transmit browser localStorage Q&A history in the background without explicit per-submission consent.
 
   const handleSpeakAnswer = (qaItem: ArticleQaResponse) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -238,10 +199,12 @@ export const ArticleQuestionModule: React.FC<ArticleQuestionModuleProps> = ({
 
   // Instant Zero-Friction Per-Article Q&A Pairs (Localized across 12 languages, no CAPTCHA required to read)
   const instantFaqItems = React.useMemo(() => {
-    const labels: Record<
-      LanguageCode,
-      { badge: string; q1: string; q2: string; q3: string; q4: string; listen: string; stop: string; copy: string; copied: string }
-    > = {
+    const labels: Partial<
+      Record<
+        LanguageCode,
+        { badge: string; q1: string; q2: string; q3: string; q4: string; listen: string; stop: string; copy: string; copied: string }
+      >
+    > & { en: { badge: string; q1: string; q2: string; q3: string; q4: string; listen: string; stop: string; copy: string; copied: string } } = {
       tr: {
         badge: 'MAKALE ÖZEL HAZIR SORU-CEVAP (ANINDA OKU & DİNLE · 12 DİL)',
         q1: `“${title}” makalesinin temel savı ve ana sonucu nedir?`,

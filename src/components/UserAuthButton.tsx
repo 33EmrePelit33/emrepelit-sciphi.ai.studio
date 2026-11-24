@@ -22,6 +22,17 @@ const LABELS: Record<LanguageCode, { signIn: string; signOut: string; signingIn:
   pt: { signIn: 'Entrar com Google', signOut: 'Sair', signingIn: 'Entrando…' },
   it: { signIn: 'Accedi con Google', signOut: 'Esci', signingIn: 'Accesso…' },
   ko: { signIn: 'Google 로그인', signOut: '로그아웃', signingIn: '로그인 중…' },
+  no: { signIn: 'Logg inn med Google', signOut: 'Logg ut', signingIn: 'Logger inn…' },
+  is: { signIn: 'Skrá inn með Google', signOut: 'Skrá út', signingIn: 'Skrái inn…' },
+  da: { signIn: 'Log ind med Google', signOut: 'Log ud', signingIn: 'Logger ind…' },
+  sv: { signIn: 'Logga in med Google', signOut: 'Logga ut', signingIn: 'Loggar in…' },
+  nl: { signIn: 'Inloggen met Google', signOut: 'Uitloggen', signingIn: 'Inloggen…' },
+  fi: { signIn: 'Kirjaudu Googlella', signOut: 'Kirjaudu ulos', signingIn: 'Kirjaudutaan…' },
+  ga: { signIn: 'Sínigh isteach le Google', signOut: 'Sínigh amach', signingIn: 'Ag síniú isteach…' },
+  lb: { signIn: 'Mat Google umellen', signOut: 'Ofmellen', signingIn: 'Mellt un…' },
+  rm: { signIn: 'S’annunziar cun Google', signOut: 'Sortir', signingIn: 'S’annunzia…' },
+  ms: { signIn: 'Log Masuk Google', signOut: 'Log Keluar', signingIn: 'Sedang masuk…' },
+  ta: { signIn: 'Google உள்நுழைவு', signOut: 'வெளியேறு', signingIn: 'உள்நுழைகிறது…' },
 };
 
 export const UserAuthButton: React.FC<UserAuthButtonProps> = ({ language, onAuthChange }) => {

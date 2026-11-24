@@ -15,10 +15,13 @@ import {
   VolumeX,
   XCircle,
   ArrowRight,
+  LogIn,
+  UserCheck,
 } from 'lucide-react';
 import type { LanguageCode } from '../types';
 import { WORLD_LANGUAGES } from '../i18n/translations';
 import {
+  ARENA_AUTH_STRINGS,
   ARENA_QUESTION_BANK,
   ARENA_SCORING,
   ARENA_UI_STRINGS,
@@ -55,16 +58,27 @@ interface WeeklyArchiveMeta {
 
 interface LeaderboardResponse {
   success: boolean;
+  authRequiredForLeaderboard?: boolean;
   currentWeekId: string;
   weekId: string;
   weekLabel: string;
   top5: WeeklyTopEntry[];
   totalParticipants: number;
   weeks: WeeklyArchiveMeta[];
+  myEntry?: (WeeklyTopEntry & { rank: number }) | null;
+}
+
+interface ArenaAuthUserSummary {
+  uid: string;
+  displayName?: string | null;
+  email?: string | null;
 }
 
 interface RiddleTriviaWeeklyArenaProps {
   language: LanguageCode;
+  authUser?: ArenaAuthUserSummary | null;
+  getAuthToken?: () => Promise<string | null>;
+  onRequestSignIn?: () => Promise<void>;
   onOpenKvkkModal?: () => void;
   onArenaPlayedMeasured?: (summary: string, score: number) => void;
 }
@@ -125,6 +139,9 @@ function playFeedbackTone(kind: 'correct' | 'blank' | 'wrong' | 'finish', enable
 
 export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = ({
   language,
+  authUser = null,
+  getAuthToken,
+  onRequestSignIn,
   onOpenKvkkModal,
   onArenaPlayedMeasured,
 }) => {
@@ -145,24 +162,26 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
   const [nickname, setNickname] = useState<string>('');
   const [consentChecked, setConsentChecked] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [signingInInline, setSigningInInline] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
   const [submitNotice, setSubmitNotice] = useState<string>('');
   const [lastReceipt, setLastReceipt] = useState<{
     entryId: string;
     weekId: string;
-    erasureToken: string;
     nickname: string;
     rank: number | null;
+    keptHigherPreviousScore?: boolean;
   } | null>(null);
 
   const arenaSectionRef = useRef<HTMLElement | null>(null);
 
-  // Keep arena language synced if user switches the main site language while in MENU
+  // Keep arena language synced if user switches the main site language
   useEffect(() => {
     setArenaLang(language);
   }, [language]);
 
-  const ui = ARENA_UI_STRINGS[arenaLang] || ARENA_UI_STRINGS.tr;
+  const ui = ARENA_UI_STRINGS[arenaLang] || ARENA_UI_STRINGS.en || ARENA_UI_STRINGS.tr!;
+  const authUi = ARENA_AUTH_STRINGS[arenaLang] || ARENA_AUTH_STRINGS.en || ARENA_AUTH_STRINGS.tr!;
   const isRtl = arenaLang === 'ar';
 
   const activeQuestions = useMemo<ArenaQuestionItem[]>(() => {
@@ -171,28 +190,48 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
     return ARENA_QUESTION_BANK;
   }, [mode]);
 
-  const fetchLeaderboard = useCallback(async (weekQuery: string = 'current') => {
-    setLoadingBoard(true);
-    try {
-      const res = await fetch(
-        `/api/arena/leaderboard?week=${encodeURIComponent(weekQuery)}`
-      );
-      if (res.ok) {
-        const data = (await res.json()) as LeaderboardResponse;
-        if (data?.success) {
-          setLeaderboard(data);
+  const fetchLeaderboard = useCallback(
+    async (weekQuery: string = 'current') => {
+      setLoadingBoard(true);
+      try {
+        const headers: Record<string, string> = {};
+        if (authUser && getAuthToken) {
+          const token = await getAuthToken();
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
         }
+        const res = await fetch(
+          `/api/arena/leaderboard?week=${encodeURIComponent(weekQuery)}`,
+          { headers }
+        );
+        if (res.ok) {
+          const data = (await res.json()) as LeaderboardResponse;
+          if (data?.success) {
+            setLeaderboard(data);
+            if (data.myEntry?.nickname && !nickname) {
+              setNickname(data.myEntry.nickname);
+            }
+          }
+        }
+      } catch {
+        // Non-blocking fallback
+      } finally {
+        setLoadingBoard(false);
       }
-    } catch {
-      // Non-blocking fallback
-    } finally {
-      setLoadingBoard(false);
-    }
-  }, []);
+    },
+    [authUser, getAuthToken, nickname]
+  );
 
   useEffect(() => {
     void fetchLeaderboard(selectedWeekId);
-  }, [selectedWeekId, fetchLeaderboard]);
+  }, [selectedWeekId, authUser?.uid, fetchLeaderboard]);
+
+  useEffect(() => {
+    if (!authUser) {
+      setLastReceipt(null);
+    }
+  }, [authUser]);
 
   useEffect(() => {
     const onLiveUpdate = () => {
@@ -301,25 +340,55 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [phase, currentAnswer, handleAnswer, handleNextOrFinish]);
 
+  const handleInlineSignIn = async () => {
+    if (!onRequestSignIn) return;
+    setSigningInInline(true);
+    setSubmitError('');
+    try {
+      await onRequestSignIn();
+    } catch {
+      setSubmitError(
+        arenaLang === 'tr'
+          ? 'Google ile giriş penceresi tamamlanamadı. Lütfen tekrar deneyin.'
+          : 'Google Sign-In did not complete. Please try again.'
+      );
+    } finally {
+      setSigningInInline(false);
+    }
+  };
+
   const handlePublishToLeaderboard = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
     setSubmitNotice('');
 
+    if (!authUser || !getAuthToken) {
+      setSubmitError(
+        arenaLang === 'tr'
+          ? 'Haftalık İlk 5 listesinde görünmek için önce Google ile giriş yapmalısınız.'
+          : 'Please sign in with Google before publishing to the Weekly Top 5.'
+      );
+      return;
+    }
+
     const cleanName = nickname.trim();
     if (cleanName.length < 2 || cleanName.length > 24) {
       setSubmitError(
         arenaLang === 'tr'
-          ? 'Takma ad en az 2, en fazla 24 karakter olmalıdır.'
-          : 'Alias must be between 2 and 24 characters.'
+          ? 'Kullanıcı adı en az 2, en fazla 24 karakter olmalıdır.'
+          : 'Username must be between 2 and 24 characters.'
       );
       return;
     }
-    if (cleanName.includes('@') || /\+?\d[\d\s-]{6,}/.test(cleanName)) {
+    if (
+      cleanName.includes('@') ||
+      /\+?\d[\d\s-]{6,}/.test(cleanName) ||
+      /https?:\/\/|www\./i.test(cleanName)
+    ) {
       setSubmitError(
         arenaLang === 'tr'
-          ? 'KVKK/GDPR veri minimizasyonu gereği e-posta adresi veya telefon numarası girilmemelidir; yalnızca takma ad kullanın.'
-          : 'Under GDPR/KVKK data minimization, please use a pseudonymous alias without email or phone numbers.'
+          ? 'KVKK/GDPR veri minimizasyonu gereği e-posta, telefon numarası veya bağlantı yerine yalnızca takma kullanıcı adı kullanın.'
+          : 'Under GDPR/KVKK data minimization, please choose a custom username without email, phone numbers, or links.'
       );
       return;
     }
@@ -334,9 +403,22 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
 
     setSubmitting(true);
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSubmitError(
+          arenaLang === 'tr'
+            ? 'Oturum doğrulama anahtarı alınamadı; lütfen yeniden giriş yapın.'
+            : 'Could not obtain session token; please sign in again.'
+        );
+        return;
+      }
+
       const res = await fetch('/api/arena/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           nickname: cleanName,
           language: arenaLang,
@@ -356,11 +438,13 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
       setLastReceipt({
         entryId: data.entryId,
         weekId: data.weekId,
-        erasureToken: data.erasureToken,
-        nickname: cleanName,
+        nickname: data.nickname || cleanName,
         rank: data.rank ?? null,
+        keptHigherPreviousScore: Boolean(data.keptHigherPreviousScore),
       });
-      setSubmitNotice(ui.publishedNotice);
+      setSubmitNotice(
+        data.keptHigherPreviousScore ? authUi.keptBestScoreNotice : ui.publishedNotice
+      );
       setSelectedWeekId('current');
       await fetchLeaderboard('current');
     } catch {
@@ -374,18 +458,27 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
     }
   };
 
-  const handleEraseOwnEntry = async () => {
-    if (!lastReceipt) return;
+  const handleEraseOwnEntry = async (targetWeekId?: string) => {
+    if (!authUser || !getAuthToken) return;
+    const weekToErase = targetWeekId || lastReceipt?.weekId || leaderboard?.weekId || leaderboard?.currentWeekId;
+    if (!weekToErase) return;
+
     setSubmitting(true);
     setSubmitError('');
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSubmitError('Oturum doğrulaması yenilenemedi.');
+        return;
+      }
       const res = await fetch('/api/arena/entry', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          weekId: lastReceipt.weekId,
-          entryId: lastReceipt.entryId,
-          erasureToken: lastReceipt.erasureToken,
+          weekId: weekToErase,
         }),
       });
       const data = await res.json();
@@ -469,7 +562,7 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
           <span className="text-sky-300 font-semibold">○ {ui.blankPts}</span>
           <span className="text-rose-300 font-semibold">✕ {ui.wrongPts}</span>
         </div>
-        <div className="text-slate-300 text-[11px]">{ui.openParticipationNote}</div>
+        <div className="text-slate-300 text-[11px]">{authUi.openPracticeAuthBoardNote}</div>
       </div>
 
       {/* Main 2-Column Layout: Left = Game Arena (7 cols), Right = Weekly Top 5 Leaderboard (5 cols) */}
@@ -806,18 +899,56 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
                 </div>
               </div>
 
-              {/* Opt-in Weekly Leaderboard Form (KVKK 6698 & EU GDPR Art. 6(1)(a) & Art. 17) */}
-              {!lastReceipt ? (
+              {/* Authenticated-Only Opt-in Weekly Leaderboard Submission (KVKK 6698 & EU GDPR Art. 6(1)(a) & Art. 17) */}
+              {!authUser ? (
+                <div className="bg-[#FBF9F5] border border-stone-300 p-4 sm:p-5 space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <Trophy className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="font-editorial text-base font-bold text-stone-950">
+                        {authUi.signInRequiredTitle}
+                      </h4>
+                      <p className="text-xs text-stone-700 leading-relaxed">
+                        {authUi.signInRequiredDesc}
+                      </p>
+                    </div>
+                  </div>
+                  {submitError && (
+                    <div className="text-xs font-mono text-rose-800 bg-rose-50 border border-rose-300 p-2.5">
+                      {submitError}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    {onRequestSignIn && (
+                      <button
+                        type="button"
+                        disabled={signingInInline}
+                        onClick={() => void handleInlineSignIn()}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1E3A8A] hover:bg-blue-900 text-white font-mono text-xs font-bold rounded-xs cursor-pointer transition-colors disabled:opacity-60 whitespace-nowrap"
+                      >
+                        <LogIn className="w-4 h-4 text-amber-300" />
+                        <span>{signingInInline ? '...' : authUi.signInToJoinTop5Btn}</span>
+                      </button>
+                    )}
+                    <span className="text-[11px] text-stone-600">{ui.privateOnlyNote}</span>
+                  </div>
+                </div>
+              ) : !lastReceipt ? (
                 <form
                   onSubmit={handlePublishToLeaderboard}
                   className="bg-[#FBF9F5] border border-stone-300 p-4 space-y-3.5"
                 >
+                  <div className="flex items-center gap-2 text-xs font-mono text-emerald-900 bg-emerald-50 border border-emerald-200 px-3 py-2">
+                    <UserCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>{authUi.signedInCustomNameNote}</span>
+                  </div>
+
                   <div className="space-y-1">
                     <label
                       htmlFor="arena-nickname-input"
                       className="block text-xs font-mono font-bold text-stone-900"
                     >
-                      {ui.nicknameLabel}
+                      {authUi.customUsernameLabel}
                     </label>
                     <input
                       id="arena-nickname-input"
@@ -825,7 +956,7 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
                       maxLength={24}
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
-                      placeholder={ui.nicknamePlaceholder}
+                      placeholder={authUi.customUsernamePlaceholder}
                       className="w-full px-3 py-2.5 text-sm bg-white border border-stone-300 rounded-xs text-stone-950 focus:outline-none focus:border-[#1E3A8A]"
                     />
                   </div>
@@ -871,7 +1002,7 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
                     <button
                       type="button"
                       disabled={submitting}
-                      onClick={handleEraseOwnEntry}
+                      onClick={() => void handleEraseOwnEntry(lastReceipt.weekId)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 border border-rose-400 text-rose-800 font-mono text-[11px] font-bold rounded-xs cursor-pointer transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -985,24 +1116,56 @@ export const RiddleTriviaWeeklyArena: React.FC<RiddleTriviaWeeklyArenaProps> = (
             </div>
           )}
 
-          {/* KVKK / GDPR Privacy Guarantee Footer */}
-          <div className="pt-3 border-t border-stone-200 flex items-start gap-2 text-[11px] text-stone-600 leading-relaxed">
-            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-            <div>
-              <span>
-                {arenaLang === 'tr'
-                  ? 'KVKK (6698) & AB GDPR uyumlu: Yalnızca rıza ile seçilen takma ad ve haftalık oyun puanı saklanır; e-posta, gerçek ad veya IP adresi tutulmaz.'
-                  : 'GDPR & KVKK compliant: Only opt-in pseudonymous aliases and weekly scores are stored; zero email, real name, or IP retention.'}
-              </span>{' '}
-              {onOpenKvkkModal && (
-                <button
-                  type="button"
-                  onClick={onOpenKvkkModal}
-                  className="text-[#1E3A8A] font-semibold underline cursor-pointer"
-                >
-                  KVKK / GDPR
-                </button>
-              )}
+          {/* Authenticated User's Own Standing + Persistent 1-Click KVKK/GDPR Erasure */}
+          {authUser && leaderboard?.myEntry && (
+            <div className="bg-[#FBF9F5] border border-stone-300 p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono tabular-nums">
+              <div className="space-y-0.5">
+                <div className="text-[10px] text-stone-500">{authUi.myStandingLabel}</div>
+                <div className="font-bold text-stone-950">
+                  #{leaderboard.myEntry.rank} · {leaderboard.myEntry.nickname} ·{' '}
+                  <span className="text-[#1E3A8A]">
+                    {leaderboard.myEntry.score >= 0
+                      ? `+${leaderboard.myEntry.score}`
+                      : leaderboard.myEntry.score}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void handleEraseOwnEntry(leaderboard.weekId)}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-bold rounded-xs cursor-pointer transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>{ui.eraseMyEntryBtn}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Verified-Users-Only & KVKK / GDPR Privacy Guarantee Footer */}
+          <div className="pt-3 border-t border-stone-200 space-y-2 text-[11px] text-stone-600 leading-relaxed">
+            <div className="flex items-start gap-2">
+              <UserCheck className="w-4 h-4 text-[#1E3A8A] shrink-0 mt-0.5" />
+              <span>{authUi.leaderboardVerifiedOnlyNote}</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <span>
+                  {arenaLang === 'tr'
+                    ? 'KVKK (6698) & AB GDPR uyumlu: Yalnızca giriş yapanların açık rıza ile seçtiği kullanıcı adı ve haftalık puanı saklanır; e-posta veya IP adresi kamuya açılmaz, tek tıkla silinebilir ve Veri Sahibi Hakları Merkezi’nden JSON dışa aktarılabilir.'
+                    : 'GDPR & KVKK compliant: Only opt-in custom usernames and weekly scores of signed-in players are stored; zero public email or IP retention, instant erasure, and included in Privacy Center JSON export.'}
+                </span>{' '}
+                {onOpenKvkkModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenKvkkModal}
+                    className="text-[#1E3A8A] font-semibold underline cursor-pointer"
+                  >
+                    KVKK / GDPR
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </aside>

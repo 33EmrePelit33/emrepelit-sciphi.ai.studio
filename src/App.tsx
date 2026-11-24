@@ -4,6 +4,7 @@ import {
   BarChart3,
   BookMarked,
   BookOpen,
+  Brain,
   ChevronDown,
   ChevronUp,
   Compass,
@@ -69,6 +70,8 @@ import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallButto
 import { MathFormula } from './components/MathFormula';
 import { ArticleStickyToc } from './components/ArticleStickyToc';
 import { UserAuthButton } from './components/UserAuthButton';
+import { signInWithPopup, type User as FirebaseUser } from 'firebase/auth';
+import { auth as firebaseClientAuth, googleAuthProvider } from './lib/firebase';
 import type { VideoWatchProgressPayload } from './components/ArticleExplainerVideo';
 import type { GovernanceTab } from './components/GovernanceLegalModal';
 import { computeArticleScientificAnalysis } from './utils/articleAnalysisEngine';
@@ -224,7 +227,7 @@ const APP_CHROME_I18N: Record<
     consentActive: 'Açık Rıza Aktif',
     consentRejected: 'Reddedildi',
     consentPending: 'Bekliyor',
-    langDirsLabel: 'Dil Dizinleri (12 Dil):',
+    langDirsLabel: 'Dil Dizinleri (23 Dil):',
     fullArchiveLabel: 'Tam Arşiv',
     publishedOn10SitesHeading: (active: number, total: number) =>
       `2 Canlı Web Sitesi (Ana Hub + Blogger) & 8 Emekli 301 Kaydı (${active}/${total} Düğüm Mutabakatı)`,
@@ -664,6 +667,391 @@ const APP_CHROME_I18N: Record<
     mainAuthorityCenterLabel: '정규 권위 중심지:',
     liveMainHubBadge: '✓ 게시됨 (100% 메인 허브)',
     liveRedirectBadge: '✓ 게시됨 (301 → 메인 허브)',
+  },
+  no: {
+    analyticsShort: 'Analyse',
+    scientificScore: 'Vitenskapelig skår',
+    exclusiveAuthor: 'Eksklusiv forfatter: Emre Pelit (100 % opphavsrett)',
+    openFullAnalysis: 'Full artikkelanalyse, vitenskapelig skår og lydavspilling',
+    openAnalysisShort: 'Åpne analyseside (Tidligere forskning + Konsensus + Ligninger)',
+    priorResearchLabel: 'Tidligere forskning (forskere) og etablert konsensus:',
+    citationsLabel: 'Siteringer',
+    impressionsLabel: '301-nettverksvisninger',
+    bloggerSource: 'Blogger-kilde',
+    copyrightOwner: 'Opphavsrett: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Alle tekst-, sammendrags- og simuleringsrettigheter tilhører eksklusivt Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Vitenskaps-, Filosofi- og Simuleringsarkiv (Uavhengig forfatterarkiv · Alle rettigheter forbeholdt)',
+    privacy: 'Personvern',
+    terms: 'Vilkår',
+    imprint: 'Kolofon',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Ansvarsfraskrivelse',
+    methodology: 'AI- og telemetrimetodologi',
+    searchPlaceholderPrefix: '⌘K Hurtigsøk',
+    network301FooterLabel: 'Kanonisk hovednav og 301-nettverk (11 noder):',
+    cookiePrefsLabel: 'Informasjonskapsler & personvern',
+    consentActive: 'Samtykke aktivt',
+    consentRejected: 'Avvist',
+    consentPending: 'Venter',
+    langDirsLabel: 'Språkkataloger (23 språk):',
+    fullArchiveLabel: 'Fullt arkiv',
+    publishedOn10SitesHeading: (active: number, total: number) => `Offisiell 301-nettverkspublisering (${active}/${total})`,
+    publishedOn10SitesDesc: 'Offisielle 301-nettverksnoder med 100 % kanonisk autoritet samlet på emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Publiserings-URL:',
+    canonicalCounterpartBtn: 'Gå til hovednav ↗',
+    mainAuthorityCenterLabel: 'Kanonisk autoritetssenter:',
+    liveMainHubBadge: '✓ Publisert (100 % hovednav)',
+    liveRedirectBadge: '✓ Publisert (301 → hovednav)',
+  },
+  is: {
+    analyticsShort: 'Greining',
+    scientificScore: 'Vísindaeinkunn',
+    exclusiveAuthor: 'Einkahöfundur: Emre Pelit (100% höfundarréttur)',
+    openFullAnalysis: 'Full greining, vísindaeinkunn og hljóðlestur',
+    openAnalysisShort: 'Opna greiningarsíðu (Fyrri rannsóknir + Jöfnur)',
+    priorResearchLabel: 'Fyrri rannsóknir (vísindamenn) og viðteknar forsendur:',
+    citationsLabel: 'Tilvitnanir',
+    impressionsLabel: '301-netbirtingar',
+    bloggerSource: 'Blogger-heimild',
+    copyrightOwner: 'Höfundarréttur: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Öll réttindi áskilin Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Vísinda-, Heimspeki- og Hermisafn (Óháð höfundasafn)',
+    privacy: 'Persónuvernd',
+    terms: 'Skilmálar',
+    imprint: 'Útgefandi',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Fyrirvari',
+    methodology: 'Gervigreindar- og mælingaaðferðafræði',
+    searchPlaceholderPrefix: '⌘K Flýtileit',
+    network301FooterLabel: 'Kanonísk miðstöð og 301-net (11 hnútar):',
+    cookiePrefsLabel: 'Vafrakökur og persónuvernd',
+    consentActive: 'Samþykki virkt',
+    consentRejected: 'Hafnað',
+    consentPending: 'Í bið',
+    langDirsLabel: 'Tungumálasvæði (23 tungumál):',
+    fullArchiveLabel: 'Allt safnið',
+    publishedOn10SitesHeading: (active: number, total: number) => `Opinber 301-netútgáfa (${active}/${total})`,
+    publishedOn10SitesDesc: 'Opinberir 301-nethnútar sameinaðir í emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Útgáfuslóð:',
+    canonicalCounterpartBtn: 'Opna aðalmiðstöð ↗',
+    mainAuthorityCenterLabel: 'Aðalmiðstöð:',
+    liveMainHubBadge: '✓ Útgefið (100% aðalmiðstöð)',
+    liveRedirectBadge: '✓ Útgefið (301 → aðalmiðstöð)',
+  },
+  da: {
+    analyticsShort: 'Analyse',
+    scientificScore: 'Videnskabelig score',
+    exclusiveAuthor: 'Eksklusiv forfatter: Emre Pelit (100 % ophavsret)',
+    openFullAnalysis: 'Fuld artikelanalyse, videnskabelig score og lydoplæsning',
+    openAnalysisShort: 'Åbn analyseside (Tidligere forskning + Ligninger)',
+    priorResearchLabel: 'Tidligere forskning (forskere) og etableret konsensus:',
+    citationsLabel: 'Citationer',
+    impressionsLabel: '301-netværksvisninger',
+    bloggerSource: 'Blogger-kilde',
+    copyrightOwner: 'Ophavsret: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Alle tekst-, resumé- og simuleringsrettigheder tilhører Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Videnskabs-, Filosofi- og Simuleringsarkiv',
+    privacy: 'Privatliv',
+    terms: 'Vilkår',
+    imprint: 'Kolofon',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Ansvarsfraskrivelse',
+    methodology: 'AI- og telemetrimetodologi',
+    searchPlaceholderPrefix: '⌘K Hurtigsøgning',
+    network301FooterLabel: 'Kanonisk hovedhub og 301-netværk (11 noder):',
+    cookiePrefsLabel: 'Cookie- og privatlivsindstillinger',
+    consentActive: 'Samtykke aktivt',
+    consentRejected: 'Afvist',
+    consentPending: 'Afventer',
+    langDirsLabel: 'Sprogmapper (23 sprog):',
+    fullArchiveLabel: 'Fuldt arkiv',
+    publishedOn10SitesHeading: (active: number, total: number) => `Officiel 301-netværkspublicering (${active}/${total})`,
+    publishedOn10SitesDesc: 'Officielle 301-netværksnoder med kanonisk autoritet samlet på emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Publicerings-URL:',
+    canonicalCounterpartBtn: 'Gå til hovedhub ↗',
+    mainAuthorityCenterLabel: 'Kanonisk autoritetscenter:',
+    liveMainHubBadge: '✓ Publiceret (100 % hovedhub)',
+    liveRedirectBadge: '✓ Publiceret (301 → hovedhub)',
+  },
+  sv: {
+    analyticsShort: 'Analys',
+    scientificScore: 'Vetenskaplig poäng',
+    exclusiveAuthor: 'Exklusiv författare: Emre Pelit (100 % upphovsrätt)',
+    openFullAnalysis: 'Fullständig artikelanalys, vetenskaplig poäng och ljuduppläsning',
+    openAnalysisShort: 'Öppna analyssida (Tidigare forskning + Ekvationer)',
+    priorResearchLabel: 'Tidigare forskning (forskare) och etablerad konsensus:',
+    citationsLabel: 'Citeringar',
+    impressionsLabel: '301-nätverksvisningar',
+    bloggerSource: 'Blogger-källa',
+    copyrightOwner: 'Upphovsrätt: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Alla rättigheter förbehålles Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Vetenskaps-, Filosofi- och Simuleringsarkiv',
+    privacy: 'Integritet',
+    terms: 'Villkor',
+    imprint: 'Impressum',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Ansvarsfriskrivning',
+    methodology: 'AI- och telemetrimetodik',
+    searchPlaceholderPrefix: '⌘K Snabbsök',
+    network301FooterLabel: 'Kanoniskt huvudnav och 301-nätverk (11 noder):',
+    cookiePrefsLabel: 'Cookie- och integritetsval',
+    consentActive: 'Samtycke aktivt',
+    consentRejected: 'Avvisat',
+    consentPending: 'Väntar',
+    langDirsLabel: 'Språkkataloger (23 språk):',
+    fullArchiveLabel: 'Hela arkivet',
+    publishedOn10SitesHeading: (active: number, total: number) => `Officiell 301-nätverkspublicering (${active}/${total})`,
+    publishedOn10SitesDesc: 'Officiella 301-nätverksnoder samlade på emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Publicerings-URL:',
+    canonicalCounterpartBtn: 'Öppna huvudnav ↗',
+    mainAuthorityCenterLabel: 'Kanoniskt auktoritetscentrum:',
+    liveMainHubBadge: '✓ Publicerad (100 % huvudnav)',
+    liveRedirectBadge: '✓ Publicerad (301 → huvudnav)',
+  },
+  nl: {
+    analyticsShort: 'Analyse',
+    scientificScore: 'Wetenschappelijke score',
+    exclusiveAuthor: 'Exclusieve auteur: Emre Pelit (100% auteursrecht)',
+    openFullAnalysis: 'Volledige artikelanalyse, wetenschappelijke score en audio-voorlezing',
+    openAnalysisShort: 'Analysepagina openen (Eerder onderzoek + Vergelijkingen)',
+    priorResearchLabel: 'Eerder onderzoek (wetenschappers) & gevestigde consensus:',
+    citationsLabel: 'Citaties',
+    impressionsLabel: '301-netwerkweergaven',
+    bloggerSource: 'Blogger-bron',
+    copyrightOwner: 'Auteursrecht: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Alle rechten exclusief voorbehouden aan Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Wetenschaps-, Filosofie- en Simulatiearchief',
+    privacy: 'Privacy',
+    terms: 'Voorwaarden',
+    imprint: 'Colofon',
+    kvkk: 'KVKK / AVG',
+    disclaimer: 'Disclaimer',
+    methodology: 'AI- & telemetriemethodologie',
+    searchPlaceholderPrefix: '⌘K Snel zoeken',
+    network301FooterLabel: 'Kanonieke hoofdhub & 301-netwerk (11 knooppunten):',
+    cookiePrefsLabel: 'Cookie- & privacyvoorkeuren',
+    consentActive: 'Toestemming actief',
+    consentRejected: 'Geweigerd',
+    consentPending: 'In afwachting',
+    langDirsLabel: 'Taalmappen (23 talen):',
+    fullArchiveLabel: 'Volledig archief',
+    publishedOn10SitesHeading: (active: number, total: number) => `Officiële 301-netwerkpublicatie (${active}/${total})`,
+    publishedOn10SitesDesc: 'Officiële 301-netwerkknooppunten geconsolideerd op emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Publicatie-URL:',
+    canonicalCounterpartBtn: 'Naar hoofdhub ↗',
+    mainAuthorityCenterLabel: 'Kanoniek autoriteitscentrum:',
+    liveMainHubBadge: '✓ Gepubliceerd (100% hoofdhub)',
+    liveRedirectBadge: '✓ Gepubliceerd (301 → hoofdhub)',
+  },
+  fi: {
+    analyticsShort: 'Analytiikka',
+    scientificScore: 'Tieteellinen pisteet',
+    exclusiveAuthor: 'Yksinomainen tekijä: Emre Pelit (100 % tekijänoikeus)',
+    openFullAnalysis: 'Täysi artikkelianalyysi, tieteellinen pisteet ja ääniluku',
+    openAnalysisShort: 'Avaa analyysisivu (Aiempi tutkimus + Yhtälöt)',
+    priorResearchLabel: 'Aiempi tutkimus (tutkijat) ja vakiintunut konsensus:',
+    citationsLabel: 'Viittaukset',
+    impressionsLabel: '301-verkkonäyttökerrat',
+    bloggerSource: 'Blogger-lähde',
+    copyrightOwner: 'Tekijänoikeus: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Kaikki oikeudet pidätetään Emre Pelitille.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Tiede-, Filosofia- ja Simulaatioarkisto',
+    privacy: 'Tietosuoja',
+    terms: 'Käyttöehdot',
+    imprint: 'Julkaisutiedot',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Vastuuvapaus',
+    methodology: 'Tekoäly- ja telemetriamenetelmät',
+    searchPlaceholderPrefix: '⌘K Pikahaku',
+    network301FooterLabel: 'Kanoninen pääkeskus ja 301-verkko (11 solmua):',
+    cookiePrefsLabel: 'Eväste- ja tietosuoja-asetukset',
+    consentActive: 'Suostumus aktiivinen',
+    consentRejected: 'Hylätty',
+    consentPending: 'Odottaa',
+    langDirsLabel: 'Kielihakemistot (23 kieltä):',
+    fullArchiveLabel: 'Koko arkisto',
+    publishedOn10SitesHeading: (active: number, total: number) => `Virallinen 301-verkkojulkaisu (${active}/${total})`,
+    publishedOn10SitesDesc: 'Viralliset 301-verkkosolmut yhdistetty osoitteeseen emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Julkaisu-URL:',
+    canonicalCounterpartBtn: 'Siirry pääkeskukseen ↗',
+    mainAuthorityCenterLabel: 'Kanoninen pääkeskus:',
+    liveMainHubBadge: '✓ Julkaistu (100 % pääkeskus)',
+    liveRedirectBadge: '✓ Julkaistu (301 → pääkeskus)',
+  },
+  ga: {
+    analyticsShort: 'Anailísíocht',
+    scientificScore: 'Scór Eolaíoch',
+    exclusiveAuthor: 'Údar Eisiach: Emre Pelit (Cóipcheart 100%)',
+    openFullAnalysis: 'Anailís iomlán ailt, scór eolaíoch agus éisteacht fuaime',
+    openAnalysisShort: 'Oscail leathanach anailíse (Taighde roimhe seo + Cothromóidí)',
+    priorResearchLabel: 'Taighde roimhe seo (eolaithe) agus comhdhearcadh bunaithe:',
+    citationsLabel: 'Luanna',
+    impressionsLabel: 'Taispeántais Líonra 301',
+    bloggerSource: 'Foinse Blogger',
+    copyrightOwner: 'Cóipcheart: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Gach ceart ar cosaint ag Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Cartlann Eolaíochta, Fealsúnachta & Insamhalta Sci-Phil',
+    privacy: 'Príobháideachas',
+    terms: 'Téarmaí',
+    imprint: 'Rian',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Séanadh',
+    methodology: 'Modheolaíocht AI & Teiliméadrachta',
+    searchPlaceholderPrefix: '⌘K Cuardach Tapa',
+    network301FooterLabel: 'Príomh-Mhol Canónach & Líonra 301 (11 Nód):',
+    cookiePrefsLabel: 'Roghanna Fianán & Príobháideachais',
+    consentActive: 'Toiliú Gníomhach',
+    consentRejected: 'Diúltaithe',
+    consentPending: 'Ar Feitheamh',
+    langDirsLabel: 'Eolairí Teanga (23 Teanga):',
+    fullArchiveLabel: 'Cartlann Iomlán',
+    publishedOn10SitesHeading: (active: number, total: number) => `Foilsiú Oifigiúil Líonra 301 (${active}/${total})`,
+    publishedOn10SitesDesc: 'Nóid oifigiúla líonra 301 comhdhlúite ar emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'URL Foilsithe:',
+    canonicalCounterpartBtn: 'Téigh go Príomh-Mhol ↗',
+    mainAuthorityCenterLabel: 'Ionad Údaráis Canónach:',
+    liveMainHubBadge: '✓ Foilsithe (100% Príomh-Mhol)',
+    liveRedirectBadge: '✓ Foilsithe (301 → Príomh-Mhol)',
+  },
+  lb: {
+    analyticsShort: 'Analytik',
+    scientificScore: 'Wëssenschaftleche Score',
+    exclusiveAuthor: 'Exklusiven Auteur: Emre Pelit (100% Auteursrecht)',
+    openFullAnalysis: 'Komplett Artikelanalys, wëssenschaftleche Score & Audio',
+    openAnalysisShort: 'Analys-Säit opmaachen (Fréier Fuerschung + Equatiounen)',
+    priorResearchLabel: 'Fréier Fuerschung (Wëssenschaftler) & etabléierte Konsens:',
+    citationsLabel: 'Zitater',
+    impressionsLabel: '301-Netz-Impressiounen',
+    bloggerSource: 'Blogger-Quell',
+    copyrightOwner: 'Auteursrecht: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. All Rechter exklusiv beim Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil Wëssenschafts-, Philosophie- a Simulatiounsarchiv',
+    privacy: 'Dateschutz',
+    terms: 'Konditiounen',
+    imprint: 'Impressum',
+    kvkk: 'KVKK / DSGVO',
+    disclaimer: 'Haftungsausschluss',
+    methodology: 'KI- & Telemetrie-Methodologie',
+    searchPlaceholderPrefix: '⌘K Schnell-Sich',
+    network301FooterLabel: 'Kanoneschen Haapt-Hub & 301-Netz (11 Knuet):',
+    cookiePrefsLabel: 'Cookie- & Dateschutzastellungen',
+    consentActive: 'Zoustëmmung aktiv',
+    consentRejected: 'Refuséiert',
+    consentPending: 'Ausstoend',
+    langDirsLabel: 'Sprooch-Verzeechnisser (23 Sproochen):',
+    fullArchiveLabel: 'Komplett Archiv',
+    publishedOn10SitesHeading: (active: number, total: number) => `Offiziell 301-Netz-Publikatioun (${active}/${total})`,
+    publishedOn10SitesDesc: 'Offiziell 301-Netz-Knuet mat Autoritéit op emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'Publikatiouns-URL:',
+    canonicalCounterpartBtn: 'Op den Haapt-Hub ↗',
+    mainAuthorityCenterLabel: 'Kanoneschen Autoritéitszentrum:',
+    liveMainHubBadge: '✓ Verëffentlecht (100% Haapt-Hub)',
+    liveRedirectBadge: '✓ Verëffentlecht (301 → Haapt-Hub)',
+  },
+  rm: {
+    analyticsShort: 'Analisa',
+    scientificScore: 'Puncts scientifics',
+    exclusiveAuthor: 'Autur exclusiv: Emre Pelit (100% dretg d’autur)',
+    openFullAnalysis: 'Analisa cumpletta, puncts scientifics & audiziun',
+    openAnalysisShort: 'Avrir pagina d’analisa (Perscrutaziuns precedentas + Equaziuns)',
+    priorResearchLabel: 'Perscrutaziuns precedentas (scienziads) & consens etablì:',
+    citationsLabel: 'Citats',
+    impressionsLabel: 'Impressiuns Rait 301',
+    bloggerSource: 'Funtauna Blogger',
+    copyrightOwner: 'Dretg d’autur: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Tut ils dretgs reservads exclusivamain ad Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Archiv Sci-Phil da Scienza, Filosofia e Simulaziun',
+    privacy: 'Protecziun da datas',
+    terms: 'Cundiziuns',
+    imprint: 'Impressum',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Exclusiun da responsabladad',
+    methodology: 'Metodologia IA & Telemetria',
+    searchPlaceholderPrefix: '⌘K Tschertga svelta',
+    network301FooterLabel: 'Center canonic & Rait 301 (11 nufs):',
+    cookiePrefsLabel: 'Preferenzas da cookies & datas',
+    consentActive: 'Consens activ',
+    consentRejected: 'Refusà',
+    consentPending: 'Pendent',
+    langDirsLabel: 'Registers linguistics (23 linguas):',
+    fullArchiveLabel: 'Archiv cumplet',
+    publishedOn10SitesHeading: (active: number, total: number) => `Publicaziun uffiziala Rait 301 (${active}/${total})`,
+    publishedOn10SitesDesc: 'Nufs uffizials da la Rait 301 consolidats sin emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'URL da publicaziun:',
+    canonicalCounterpartBtn: 'Ir al center principal ↗',
+    mainAuthorityCenterLabel: 'Center d’autoritad canonic:',
+    liveMainHubBadge: '✓ Publicà (100% center principal)',
+    liveRedirectBadge: '✓ Publicà (301 → center principal)',
+  },
+  ms: {
+    analyticsShort: 'Analitik',
+    scientificScore: 'Skor Saintifik',
+    exclusiveAuthor: 'Pengarang Eksklusif: Emre Pelit (100% Hak Cipta)',
+    openFullAnalysis: 'Analisis Penuh Artikel, Skor Saintifik & Audio',
+    openAnalysisShort: 'Buka Halaman Analisis (Kajian Terdahulu + Persamaan)',
+    priorResearchLabel: 'Kajian Terdahulu (Saintis) & Konsensus Saintifik:',
+    citationsLabel: 'Sitasi',
+    impressionsLabel: 'Paparan Rangkaian 301',
+    bloggerSource: 'Sumber Blogger',
+    copyrightOwner: 'Hak Cipta: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. Semua hak teks, abstrak dan simulasi milik eksklusif Emre Pelit.`,
+    footerArchiveTitle: 'Emre Pelit — Arkib Sains, Falsafah & Simulasi Sci-Phil',
+    privacy: 'Privasi',
+    terms: 'Terma',
+    imprint: 'Imprin',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'Penafian',
+    methodology: 'Metodologi AI & Telemetri',
+    searchPlaceholderPrefix: '⌘K Carian Pantas',
+    network301FooterLabel: 'Hab Kanonik & Rangkaian 301 (11 Nod):',
+    cookiePrefsLabel: 'Tetapan Kuki & Privasi',
+    consentActive: 'Persetujuan Aktif',
+    consentRejected: 'Ditolak',
+    consentPending: 'Menunggu',
+    langDirsLabel: 'Direktori Bahasa (23 Bahasa):',
+    fullArchiveLabel: 'Arkib Penuh',
+    publishedOn10SitesHeading: (active: number, total: number) => `Penerbitan Rasmi Rangkaian 301 (${active}/${total})`,
+    publishedOn10SitesDesc: 'Nod rangkaian 301 rasmi yang disatukan ke emrepelit-sciphi.ai.studio:',
+    publicationUrlLabel: 'URL Penerbitan:',
+    canonicalCounterpartBtn: 'Ke Hab Utama ↗',
+    mainAuthorityCenterLabel: 'Pusat Autoriti Kanonik:',
+    liveMainHubBadge: '✓ Diterbitkan (100% Hab Utama)',
+    liveRedirectBadge: '✓ Diterbitkan (301 → Hab Utama)',
+  },
+  ta: {
+    analyticsShort: 'பகுப்பாய்வு',
+    scientificScore: 'அறிவியல் மதிப்பெண்',
+    exclusiveAuthor: 'தனிப்பட்ட ஆசிரியர்: Emre Pelit (100% பதிப்புரிமை)',
+    openFullAnalysis: 'முழு கட்டுரை பகுப்பாய்வு, அறிவியல் மதிப்பெண் & ஒலி வாசிப்பு',
+    openAnalysisShort: 'பகுப்பாய்வுப் பக்கத்தைத் திற (முந்தைய ஆய்வுகள் + சமன்பாடுகள்)',
+    priorResearchLabel: 'முந்தைய அறிவியல் ஆய்வுகள் & நிறுவப்பட்ட கருத்தொற்றுமை:',
+    citationsLabel: 'மேற்கோள்கள்',
+    impressionsLabel: '301 வலையமைப்பு பார்வைகள்',
+    bloggerSource: 'Blogger ஆதாரம்',
+    copyrightOwner: 'பதிப்புரிமை: Emre Pelit',
+    cardCopyrightNotice: (year: string) => `© ${year} Emre Pelit. அனைத்து உரிமைகளும் Emre Pelit-க்கு சொந்தமானவை.`,
+    footerArchiveTitle: 'Emre Pelit — Sci-Phil அறிவியல், தத்துவம் மற்றும் உருவகப்படுத்துதல் காப்பகம்',
+    privacy: 'தனியுரிமை',
+    terms: 'விதிமுறைகள்',
+    imprint: 'வெளியீட்டு விபரம்',
+    kvkk: 'KVKK / GDPR',
+    disclaimer: 'பொறுப்புத் துறப்பு',
+    methodology: 'AI & அளவீட்டு முறைமை',
+    searchPlaceholderPrefix: '⌘K விரைவுத் தேடல்',
+    network301FooterLabel: 'முதன்மை மையம் & 301 வலையமைப்பு (11 முனைகள்):',
+    cookiePrefsLabel: 'குக்கீ & தனியுரிமை விருப்பங்கள்',
+    consentActive: 'ஒப்புதல் செயலில்',
+    consentRejected: 'நிராகரிக்கப்பட்டது',
+    consentPending: 'நிலுவையில்',
+    langDirsLabel: 'மொழி அடைவுகள் (23 மொழிகள்):',
+    fullArchiveLabel: 'முழு காப்பகம்',
+    publishedOn10SitesHeading: (active: number, total: number) => `அதிகாரப்பூர்வ 301 வலையமைப்பு வெளியீடு (${active}/${total})`,
+    publishedOn10SitesDesc: 'emrepelit-sciphi.ai.studio முதன்மை மையத்தில் ஒருங்கிணைக்கப்பட்ட 301 முனைகள்:',
+    publicationUrlLabel: 'வெளியீட்டு URL:',
+    canonicalCounterpartBtn: 'முதன்மை மையத்திற்குச் செல் ↗',
+    mainAuthorityCenterLabel: 'முதன்மை அதிகார மையம்:',
+    liveMainHubBadge: '✓ வெளியிடப்பட்டது (100% முதன்மை மையம்)',
+    liveRedirectBadge: '✓ வெளியிடப்பட்டது (301 → முதன்மை மையம்)',
   },
 };
 
@@ -1475,11 +1863,73 @@ export default function App() {
     }
   };
 
-  // In-memory Firebase Auth ID token for authenticated bookmark & reading sync (never stored in localStorage)
+  // In-memory Firebase Auth user & ID token (never stored in localStorage)
   const firebaseIdTokenRef = useRef<string | null>(null);
+  const [firebaseAuthUser, setFirebaseAuthUser] = useState<{
+    uid: string;
+    displayName?: string | null;
+    email?: string | null;
+  } | null>(null);
 
-  const handleFirebaseAuthChange = useCallback(async (_user: unknown, idToken: string | null) => {
+  const getFreshFirebaseIdToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const current = firebaseClientAuth.currentUser;
+      if (current) {
+        const fresh = await current.getIdToken();
+        firebaseIdTokenRef.current = fresh;
+        return fresh;
+      }
+    } catch {
+      // Fall back to cached in-memory ref
+    }
+    return firebaseIdTokenRef.current;
+  }, []);
+
+  const handleTriggerGoogleSignIn = useCallback(async (): Promise<void> => {
+    const cred = await signInWithPopup(firebaseClientAuth, googleAuthProvider);
+    const token = await cred.user.getIdToken();
+    firebaseIdTokenRef.current = token;
+    setFirebaseAuthUser({
+      uid: cred.user.uid,
+      displayName: cred.user.displayName,
+      email: cred.user.email,
+    });
+  }, []);
+
+  const handleScrollToArena = useCallback(() => {
+    setNavCvDropdownOpen(false);
+    setNavAboutDropdownOpen(false);
+    const el = document.getElementById('interactive-arena');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.location.hash = 'interactive-arena';
+    }
+  }, []);
+
+  // Auto-scroll to #interactive-arena when arriving via canonical /arena or /:lang/arena routes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const p = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+    if (p === '/arena' || /^\/(tr|en|es|de|fr|ru|ar|zh|ja|pt|it|ko)\/arena$/.test(p)) {
+      const t = window.setTimeout(() => {
+        document.getElementById('interactive-arena')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 320);
+      return () => window.clearTimeout(t);
+    }
+  }, []);
+
+  const handleFirebaseAuthChange = useCallback(async (user: FirebaseUser | null, idToken: string | null) => {
     firebaseIdTokenRef.current = idToken;
+    setFirebaseAuthUser(
+      user
+        ? {
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+          }
+        : null
+    );
     if (!idToken) return;
     try {
       const resp = await fetch('/api/user/bookmarks', {
@@ -3685,39 +4135,53 @@ export default function App() {
                 citationsCount: Math.max(existingArt?.citationsCount || 0, Number(entry.citationsCount) || 0),
                 networkImpressions: Math.max(existingArt?.networkImpressions || 0, Number(entry.networkImpressions) || 0),
                 title: {
-                  tr: entry.title,
-                  en: entry.title,
-                  es: entry.title,
-                  de: entry.title,
                   ...(existingArt?.title || {}),
+                  tr: entry.title,
+                  en: existingArt?.title?.en && existingArt.title.en !== existingArt.title.tr ? existingArt.title.en : entry.title,
+                  es: existingArt?.title?.es && existingArt.title.es !== existingArt.title.tr ? existingArt.title.es : entry.title,
+                  de: existingArt?.title?.de && existingArt.title.de !== existingArt.title.tr ? existingArt.title.de : entry.title,
+                  [detectedLang]: entry.title,
                 },
                 subtitle: {
-                  tr: `Emre Pelit Özgün Makalesi #${postNum} • Canlı Ana Hub & Blogger Senkronize (HTTP 200 · 12 Dil Kanonik)`,
-                  en: `Original Article #${postNum} by Emre Pelit • Live Synced on Main Hub & Blogger (HTTP 200 · 12 Languages Canonical)`,
-                  es: `Artículo Original #${postNum} de Emre Pelit • Sincronizado en Hub Principal y Blogger (HTTP 200 · 12 Idiomas Canónicos)`,
-                  de: `Originalartikel #${postNum} von Emre Pelit • Synchronisiert auf Haupthub & Blogger (HTTP 200 · 12 Sprachen Kanonisch)`,
                   ...(existingArt?.subtitle || {}),
+                  tr: `Emre Pelit Özgün Makalesi #${postNum} • emrepelit7337.blogspot.com Tam Metin (HTTP 200 · 12 Dil Kanonik)`,
+                  en: `Original Article #${postNum} by Emre Pelit • Full Version from emrepelit7337.blogspot.com (HTTP 200 · 12 Languages)`,
+                  es: `Artículo Original #${postNum} de Emre Pelit • Versión Completa de emrepelit7337.blogspot.com`,
+                  de: `Originalartikel #${postNum} von Emre Pelit • Vollversion von emrepelit7337.blogspot.com`,
                 },
                 abstract: {
-                  tr: entry.abstract,
-                  en: entry.abstract,
-                  es: entry.abstract,
-                  de: entry.abstract,
                   ...(existingArt?.abstract || {}),
+                  tr: entry.abstract,
+                  en: existingArt?.abstract?.en && existingArt.abstract.en !== existingArt.abstract.tr ? existingArt.abstract.en : entry.abstract,
+                  es: existingArt?.abstract?.es && existingArt.abstract.es !== existingArt.abstract.tr ? existingArt.abstract.es : entry.abstract,
+                  de: existingArt?.abstract?.de && existingArt.abstract.de !== existingArt.abstract.tr ? existingArt.abstract.de : entry.abstract,
+                  [detectedLang]: entry.abstract,
                 },
                 keyFindings: {
-                  tr: findingsArr,
-                  en: findingsArr,
-                  es: findingsArr,
-                  de: findingsArr,
                   ...(existingArt?.keyFindings || {}),
+                  tr: findingsArr,
+                  en: existingArt?.keyFindings?.en && existingArt.keyFindings.en.length >= findingsArr.length && existingArt.keyFindings.en[0] !== existingArt.keyFindings.tr?.[0] ? existingArt.keyFindings.en : findingsArr,
+                  es: existingArt?.keyFindings?.es && existingArt.keyFindings.es.length >= findingsArr.length && existingArt.keyFindings.es[0] !== existingArt.keyFindings.tr?.[0] ? existingArt.keyFindings.es : findingsArr,
+                  de: existingArt?.keyFindings?.de && existingArt.keyFindings.de.length >= findingsArr.length && existingArt.keyFindings.de[0] !== existingArt.keyFindings.tr?.[0] ? existingArt.keyFindings.de : findingsArr,
+                  [detectedLang]: findingsArr,
                 },
                 contentParagraphs: {
+                  // Always prioritize exact full untruncated paragraphs from emrepelit7337.blogspot.com;
+                  // preserve previously translated non-native languages only if they match full paragraph coverage.
+                  ...Object.fromEntries(
+                    Object.entries(existingArt?.contentParagraphs || {}).filter(
+                      ([k, arr]) =>
+                        k !== detectedLang &&
+                        Array.isArray(arr) &&
+                        arr.length >= parasArr.length &&
+                        arr.join(' ') !== (existingArt?.contentParagraphs?.[detectedLang] || []).join(' ')
+                    )
+                  ),
                   tr: parasArr,
                   en: parasArr,
                   es: parasArr,
                   de: parasArr,
-                  ...(existingArt?.contentParagraphs || {}),
+                  [detectedLang]: parasArr,
                 },
                 references: [
                   `Pelit, E. (${(entry.publishedAt || '2026').slice(0, 4)}). "${entry.title}." Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi (#${postNum}, ${entry.bloggerUrl}) & Tek Kanonik Ana Hub.`,
@@ -3727,12 +4191,11 @@ export default function App() {
               };
             });
 
-            // Preserve any custom articles added directly on this website that aren't yet in liveEntries
+            // Preserve only explicitly created AI laboratory drafts not yet published to Blogger;
+            // all website articles reflect the exact full versions from emrepelit7337.blogspot.com.
             const liveIdsSet = new Set(convertedBloggerArticles.map((a) => a.id));
             const customWebsiteArticles = prevArticles.filter(
-              (a) =>
-                !liveIdsSet.has(a.id) &&
-                (a.sourceOrigin === 'ai-laboratory' || a.id.startsWith('blogger-hub-'))
+              (a) => !liveIdsSet.has(a.id) && a.sourceOrigin === 'ai-laboratory'
             );
             return [...customWebsiteArticles, ...convertedBloggerArticles];
           });
@@ -4035,7 +4498,7 @@ export default function App() {
   const handlePublishNewArticle = (newArt: Article, sourceNodeDomain?: string) => {
     const resolvedOriginNode =
       sourceNodeDomain || newArt.originNodeDomain || 'emrepelit-sciphi.ai.studio';
-    const nextArticleNum = Math.max(318, articles.length) + 1;
+    const nextArticleNum = Math.max(320, articles.length) + 1;
     const rawTitleStr = getLocalizedText(newArt.title, 'tr');
     const cleanId = newArt.id.startsWith('blogger-') ? newArt.id : `blogger-hub-${Date.now()}`;
     const cleanSlug =
@@ -4562,6 +5025,71 @@ export default function App() {
     return firstExpanded || paginatedArticles[0] || articles[0] || null;
   }, [paginatedArticles, expandedArticleIds, articles]);
 
+  // Auto-translate the active/expanded article into the newly selected language (all 23 languages)
+  // so article text, audio narrator, and explainer video stay 100% synchronized in the chosen language.
+  const autoTranslatedKeysRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (language === 'tr') return;
+    const expandedOnPage = paginatedArticles.filter((a) => expandedArticleIds[a.id]);
+    const targets = expandedOnPage.length > 0 ? expandedOnPage.slice(0, 2) : activeMobileArticle ? [activeMobileArticle] : [];
+    for (const art of targets) {
+      if (!art) continue;
+      const alreadyHasLang =
+        Boolean(art.title?.[language]) &&
+        Array.isArray(art.contentParagraphs?.[language]) &&
+        art.contentParagraphs[language].length > 0;
+      const key = `${art.id}::${language}`;
+      if (alreadyHasLang || autoTranslatedKeysRef.current.has(key)) continue;
+      autoTranslatedKeysRef.current.add(key);
+      void (async () => {
+        try {
+          const res = await fetch('/api/ai/translate-article', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              articleId: art.id,
+              title: getLocalizedText(art.title, 'tr'),
+              subtitle: getLocalizedText(art.subtitle, 'tr'),
+              abstract: getLocalizedText(art.abstract, 'tr'),
+              keyFindings: getLocalizedArray(art.keyFindings, 'tr'),
+              contentParagraphs: getLocalizedArray(art.contentParagraphs, 'tr'),
+              targetLanguage: language,
+            }),
+          });
+          if (!res.ok) return;
+          const translated = await res.json();
+          if (!translated?.title && !translated?.abstract) return;
+          setArticles((prev) =>
+            prev.map((a) =>
+              a.id === art.id
+                ? {
+                    ...a,
+                    title: { ...a.title, [language]: translated.title || getLocalizedText(a.title, language) },
+                    subtitle: { ...a.subtitle, [language]: translated.subtitle || getLocalizedText(a.subtitle, language) },
+                    abstract: { ...a.abstract, [language]: translated.abstract || getLocalizedText(a.abstract, language) },
+                    keyFindings: {
+                      ...a.keyFindings,
+                      [language]: Array.isArray(translated.keyFindings) && translated.keyFindings.length > 0
+                        ? translated.keyFindings
+                        : getLocalizedArray(a.keyFindings, language),
+                    },
+                    contentParagraphs: {
+                      ...a.contentParagraphs,
+                      [language]: Array.isArray(translated.contentParagraphs) && translated.contentParagraphs.length > 0
+                        ? translated.contentParagraphs
+                        : getLocalizedArray(a.contentParagraphs, language),
+                    },
+                  }
+                : a
+            )
+          );
+        } catch {
+          // Silent non-blocking fallback to original/English text
+        }
+      })();
+    }
+  }, [language, expandedArticleIds, activeMobileArticle, paginatedArticles]);
+
   // 11-Node Arithmetically Reconciled Per-Article Global Readership, 12-Country Academic Hubs & Silicon Valley / Industrial Ecosystems
   const corpusReadAnalytics = useMemo(
     () =>
@@ -4889,6 +5417,48 @@ export default function App() {
             )}
           </div>
 
+          <a
+            href="#interactive-arena"
+            onClick={(e) => {
+              e.preventDefault();
+              handleScrollToArena();
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#1E3A8A] hover:bg-blue-900 text-white font-mono text-xs font-bold rounded-xs transition-colors whitespace-nowrap shrink-0"
+          >
+            <Brain aria-hidden="true" className="w-3.5 h-3.5 text-amber-300" />
+            <span>
+              {
+                (
+                  {
+                    tr: 'Bilmece & Arena',
+                    en: 'Riddles & Arena',
+                    es: 'Acertijos y Arena',
+                    de: 'Rätsel & Arena',
+                    fr: 'Énigmes & Arène',
+                    ru: 'Загадки и Арена',
+                    ar: 'ألغاز وساحة',
+                    zh: '谜题与竞技场',
+                    ja: '謎解きアリーナ',
+                    pt: 'Enigmas e Arena',
+                    it: 'Enigmi e Arena',
+                    ko: '수수께끼 아레나',
+                    no: 'Gåter & Arena',
+                    is: 'Gátur & Leikvangur',
+                    da: 'Gåder & Arena',
+                    sv: 'Gåtor & Arena',
+                    nl: 'Raadsels & Arena',
+                    fi: 'Arvoitukset & Areena',
+                    ga: 'Tomhas & Airéine',
+                    lb: 'Rätselen & Arena',
+                    rm: 'Indovinels & Arena',
+                    ms: 'Teka-teki & Arena',
+                    ta: 'புதிர் அரங்கம்',
+                  } as Partial<Record<LanguageCode, string>>
+                )[language] || 'Riddles & Arena'
+              }
+            </span>
+          </a>
+
           <button
             type="button"
             onClick={() => setAnalyticsPanelOpen(true)}
@@ -4966,6 +5536,47 @@ export default function App() {
               className={`w-3.5 h-3.5 transition-transform ${navAboutDropdownOpen ? 'rotate-180' : ''}`}
             />
           </button>
+          <a
+            href="#interactive-arena"
+            onClick={(e) => {
+              e.preventDefault();
+              handleScrollToArena();
+            }}
+            className="md:hidden inline-flex items-center gap-1 px-3 py-2 text-xs font-mono font-bold text-white bg-[#1E3A8A] hover:bg-blue-900 rounded-sm whitespace-nowrap"
+          >
+            <Brain aria-hidden="true" className="w-3.5 h-3.5 text-amber-300" />
+            <span>
+              {
+                (
+                  {
+                    tr: 'Bilmece & Arena',
+                    en: 'Riddles & Arena',
+                    es: 'Acertijos',
+                    de: 'Rätsel',
+                    fr: 'Énigmes',
+                    ru: 'Арена',
+                    ar: 'ألغاز',
+                    zh: '谜题竞技',
+                    ja: '謎解き',
+                    pt: 'Enigmas',
+                    it: 'Enigmi',
+                    ko: '아레나',
+                    no: 'Gåter',
+                    is: 'Gátur',
+                    da: 'Gåder',
+                    sv: 'Gåtor',
+                    nl: 'Raadsels',
+                    fi: 'Arvoitukset',
+                    ga: 'Tomhas',
+                    lb: 'Rätselen',
+                    rm: 'Indovinels',
+                    ms: 'Teka-teki',
+                    ta: 'புதிர்',
+                  } as Partial<Record<LanguageCode, string>>
+                )[language] || 'Riddles & Arena'
+              }
+            </span>
+          </a>
           <button
             type="button"
             onClick={() => setAnalyticsPanelOpen(true)}
@@ -5101,11 +5712,11 @@ export default function App() {
             )}
           </div>
 
-          {/* 12 Major World Languages Selector (Instant UI, Full Content & Audio Narrator Switch) */}
+          {/* 23 Languages Selector: 12 World Languages + UN HDI Top-20 Developed Countries' Languages (Instant UI, Content, Video & Voice Switch) */}
           <div className="flex flex-wrap items-center gap-2">
             <Globe className="w-3.5 h-3.5 text-[#1E3A8A]" />
             <label htmlFor="world-lang-select" className="text-[11px] font-mono uppercase text-stone-600 font-semibold">
-              Dünya Dilleri (12 Dil · Anında İçerik &amp; Ses):
+              Dünya &amp; Gelişmiş Ülke Dilleri (23 Dil · İçerik, Video &amp; Ses):
             </label>
             <select
               id="world-lang-select"
@@ -5113,19 +5724,28 @@ export default function App() {
               onChange={(e) => setLanguage(e.target.value as LanguageCode)}
               className="px-2.5 py-1 text-xs font-mono font-semibold text-[#1E3A8A] bg-white border border-stone-300 rounded-sm focus:outline-none focus:border-[#1E3A8A] cursor-pointer"
             >
-              {WORLD_LANGUAGES.map((wl) => (
-                <option key={wl.code} value={wl.code}>
-                  {wl.shortLabel} — {wl.nativeName}
-                </option>
-              ))}
+              <optgroup label="12 Dünya Dili">
+                {WORLD_LANGUAGES.filter((wl) => wl.tier !== 'hdi20').map((wl) => (
+                  <option key={wl.code} value={wl.code}>
+                    {wl.shortLabel} — {wl.nativeName}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="En Gelişmiş İlk 20 Ülke Dilleri (HDI Top 20)">
+                {WORLD_LANGUAGES.filter((wl) => wl.tier === 'hdi20').map((wl) => (
+                  <option key={wl.code} value={wl.code}>
+                    {wl.shortLabel} — {wl.nativeName} ({wl.countryHint})
+                  </option>
+                ))}
+              </optgroup>
             </select>
 
             <div
               role="group"
-              aria-label="12 Dünya Dili Hızlı Seçici"
+              aria-label="Hızlı Dil Seçici (23 Dil)"
               className="hidden xl:inline-flex items-center bg-stone-200/90 p-0.5 rounded-sm font-mono text-[11px]"
             >
-              {WORLD_LANGUAGES.map((wl) => (
+              {WORLD_LANGUAGES.filter((wl) => wl.tier !== 'hdi20').map((wl) => (
                 <button
                   key={wl.code}
                   type="button"
@@ -5142,6 +5762,11 @@ export default function App() {
                   {wl.shortLabel}
                 </button>
               ))}
+              {currentLangMeta.tier === 'hdi20' && (
+                <span className="ml-1 px-1.5 py-0.5 uppercase rounded-sm bg-[#1E3A8A] text-white font-bold">
+                  {currentLangMeta.shortLabel}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -5523,6 +6148,9 @@ export default function App() {
         >
           <RiddleTriviaWeeklyArena
             language={language}
+            authUser={firebaseAuthUser}
+            getAuthToken={getFreshFirebaseIdToken}
+            onRequestSignIn={handleTriggerGoogleSignIn}
             onOpenKvkkModal={() => {
               setGovernanceTab('kvkk');
               setGovernanceModalOpen(true);
@@ -7746,7 +8374,7 @@ export default function App() {
         </Suspense>
 
         {/* SECTION 02B: Interactive Science, Physics & Philosophy Applications Suite */}
-        <div id="interactive-apps-suite" className="no-print">
+        <div id="interactive-apps-suite" className="no-print below-fold-cv">
           <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">İnteraktif bilim uygulamaları yükleniyor…</div>}>
             <InteractiveAppsSuite
               articles={articles}
@@ -7766,8 +8394,8 @@ export default function App() {
           </Suspense>
         </div>
 
-        {/* SECTION 02C: Simultaneous 12-Language Browser & Academic Indexing + Social Media Promotion Hub */}
-        <div id="indexing-social" className="no-print scroll-mt-24 pt-6 border-t border-stone-300">
+        {/* SECTION 02C: Simultaneous Multilingual Browser & Academic Indexing + Social Media Promotion Hub */}
+        <div id="indexing-social" className="no-print below-fold-cv scroll-mt-24 pt-6 border-t border-stone-300">
           <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Küresel indeksleme merkezi yükleniyor…</div>}>
             <GlobalIndexingAndSocialHub
               articles={articles}
@@ -7790,7 +8418,7 @@ export default function App() {
         <section
           id="ai-studio"
           aria-label="YZ Üretim ve Analiz Laboratuvarı"
-          className="no-print scroll-mt-28 pt-6 border-t border-stone-300"
+          className="no-print below-fold-cv scroll-mt-28 pt-6 border-t border-stone-300"
         >
           <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Analiz stüdyosu yükleniyor…</div>}>
             <AIContentLab
@@ -7818,7 +8446,7 @@ export default function App() {
         <section
           id="control-cloud"
           aria-label="Kontrol ve Bulut Yönetimi"
-          className="no-print scroll-mt-28 pt-6 border-t border-stone-300"
+          className="no-print below-fold-cv scroll-mt-28 pt-6 border-t border-stone-300"
         >
           <Suspense fallback={<div className="p-6 text-xs font-mono text-stone-500">Kontrol paneli yükleniyor…</div>}>
             <ControlAndCloudPanel

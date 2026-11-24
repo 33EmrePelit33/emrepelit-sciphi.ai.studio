@@ -10,7 +10,18 @@ export type LanguageCode =
   | 'ja'
   | 'pt'
   | 'it'
-  | 'ko';
+  | 'ko'
+  | 'no'
+  | 'is'
+  | 'da'
+  | 'sv'
+  | 'nl'
+  | 'fi'
+  | 'ga'
+  | 'lb'
+  | 'rm'
+  | 'ms'
+  | 'ta';
 
 export type LocalizedText = Record<string, string>;
 export type LocalizedStringArray = Record<string, string[]>;

@@ -42,6 +42,12 @@ import {
   splitSafeUtteranceChunks,
   toPlainSpokenFallback,
 } from '../utils/culturalVoiceEngine';
+import {
+  drawEverydayNarrativeStage,
+  drawSymbolicAvatarEmblem,
+  getEverydayStoryProfile,
+  getSymbolicFigureKvkkNotice,
+} from '../utils/everydayStoryVideoEngine';
 
 export interface VideoWatchProgressPayload {
   playsDelta: number;
@@ -82,7 +88,6 @@ interface NarrationQueueItem {
   estSec: number;
 }
 
-const CV_PORTRAIT_URL = '/assets/emre-pelit-cv-portrait.png';
 const VIDEO_I18N_CACHE_KEY = 'sciphil_video_i18n_v1';
 const memoryTranslationCache = new Map<string, TranslatedArticleContent>();
 
@@ -292,12 +297,10 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
   );
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingModeNote, setRecordingModeNote] = useState<string>('');
-  const [portraitReady, setPortraitReady] = useState<boolean>(false);
   const [activeQueueIndex, setActiveQueueIndex] = useState<number>(0);
   const [interactionTick, setInteractionTick] = useState<number>(0);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const portraitImgRef = useRef<HTMLImageElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number | null>(null);
   const measuredOnceRef = useRef<boolean>(false);
@@ -492,20 +495,7 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
     };
   }, [speechSupported]);
 
-  // Preload Emre Pelit's CV portrait image once cleanly
-  useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      portraitImgRef.current = img;
-      setPortraitReady(true);
-    };
-    img.onerror = () => {
-      portraitImgRef.current = null;
-      setPortraitReady(false);
-    };
-    img.src = CV_PORTRAIT_URL;
-  }, []);
+  // Strictly non-photographic symbolic illustrations only (zero real-person portrait preload — KVKK & GDPR compliant)
 
   // Sync video language when top-level site language changes
   useEffect(() => {
@@ -1059,532 +1049,25 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
       ctx.rect(stageX + 3, stageY + 26, stageW - 6, animH - 26);
       ctx.clip();
 
-      const observerCoupling =
-        scene.index >= 3 && scene.index <= 6
-          ? 0.55 + 0.45 * Math.sin(sceneProgress * Math.PI)
-          : scene.index >= 7
-            ? 0.65
-            : 0.25 + probeBoost * 0.5;
-
-      if (simType === 'quantum') {
-        const emitterX = stageX + 36;
-        const slitX = stageX + 186;
-        const screenX = stageX + stageW - 36;
-        const slitGap = 44;
-
-        ctx.fillStyle = '#0284C7';
-        ctx.strokeStyle = '#38BDF8';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(emitterX, cy, 13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(slitX - 4, stageY + 32, 8, cy - slitGap - (stageY + 32) - 10);
-        ctx.fillRect(slitX - 4, cy - slitGap + 14, 8, slitGap * 2 - 28);
-        ctx.fillRect(slitX - 4, cy + slitGap + 10, 8, stageY + animH - (cy + slitGap + 10));
-
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(screenX, stageY + 38);
-        ctx.lineTo(screenX, stageY + animH - 12);
-        ctx.stroke();
-
-        const packetCount = 7;
-        for (let i = 0; i < packetCount; i++) {
-          const prog = (phase * 0.26 + i / packetCount) % 1;
-          const px = emitterX + 14 + prog * (screenX - emitterX - 24);
-          const goesTop = i % 2 === 0;
-          const slitY = goesTop ? cy - slitGap : cy + slitGap;
-          let py = cy;
-          if (px < slitX) {
-            const frac = (px - emitterX) / (slitX - emitterX);
-            py = cy + (slitY - cy) * frac + Math.sin(phase * 3 + i) * 7 * (1 - frac);
-          } else {
-            const frac = (px - slitX) / (screenX - slitX);
-            const interferenceOff =
-              (1 - observerCoupling * 0.72) * Math.sin(i * 1.9 + phase * 1.1) * 62 * frac;
-            const collapsedOff = (goesTop ? -36 : 36) * observerCoupling * 0.72 * frac;
-            py = slitY * (1 - frac * 0.5) + cy * (frac * 0.5) + interferenceOff + collapsedOff;
-          }
-
-          const waveR = (10 + Math.sin(phase * 4 + i) * 4) * (1.2 - observerCoupling * 0.55);
-          ctx.strokeStyle =
-            observerCoupling > 0.55
-              ? 'rgba(251, 191, 36, 0.55)'
-              : 'rgba(56, 189, 248, 0.5)';
-          ctx.lineWidth = 1.4;
-          ctx.beginPath();
-          ctx.arc(px, py, Math.max(4, waveR), 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.fillStyle = observerCoupling > 0.55 ? '#FBBF24' : '#38BDF8';
-          ctx.beginPath();
-          ctx.arc(px, py, 4.5, 0, Math.PI * 2);
-          ctx.fill();
-
-          if (prog > 0.88) {
-            ctx.fillStyle = 'rgba(52, 211, 153, 0.85)';
-            ctx.beginPath();
-            ctx.arc(screenX - 2, py, 6, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-
-        const obsX = slitX + 54;
-        const obsY = stageY + 58 + (1 - observerCoupling) * 12;
-        ctx.fillStyle = `rgba(251, 191, 36, ${(0.08 + observerCoupling * 0.18).toFixed(2)})`;
-        ctx.beginPath();
-        ctx.moveTo(obsX, obsY + 8);
-        ctx.lineTo(slitX + 8, cy - slitGap - 14);
-        ctx.lineTo(slitX + 8, cy + slitGap + 14);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = '#0F172A';
-        ctx.strokeStyle = '#FBBF24';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(obsX, obsY, 17, 10, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#FBBF24';
-        ctx.beginPath();
-        ctx.arc(obsX - 3 + Math.sin(phase * 2) * 3, obsY, 4.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#34D399';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let sy = stageY + 42; sy <= stageY + animH - 16; sy += 3) {
-          const dy = (sy - cy) / 28;
-          const env = Math.exp(-dy * dy * 0.25);
-          const fringe =
-            (1 - observerCoupling * 0.78) * Math.pow(Math.cos(dy * 2.6), 2) +
-            observerCoupling * 0.78 * 0.7;
-          const barLen = env * fringe * 28;
-          if (sy === stageY + 42) ctx.moveTo(screenX - barLen, sy);
-          else ctx.lineTo(screenX - barLen, sy);
-        }
-        ctx.stroke();
-
-        drawConceptTag(ctx, emitterX + 18, cy + 32, chip0, '#38BDF8');
-        drawConceptTag(ctx, obsX + 46, obsY, `${labels.observerLabel} · ${chip1}`, '#FBBF24');
-        drawConceptTag(ctx, screenX - 58, stageY + animH - 22, chip2, '#34D399');
-      } else if (simType === 'higgs') {
-        const symmetryBroken = scene.index >= 2;
-        const fieldDensity = symmetryBroken ? 0.55 + chapterFactor * 0.45 : 0.25;
-
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let px = -190; px <= 190; px += 5) {
-          const x = px / 108;
-          const v = (x * x * x * x - (symmetryBroken ? 1.8 : 0.3) * x * x) * 58 + 26;
-          const drawX = cx + px;
-          const drawY = cy + 48 - v;
-          if (px === -190) ctx.moveTo(drawX, drawY);
-          else ctx.lineTo(drawX, drawY);
-        }
-        ctx.stroke();
-
-        const heavySpeed = symmetryBroken ? 0.14 : 0.32;
-        const heavyX = stageX + 42 + ((phase * heavySpeed) % 1) * (stageW - 84);
-        const heavyY = cy + Math.sin(phase * 1.4) * 26;
-
-        const photonX = stageX + 34 + ((phase * 0.46) % 1) * (stageW - 68);
-        const photonY = stageY + 62 + Math.sin(phase * 6) * 5;
-
-        for (let row = 0; row < 4; row++) {
-          for (let col = 0; col < 8; col++) {
-            const baseX = stageX + 48 + col * 55;
-            const baseY = stageY + 76 + row * 44;
-            const dx = heavyX - baseX;
-            const dy = heavyY - baseY;
-            const dist = Math.hypot(dx, dy);
-            const pull = symmetryBroken && dist < 115 ? (1 - dist / 115) * 24 * fieldDensity : 0;
-            const qx = baseX + (dx / Math.max(1, dist)) * pull + Math.cos(phase * 2 + row + col) * 3;
-            const qy = baseY + (dy / Math.max(1, dist)) * pull + Math.sin(phase * 2 + col) * 3;
-
-            if (pull > 4) {
-              ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-              ctx.lineWidth = 1.2;
-              ctx.beginPath();
-              ctx.moveTo(qx, qy);
-              ctx.lineTo(heavyX, heavyY);
-              ctx.stroke();
-            }
-
-            ctx.fillStyle = pull > 4 ? '#FBBF24' : 'rgba(56, 189, 248, 0.55)';
-            ctx.beginPath();
-            ctx.arc(qx, qy, pull > 4 ? 4.2 : 2.8, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-
-        const haloR = symmetryBroken ? 18 + Math.sin(phase * 3) * 4 + probeBoost * 8 : 11;
-        ctx.fillStyle = 'rgba(52, 211, 153, 0.22)';
-        ctx.strokeStyle = '#34D399';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(heavyX, heavyY, haloR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#10B981';
-        ctx.beginPath();
-        ctx.arc(heavyX, heavyY, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(photonX - 28, photonY);
-        ctx.lineTo(photonX, photonY);
-        ctx.stroke();
-        ctx.fillStyle = '#E0F2FE';
-        ctx.beginPath();
-        ctx.arc(photonX, photonY, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        drawConceptTag(ctx, photonX, photonY - 16, `${labels.photonLabel} · ${chip0}`, '#38BDF8');
-        drawConceptTag(ctx, heavyX, heavyY + haloR + 14, `${chip1} · ${chip2}`, '#34D399');
-      } else if (simType === 'holographic') {
-        const radius = 98;
-        ctx.strokeStyle = '#38BDF8';
-        ctx.lineWidth = 2.4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        const bulkR = 26 + chapterFactor * 16 + Math.sin(phase * 2) * 3 + probeBoost * 8;
-        const bulkGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, bulkR);
-        bulkGrad.addColorStop(0, 'rgba(52, 211, 153, 0.85)');
-        bulkGrad.addColorStop(1, 'rgba(56, 189, 248, 0.08)');
-        ctx.fillStyle = bulkGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, bulkR, 0, Math.PI * 2);
-        ctx.fill();
-
-        const nodesCount = 12;
-        const boundaryPts: Array<{ x: number; y: number }> = [];
-        for (let i = 0; i < nodesCount; i++) {
-          const ang = (i / nodesCount) * Math.PI * 2 + phase * 0.22;
-          const bx = cx + Math.cos(ang) * radius;
-          const by = cy + Math.sin(ang) * radius;
-          boundaryPts.push({ x: bx, y: by });
-
-          const pairIdx = (i + 4) % nodesCount;
-          const pAng = (pairIdx / nodesCount) * Math.PI * 2 + phase * 0.22;
-          const px2 = cx + Math.cos(pAng) * radius;
-          const py2 = cy + Math.sin(pAng) * radius;
-          ctx.strokeStyle =
-            i % 2 === 0 ? 'rgba(52, 211, 153, 0.45)' : 'rgba(251, 191, 36, 0.35)';
-          ctx.lineWidth = 1.3;
-          ctx.beginPath();
-          ctx.moveTo(bx, by);
-          ctx.quadraticCurveTo(cx, cy, px2, py2);
-          ctx.stroke();
-
-          const pulseT = (phase * 0.45 + i * 0.17) % 1;
-          const ix = bx + (cx - bx) * pulseT;
-          const iy = by + (cy - by) * pulseT;
-          ctx.fillStyle = i % 2 === 0 ? '#34D399' : '#FBBF24';
-          ctx.beginPath();
-          ctx.arc(ix, iy, 3.2, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#F8FAFC';
-          ctx.beginPath();
-          ctx.arc(bx, by, 4.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        ctx.strokeStyle = '#34D399';
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        for (let k = 0; k <= 6; k++) {
-          const a = (k / 6) * Math.PI * 2 - phase * 0.55;
-          const gx = cx + Math.cos(a) * (bulkR * 0.72);
-          const gy = cy + Math.sin(a) * (bulkR * 0.72);
-          if (k === 0) ctx.moveTo(gx, gy);
-          else ctx.lineTo(gx, gy);
-        }
-        ctx.stroke();
-
-        drawConceptTag(ctx, cx, cy, chip1, '#34D399');
-        drawConceptTag(ctx, boundaryPts[1].x + 36, boundaryPts[1].y, chip0, '#38BDF8');
-        drawConceptTag(ctx, boundaryPts[7].x - 36, boundaryPts[7].y, chip2, '#FBBF24');
-      } else if (simType === 'spacetime') {
-        const warpStrength = 22 + chapterFactor * 16 + probeBoost * 10;
-
-        for (let r = -3; r <= 3; r++) {
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
-          ctx.lineWidth = 1.2;
-          ctx.beginPath();
-          for (let px = -210; px <= 210; px += 8) {
-            const warp = Math.exp(-(px * px) / 5600) * warpStrength;
-            const yPos = cy + r * 28 + warp * (r >= 0 ? 1 : 0.45);
-            if (px === -210) ctx.moveTo(cx + px, yPos);
-            else ctx.lineTo(cx + px, yPos);
-          }
-          ctx.stroke();
-        }
-
-        ctx.strokeStyle = 'rgba(251, 191, 36, 0.48)';
-        ctx.lineWidth = 1.6;
-        ctx.setLineDash([5, 4]);
-        ctx.beginPath();
-        ctx.moveTo(cx - 115, cy - 102);
-        ctx.lineTo(cx + 115, cy + 102);
-        ctx.moveTo(cx + 115, cy - 102);
-        ctx.lineTo(cx - 115, cy + 102);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        const gravGrad = ctx.createRadialGradient(cx, cy + 10, 4, cx, cy + 10, 32);
-        gravGrad.addColorStop(0, '#F59E0B');
-        gravGrad.addColorStop(0.55, 'rgba(245, 158, 11, 0.35)');
-        gravGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
-        ctx.fillStyle = gravGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy + 10, 32, 0, Math.PI * 2);
-        ctx.fill();
-
-        for (let b = 0; b < 3; b++) {
-          const pFrac = (phase * 0.34 + b * 0.33) % 1;
-          const lx = stageX + 24 + pFrac * (stageW - 48);
-          const dx = lx - cx;
-          const bend = Math.exp(-(dx * dx) / 6200) * (24 + b * 4);
-          const ly = stageY + 64 + b * 14 + bend;
-          ctx.fillStyle = '#FEF08A';
-          ctx.beginPath();
-          ctx.arc(lx, ly, 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        const statX = stageX + 92;
-        const statY = cy + 14;
-        drawAnalogClockEntity(
-          ctx,
-          statX,
-          statY,
-          20,
-          phase * 2.2,
-          '#38BDF8',
-          `${labels.restClockLabel} · ${chip0}`
-        );
-
-        const travAngle = phase * 0.85;
-        const travX = cx + 88 + Math.cos(travAngle) * 56;
-        const travY = cy + 4 + Math.sin(travAngle) * 46;
-        drawAnalogClockEntity(
-          ctx,
-          travX,
-          travY,
-          20,
-          phase * 2.2 * 0.32,
-          '#34D399',
-          `${labels.travelerClockLabel} · ${chip1}`
-        );
-
-        drawConceptTag(ctx, cx, stageY + 46, chip2, '#FBBF24');
-      } else if (simType === 'consciousness') {
-        const leftChainX = stageX + 76;
-        for (let i = 0; i < 4; i++) {
-          const ny = stageY + 62 + i * 44;
-          if (i < 3) {
-            ctx.strokeStyle = '#475569';
-            ctx.lineWidth = 1.6;
-            ctx.beginPath();
-            ctx.moveTo(leftChainX, ny + 9);
-            ctx.lineTo(leftChainX, ny + 35);
-            ctx.stroke();
-          }
-          ctx.fillStyle = '#1E293B';
-          ctx.strokeStyle = '#64748B';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(leftChainX, ny, 9, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-        }
-        drawConceptTag(ctx, leftChainX, stageY + animH - 18, labels.linearChainLabel, '#94A3B8');
-
-        const netCx = stageX + 308;
-        const netCy = cy + 4;
-        const phiNodes = 7;
-        const pts: Array<{ x: number; y: number }> = [];
-        for (let i = 0; i < phiNodes; i++) {
-          const ang = (i / phiNodes) * Math.PI * 2 + phase * 0.22;
-          pts.push({
-            x: netCx + Math.cos(ang) * (78 + (i % 2) * 14),
-            y: netCy + Math.sin(ang) * (66 + (i % 2) * 12),
-          });
-        }
-
-        const haloAlpha = 0.14 + chapterFactor * 0.18 + probeBoost * 0.18;
-        const phiGrad = ctx.createRadialGradient(netCx, netCy, 8, netCx, netCy, 108);
-        phiGrad.addColorStop(0, `rgba(251, 191, 36, ${haloAlpha.toFixed(2)})`);
-        phiGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        ctx.fillStyle = phiGrad;
-        ctx.beginPath();
-        ctx.arc(netCx, netCy, 108, 0, Math.PI * 2);
-        ctx.fill();
-
-        for (let i = 0; i < phiNodes; i++) {
-          for (let j = i + 1; j < phiNodes; j++) {
-            const pulse = 0.2 + 0.5 * Math.abs(Math.sin(phase * 1.4 + i + j));
-            ctx.strokeStyle = `rgba(56, 189, 248, ${pulse.toFixed(2)})`;
-            ctx.lineWidth = 1.3;
-            ctx.beginPath();
-            ctx.moveTo(pts[i].x, pts[i].y);
-            ctx.lineTo(pts[j].x, pts[j].y);
-            ctx.stroke();
-
-            if ((i + j) % 3 === 0) {
-              const sFrac = (phase * 0.55 + (i * 0.19 + j * 0.11)) % 1;
-              const sx = pts[i].x + (pts[j].x - pts[i].x) * sFrac;
-              const sy = pts[i].y + (pts[j].y - pts[i].y) * sFrac;
-              ctx.fillStyle = '#FBBF24';
-              ctx.beginPath();
-              ctx.arc(sx, sy, 2.8, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-        }
-
-        pts.forEach((p, idx) => {
-          const active = Math.floor(phase * 2.2) % phiNodes === idx;
-          ctx.fillStyle = active ? '#FBBF24' : '#34D399';
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, active ? 9 : 6, 0, Math.PI * 2);
-          ctx.fill();
-        });
-
-        drawConceptTag(ctx, netCx, netCy, `Φ > 0 · ${chip0}`, '#FBBF24');
-        drawConceptTag(ctx, netCx, stageY + animH - 18, `${chip1} ↔ ${chip2}`, '#34D399');
-      } else if (simType === 'chaos') {
-        const integratePath = (x0: number, steps: number) => {
-          let lx = x0;
-          let ly = 0.0;
-          let lz = 0.0;
-          const dt = 0.012;
-          const out: Array<{ x: number; y: number }> = [];
-          const rot = phase * 0.16;
-          for (let s = 0; s < steps; s++) {
-            const dx = 10 * (ly - lx);
-            const dy = lx * (28 - lz) - ly;
-            const dz = lx * ly - (8 / 3) * lz;
-            lx += dx * dt;
-            ly += dy * dt;
-            lz += dz * dt;
-            out.push({
-              x: cx + lx * 8.2 * Math.cos(rot) - (lz - 24) * 2.4 * Math.sin(rot),
-              y: cy + 72 - lz * 3.1,
-            });
-          }
-          return out;
-        };
-
-        const totalSteps = 290;
-        const delta0 = 0.015 + probeBoost * 0.08;
-        const pathA = integratePath(0.1 + (articleSeed % 5) * 0.02, totalSteps);
-        const pathB = integratePath(0.1 + (articleSeed % 5) * 0.02 + delta0, totalSteps);
-
-        const drawTrail = (pts: Array<{ x: number; y: number }>, color: string) => {
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1.6;
-          ctx.beginPath();
-          pts.forEach((p, idx) => {
-            if (idx === 0) ctx.moveTo(p.x, p.y);
-            else ctx.lineTo(p.x, p.y);
-          });
-          ctx.stroke();
-        };
-
-        drawTrail(pathA, 'rgba(56, 189, 248, 0.52)');
-        drawTrail(pathB, 'rgba(251, 191, 36, 0.48)');
-
-        const headIdx = Math.floor(((phase * 32) % (totalSteps - 20)) + 15);
-        const ptA = pathA[headIdx];
-        const ptB = pathB[headIdx];
-
-        ctx.strokeStyle = 'rgba(244, 63, 94, 0.78)';
-        ctx.lineWidth = 1.6;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.moveTo(ptA.x, ptA.y);
-        ctx.lineTo(ptB.x, ptB.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = '#38BDF8';
-        ctx.beginPath();
-        ctx.arc(ptA.x, ptA.y, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#FBBF24';
-        ctx.beginPath();
-        ctx.arc(ptB.x, ptB.y, 7, 0, Math.PI * 2);
-        ctx.fill();
-
-        const sepPx = Math.round(Math.hypot(ptA.x - ptB.x, ptA.y - ptB.y));
-        drawConceptTag(ctx, ptA.x, ptA.y - 16, `A · ${chip0}`, '#38BDF8');
-        drawConceptTag(ctx, ptB.x, ptB.y + 18, `B · ${chip1}`, '#FBBF24');
-        drawConceptTag(ctx, cx, stageY + 46, `Δ(A,B) = ${sepPx} · ${chip2}`, '#FB7185');
-      } else {
-        const stages = labels.pipelineStages;
-        const activeIdx = Math.floor(phase * 1.1) % stages.length;
-        const nodeXs: number[] = [];
-
-        for (let i = 0; i < stages.length; i++) {
-          const bx = stageX + 26 + i * 112;
-          const by = cy - 30;
-          nodeXs.push(bx + 42);
-
-          if (i < stages.length - 1) {
-            ctx.strokeStyle = i === activeIdx ? '#34D399' : '#475569';
-            ctx.lineWidth = 2.4;
-            ctx.beginPath();
-            ctx.moveTo(bx + 84, cy);
-            ctx.lineTo(bx + 112, cy);
-            ctx.stroke();
-          }
-
-          ctx.fillStyle = i === activeIdx ? '#064E3B' : '#1E293B';
-          ctx.strokeStyle = i === activeIdx ? '#34D399' : '#64748B';
-          ctx.lineWidth = i === activeIdx ? 2.5 : 1.4;
-          ctx.fillRect(bx, by, 84, 60);
-          ctx.strokeRect(bx, by, 84, 60);
-
-          ctx.fillStyle = '#F8FAFC';
-          ctx.font = 'bold 11px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(stages[i], bx + 42, cy - 4);
-          ctx.fillStyle = i === activeIdx ? '#34D399' : '#94A3B8';
-          ctx.font = '10px monospace';
-          ctx.fillText(`M${i + 1}`, bx + 42, cy + 16);
-        }
-        ctx.textAlign = 'left';
-
-        for (let p = 0; p < 5; p++) {
-          const frac = (phase * 0.28 + p * 0.2) % 1;
-          const px = nodeXs[0] + frac * (nodeXs[nodeXs.length - 1] - nodeXs[0]);
-          const isAnomaly = p === 3 && frac > 0.45 && frac < 0.72;
-          const py = isAnomaly
-            ? cy - 48 - (frac - 0.45) * 90
-            : cy - 38 + Math.sin(phase * 4 + p) * 6;
-          ctx.fillStyle = isAnomaly ? '#FB7185' : '#38BDF8';
-          ctx.beginPath();
-          ctx.arc(px, py, 5.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        drawConceptTag(ctx, nodeXs[0] + 24, cy + 56, chip0, '#38BDF8');
-        drawConceptTag(ctx, cx, cy + 56, chip1, '#34D399');
-        drawConceptTag(ctx, nodeXs[3] - 24, cy + 56, chip2, '#FBBF24');
-      }
+      // Render everyday-life story plot with familiar daily objects & strictly symbolic illustrated human figures
+      const everydayProfile = getEverydayStoryProfile(simType, videoLang);
+      const activeStoryAct =
+        everydayProfile.acts[scene.index] || everydayProfile.acts[everydayProfile.acts.length - 1];
+      drawEverydayNarrativeStage({
+        ctx,
+        simType,
+        sceneIndex: scene.index,
+        stageX,
+        stageY,
+        stageW,
+        animH,
+        phase,
+        sceneProgress,
+        probeBoost,
+        act: activeStoryAct,
+        chips: [chip0, chip1, chip2],
+        language: videoLang,
+      });
 
       // Interactive viewer click probe ripples
       for (const pulse of probePulsesRef.current) {
@@ -1660,39 +1143,8 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
         const avatarCx = 58;
         const avatarCy = 98;
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarCx, avatarCy, avatarRadius + 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#10B981';
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(avatarCx, avatarCy, avatarRadius, 0, Math.PI * 2);
-        ctx.clip();
-
-        if (portraitImgRef.current) {
-          ctx.drawImage(
-            portraitImgRef.current,
-            avatarCx - avatarRadius,
-            avatarCy - avatarRadius,
-            avatarRadius * 2,
-            avatarRadius * 2
-          );
-        } else {
-          ctx.fillStyle = '#1E3A8A';
-          ctx.fillRect(
-            avatarCx - avatarRadius,
-            avatarCy - avatarRadius,
-            avatarRadius * 2,
-            avatarRadius * 2
-          );
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = 'bold 20px serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('EP', avatarCx, avatarCy + 7);
-          ctx.textAlign = 'left';
-        }
-        ctx.restore();
+        // Strictly symbolic geometric illustrated character emblem (ZERO real-person photo — KVKK & GDPR compliant)
+        drawSymbolicAvatarEmblem(ctx, avatarCx, avatarCy, avatarRadius, phase);
 
         ctx.fillStyle = '#FCD34D';
         ctx.font = 'bold 11px monospace';
@@ -1703,9 +1155,16 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
         ctx.font = 'bold 11px sans-serif';
         ctx.fillText(`${labels.narratorPrefix}: ${activePersona.name}`, 100, 106);
 
-        ctx.fillStyle = '#94A3B8';
+        ctx.fillStyle = '#34D399';
         ctx.font = '10px sans-serif';
-        ctx.fillText(labels.subtitleTag.slice(0, 48), 100, 122);
+        ctx.fillText(
+          (videoLang === 'tr'
+            ? 'Temsili Çizim Figür · Gerçek Kişi Fotoğrafı Yok'
+            : 'Symbolic Illustrated Figure · No Real Photos'
+          ).slice(0, 48),
+          100,
+          122
+        );
 
         textStartY = 152;
       } else {
@@ -1824,13 +1283,14 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
       articleSeed,
       articleTitle,
       effectiveTotalDurationSec,
+      videoLang,
     ]
   );
 
-  // Redraw canvas whenever currentTime, portrait, active sentence, or viewer click probe updates
+  // Redraw canvas whenever currentTime, active sentence, or viewer click probe updates
   useEffect(() => {
     drawFrame(currentTime);
-  }, [currentTime, portraitReady, activeQueueIndex, interactionTick, drawFrame]);
+  }, [currentTime, activeQueueIndex, interactionTick, drawFrame]);
 
   // Smooth animation loop when playing:
   // - When voiceEnabled & speechSupported: smoothly interpolates within the active spoken sentence
@@ -2359,13 +1819,32 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
             {voiceProfile.stageLabels.chapterPrefix} · {ui.durationAutoBadge}
           </span>
 
-          <img
-            src={CV_PORTRAIT_URL}
-            alt="Emre Pelit CV Portresi"
-            className="w-6 h-6 rounded-full object-cover border border-emerald-400/70"
-            referrerPolicy="no-referrer"
-          />
+          <span
+            title={getSymbolicFigureKvkkNotice(videoLang)}
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-900 border border-emerald-400/70 text-emerald-300 shrink-0"
+            aria-label={getSymbolicFigureKvkkNotice(videoLang)}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" aria-hidden="true">
+              <circle cx="12" cy="7.5" r="3.2" fill="#FDE68A" />
+              <path d="M6.5 19.5C7 15.2 9.2 13 12 13C14.8 13 17 15.2 17.5 19.5" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </span>
         </div>
+      </div>
+
+      {/* Everyday-Life Story Plot & Symbolic Figure KVKK/GDPR Strip */}
+      <div className="px-4 py-1.5 bg-slate-950/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-300">
+        <span>
+          <strong className="text-amber-300">
+            {videoLang === 'tr' ? 'Olay Kurgusu:' : 'Story Plot:'}
+          </strong>{' '}
+          {getEverydayStoryProfile(article.simulation?.type || 'consciousness', videoLang).storyTitle}
+          {' · '}
+          <span className="text-sky-300">
+            {getEverydayStoryProfile(article.simulation?.type || 'consciousness', videoLang).objectsSummary}
+          </span>
+        </span>
+        <span className="text-emerald-300">{getSymbolicFigureKvkkNotice(videoLang)}</span>
       </div>
 
       {/* Purely Synthetic Cultural Voice & User-Controlled Intonation Strip */}
@@ -2825,6 +2304,56 @@ export const ArticleExplainerVideo: React.FC<ArticleExplainerVideoProps> = ({
               </button>
             );
           })}
+        </div>
+
+        {/* Historical Scientists' Perspectives Strip (Symbolic Initials Medallions Only — Zero Real-Person Photos) */}
+        <div
+          dir={voiceProfile.dir}
+          className="bg-slate-950/90 border border-amber-500/30 rounded-xs p-3 space-y-2.5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-amber-300 uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>{videoBundle.historicalScientists.sectionTitle}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleJumpToChapter(1)}
+              className="px-2 py-0.5 text-[10px] font-mono bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40 rounded-xs cursor-pointer transition-colors"
+            >
+              {videoLang === 'tr' ? '▶ Videoda Dinle (Bölüm 2)' : '▶ Listen in Video (Ch. 2)'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            {videoBundle.historicalScientists.thinkers.map((thinker) => (
+              <div
+                key={thinker.name}
+                className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xs space-y-1.5"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] font-extrabold text-slate-950 shrink-0"
+                    style={{ backgroundColor: thinker.accentColor }}
+                    aria-hidden="true"
+                  >
+                    {thinker.monogram}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-sans font-bold text-slate-100 truncate">
+                      {thinker.name}
+                    </div>
+                    <div className="text-[9.5px] font-mono text-slate-400">{thinker.era}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] font-sans text-slate-300 leading-relaxed">
+                  {thinker.coreThought}
+                </p>
+                <p className="text-[10px] font-sans text-emerald-300/90 leading-snug border-t border-slate-800 pt-1">
+                  {thinker.bridgeToArticle}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Expandable Full Comprehensive Summary & Synchronized Click-to-Jump Sentence Script */}

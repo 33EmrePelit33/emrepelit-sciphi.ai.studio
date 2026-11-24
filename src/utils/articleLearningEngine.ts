@@ -1,6 +1,11 @@
 import { Article, LanguageCode, SimulationType } from '../types';
 import { getLocalizedArray, getLocalizedText } from '../i18n/translations';
 import { estimateSpeechDurationSec } from './culturalVoiceEngine';
+import {
+  getEverydayStoryProfile,
+  getHistoricalScientistsForTheme,
+  type HistoricalScientistsPack,
+} from './everydayStoryVideoEngine';
 
 export const EXPLAINER_VIDEO_DURATION_SEC = 0; // Deprecated fixed cap — duration now adapts dynamically to full summary narration
 
@@ -41,6 +46,8 @@ export interface ExplainerVideoScene {
   isConclusionScene?: boolean;
   entityRoleTag: string;
   entityStoryBeat: string;
+  storySettingLabel?: string;
+  everydayObjects?: string[];
   interactionMode: EntityInteractionMode;
   conceptChips: string[];
 }
@@ -54,6 +61,7 @@ export interface ArticleComprehensiveVideoBundle {
   totalSentences: number;
   totalWords: number;
   scenes: ExplainerVideoScene[];
+  historicalScientists: HistoricalScientistsPack;
 }
 
 export interface ArticleQuizQuestion {
@@ -97,21 +105,21 @@ export interface LearningUiStrings {
   openViewBtn: string;
 }
 
-const LEARNING_UI_12_LANGS: Record<LanguageCode, LearningUiStrings> = {
+const LEARNING_UI_12_LANGS: Partial<Record<LanguageCode, LearningUiStrings>> = {
   tr: {
-    videoBadge: 'HTML5 GENİŞ ÖZET SENTETİK SESLİ VİDEO · 12 DİL · SÜRE SINIRSIZ',
-    videoTitlePrefix: 'Geniş Özetli Sentetik Sesli Video (12 Dil)',
-    playBtn: 'Özeti Sesli Oynat',
+    videoBadge: 'OLAY KURGULU GÜNLÜK NESNELİ AÇIKLAYICI VİDEO · TEMSİLİ ÇİZİM · KVKK & GDPR',
+    videoTitlePrefix: 'Olay Kurgulu Açıklayıcı Video (Günlük Nesneler & Temsili Çizim)',
+    playBtn: 'Olay Kurgulu Videoyu Oynat',
     pauseBtn: 'Duraklat',
     restartBtn: 'Başa Sar',
     voiceOnBtn: 'Sesli Anlatım Açık',
     voiceOffBtn: 'Ses Kapalı',
-    scriptToggleBtn: 'Geniş Özet & Canlı Metin',
+    scriptToggleBtn: 'Olay Kurgusu & Canlı Metin',
     exportWebmBtn: 'Sesli Video Kaydet (.webm)',
     stopRecordingBtn: 'Kaydı Bitir & İndir',
     recordingBtn: 'Kaydediliyor…',
     legalAndFreedomNote:
-      'Yasal Sorumluluk Reddi & Sentetik Ses Bildirimi: Bu video sabit süre kısıtı olmadan makalenin geniş özetini tamamen yapay/sentetik kültürel ses profilleriyle (gerçek kişi sesi veya taklidi içermez) kullanıcı tonlama tercihine göre okur; yalnızca bilimsel-felsefi eğitim ve kavrama amaçlıdır, hukuki/tıbbi/mali tavsiye niteliği taşımaz, üçüncü taraf hak ihlali veya kanuni mükellefiyet doğurmaz ve düşünce hürriyetini tam olarak korur.',
+      'KVKK (6698) & AB GDPR (2016/679) Uyumlu Açıklayıcı Video Bildirimi: Bu video her makale için günlük hayattan nesneler içeren bir olay kurgusuyla hazırlanmıştır. Videodaki tüm insan figürleri gerçek kişilere ait değildir; tamamen cihaz içinde çizilen temsili illüstrasyonlardır (gerçek kişi fotoğrafı, biyometrik veri veya izleme içermez). Seslendirme yalnızca sentetik ses profilleriyle yapılır; bilimsel-felsefi eğitim amaçlıdır ve düşünce hürriyetini tam olarak korur.',
     videoLangLabel: 'Video & Ses Dili',
     culturalNarratorLabel: 'Sentetik Kültürel Ses',
     durationAutoBadge: 'Konuşmacı Bitiş Süresi',
@@ -128,22 +136,22 @@ const LEARNING_UI_12_LANGS: Record<LanguageCode, LearningUiStrings> = {
     freedomQuizNote:
       'Not: Bu çoktan seçmeli sorular yalnızca kendi hızınızda kavrama amaçlıdır; hiçbir hukuki yükümlülük veya ideolojik dayatma içermez ve düşünce hürriyetini tam olarak korur.',
     completedBanner: 'Tebrikler! Makalenin genel sonucuna dayalı testi tamamladınız.',
-    openViewBtn: 'Geniş Özet Video & Testi Aç',
+    openViewBtn: 'Olay Kurgulu Video & Testi Aç',
   },
   en: {
-    videoBadge: 'HTML5 SYNTHETIC COMPREHENSIVE SUMMARY VIDEO · 12 LANGUAGES · UNRESTRICTED',
-    videoTitlePrefix: 'Comprehensive Summary Video (12 Languages)',
-    playBtn: 'Play Narrated Summary',
+    videoBadge: 'STORY-DRIVEN EVERYDAY-OBJECT EXPLAINER VIDEO · SYMBOLIC FIGURES · KVKK & GDPR',
+    videoTitlePrefix: 'Everyday-Life Story Explainer Video (Symbolic Figures)',
+    playBtn: 'Play Story Explainer Video',
     pauseBtn: 'Pause',
     restartBtn: 'Restart',
     voiceOnBtn: 'Narration On',
     voiceOffBtn: 'Muted',
-    scriptToggleBtn: 'Full Summary & Live Script',
+    scriptToggleBtn: 'Story Plot & Live Script',
     exportWebmBtn: 'Save Audio Video (.webm)',
     stopRecordingBtn: 'Finish & Save Video',
     recordingBtn: 'Recording…',
     legalAndFreedomNote:
-      'Zero Legal Liability & Synthetic Voice Notice: This educational video narrates the full summary using purely synthetic cultural acoustic profiles (no real person’s voice or likeness) with user-controlled intonation and finishes naturally with the narration; provided strictly for scientific and philosophical learning—not legal, medical, or financial advice—with zero third-party rights infringement and full respect for freedom of thought.',
+      'KVKK (6698) & EU GDPR (2016/679) Compliant Explainer Video Notice: This video presents each article through an everyday-life narrative plot featuring familiar daily objects. All human figures are strictly stylized symbolic illustrations rendered locally on-device—never real-person photographs, voices, or biometric likenesses—with zero external tracking and full respect for freedom of thought.',
     videoLangLabel: 'Video & Voice Language',
     culturalNarratorLabel: 'Synthetic Cultural Voice',
     durationAutoBadge: 'Speaker-Synced Duration',
@@ -483,7 +491,7 @@ const LEARNING_UI_12_LANGS: Record<LanguageCode, LearningUiStrings> = {
 };
 
 export function getLearningUiStrings(lang: LanguageCode): LearningUiStrings {
-  return LEARNING_UI_12_LANGS[lang] || LEARNING_UI_12_LANGS.en;
+  return LEARNING_UI_12_LANGS[lang] || LEARNING_UI_12_LANGS.en!;
 }
 
 function deterministicHash(str: string): number {
@@ -665,7 +673,7 @@ interface SummaryLocalePack {
   domainBeats: Record<SimulationType, [string, string, string, string, string, string, string, string]>;
 }
 
-const SUMMARY_LOCALE_PACKS: Record<LanguageCode, SummaryLocalePack> = {
+const SUMMARY_LOCALE_PACKS: Partial<Record<LanguageCode, SummaryLocalePack>> = {
   tr: {
     headings: [
       '1. Giriş, Temel Tez & Kapsamlı Çerçeve',
@@ -2181,7 +2189,7 @@ const SUMMARY_LOCALE_PACKS: Record<LanguageCode, SummaryLocalePack> = {
 };
 
 function getSummaryLocalePack(lang: LanguageCode): SummaryLocalePack {
-  return SUMMARY_LOCALE_PACKS[lang] || SUMMARY_LOCALE_PACKS.en;
+  return SUMMARY_LOCALE_PACKS[lang] || SUMMARY_LOCALE_PACKS.en!;
 }
 
 function extractArticleHolisticConclusion(
@@ -2372,6 +2380,13 @@ export function buildArticleComprehensiveVideo(
 
   const baseChips = extractArticleConceptChips(`${title} ${abstractText}`, domainFallbacks, 3);
 
+  const historicalScientists = getHistoricalScientistsForTheme(simType, language);
+  const historicalScientistsSpoken = cleanSentence(
+    `${historicalScientists.narrationIntro} ${historicalScientists.thinkers
+      .map((t) => `${t.name} (${t.era}): ${t.coreThought}`)
+      .join(' ')}`
+  );
+
   const chapterDrafts: Array<{
     heading: string;
     narrationText: string;
@@ -2397,10 +2412,13 @@ export function buildArticleComprehensiveVideo(
       chipSource: `${title} ${abstractText}`,
     },
     {
-      heading: pack.headings[1],
-      narrationText: cleanSentence(`${pack.problemLead} ${openingBandText}`),
-      caption: shortenClause(openingBandText, 210),
-      bullets: [shortenClause(contextOpening, 112), shortenClause(openingBandText, 112)],
+      heading: `${pack.headings[1]} · ${historicalScientists.sectionTitle}`,
+      narrationText: cleanSentence(`${pack.problemLead} ${historicalScientistsSpoken} ${openingBandText}`),
+      caption: shortenClause(`${historicalScientists.thinkers.map((t) => t.name).join(' · ')} — ${openingBandText}`, 210),
+      bullets: [
+        shortenClause(`${historicalScientists.thinkers[0].name}: ${historicalScientists.thinkers[0].coreThought}`, 114),
+        shortenClause(`${historicalScientists.thinkers[1].name}: ${historicalScientists.thinkers[1].coreThought}`, 114),
+      ],
       mode: 'CONTEXT_CONTRAST',
       showPortrait: false,
       chipSource: `${openingBandText} ${title}`,
@@ -2471,13 +2489,19 @@ export function buildArticleComprehensiveVideo(
     },
   ];
 
+  const everydayStory = getEverydayStoryProfile(simType, language);
+
   // Dynamically accumulate startSec/endSec based on actual spoken narration length in this language (no fixed cap!)
   let cursorSec = 0;
   let totalSentences = 0;
 
   const scenes: ExplainerVideoScene[] = chapterDrafts.map((draft, idx) => {
-    const narrationSentences = splitNarrationSentences(draft.narrationText);
-    const estDur = estimateSpeechDurationSec(draft.narrationText, language, 1.0);
+    const storyAct = everydayStory.acts[idx] || everydayStory.acts[everydayStory.acts.length - 1];
+    const storyEnrichedNarration = cleanSentence(
+      `${storyAct.narrationCue} ${draft.narrationText}`
+    );
+    const narrationSentences = splitNarrationSentences(storyEnrichedNarration);
+    const estDur = estimateSpeechDurationSec(storyEnrichedNarration, language, 1.0);
     const startSec = cursorSec;
     const endSec = startSec + estDur;
     cursorSec = endSec;
@@ -2490,15 +2514,17 @@ export function buildArticleComprehensiveVideo(
       estimatedDurationSec: estDur,
       heading: draft.heading,
       caption: draft.caption,
-      narrationText: draft.narrationText,
+      narrationText: storyEnrichedNarration,
       narrationSentences,
       keyEquation: eq,
       bulletPoints: draft.bullets,
       visualTheme: simType,
       showAuthorPortrait: draft.showPortrait,
       isConclusionScene: draft.isConclusion,
-      entityRoleTag: domainRoles,
-      entityStoryBeat: domainBeats[idx] || domainBeats[0],
+      entityRoleTag: `${everydayStory.storyTitle} · ${storyAct.everydayObjects.join(', ')}`,
+      entityStoryBeat: storyAct.storyBeat || domainBeats[idx] || domainBeats[0],
+      storySettingLabel: storyAct.settingLabel,
+      everydayObjects: storyAct.everydayObjects,
       interactionMode: draft.mode,
       conceptChips: extractArticleConceptChips(draft.chipSource, baseChips, 3),
     };
@@ -2521,6 +2547,7 @@ export function buildArticleComprehensiveVideo(
     totalSentences,
     totalWords,
     scenes,
+    historicalScientists,
   };
 }
 

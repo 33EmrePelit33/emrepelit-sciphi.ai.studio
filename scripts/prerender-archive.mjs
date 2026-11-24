@@ -351,12 +351,29 @@ function wrapStaticShell(lang, bodyHtml) {
   const safeLang = SUPPORTED_12_LANGS.includes(lang) ? lang : 'tr';
   const meta = LANG_HUB_META[safeLang] || LANG_HUB_META.tr;
   const archivePath = safeLang === 'tr' ? '/archive' : `/${safeLang}/archive`;
+  const arenaPath = safeLang === 'tr' ? '/arena' : `/${safeLang}/arena`;
+  const arenaLabelMap = {
+    tr: 'Bilmece & Soru-Cevap Arenası',
+    en: 'Riddle & Q&A Arena',
+    es: 'Arena de Acertijos y Preguntas',
+    de: 'Rätsel- & Quiz-Arena',
+    fr: 'Arène d’Énigmes & Quiz',
+    ru: 'Арена загадок и вопросов',
+    ar: 'ساحة الألغاز والأسئلة',
+    zh: '谜题与问答竞技场',
+    ja: '謎解き＆Q&Aアリーナ',
+    pt: 'Arena de Enigmas e Perguntas',
+    it: 'Arena Enigmi & Domande',
+    ko: '수수께끼 & Q&A 아레나',
+  };
+  const arenaLabel = arenaLabelMap[safeLang] || arenaLabelMap.en;
   const langNav = SUPPORTED_12_LANGS.map((l) => `<a href="${LANG_HUB_META[l].path}">${l.toUpperCase()}</a>`).join(' · ');
   return `
 <header class="max-w-5xl mx-auto px-6 py-4 border-b border-stone-300 text-sm">
   <nav aria-label="Primary Navigation" class="flex flex-wrap gap-4 items-center">
     <a href="${meta.path}"><strong>Emre Pelit Sci-Phil</strong></a>
     <a href="${archivePath}">${escapeHtml(meta.archiveLabel)}</a>
+    <a href="${arenaPath}">${escapeHtml(arenaLabel)}</a>
     <a href="/?tab=simulators">Simulators</a>
     <a href="/?tab=stats">301 Analytics</a>
     <a href="https://github.com/emrepelit109" rel="me noopener noreferrer">GitHub</a>
@@ -391,18 +408,69 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function stripHtmlTags(raw = '') {
-  return String(raw || '')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
+function decodeHtmlEntities(input = '') {
+  return String(input || '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      const cp = parseInt(hex, 16);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : '';
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      const cp = parseInt(dec, 10);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : '';
+    })
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
-    .replace(/\s+/g, ' ')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&hellip;/gi, '…')
+    .replace(/&lsquo;/gi, '‘')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&rdquo;/gi, '”');
+}
+
+function stripHtmlTags(raw = '') {
+  const withBreaks = String(raw || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote|tr|section|article|pre)>/gi, '\n\n')
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ');
+  return decodeHtmlEntities(withBreaks)
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+function extractFullBloggerParagraphs(rawHtml = '', title = '') {
+  const plainText = stripHtmlTags(rawHtml);
+  const rawBlocks = plainText
+    .split(/\n{2,}/)
+    .map((block) => block.replace(/\s+/g, ' ').trim())
+    .filter((b) => b.length > 0);
+  if (rawBlocks.length >= 2) return rawBlocks;
+  const flat = plainText.replace(/\s+/g, ' ').trim();
+  if (flat.length > 750) {
+    const grouped = flat
+      .split(/(?<=[.!?])\s+/)
+      .reduce((acc, s, idx) => {
+        const b = Math.floor(idx / 4);
+        acc[b] = (acc[b] ? `${acc[b]} ` : '') + s.trim();
+        return acc;
+      }, [])
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (grouped.length > 0) return grouped;
+  }
+  return [flat || title];
 }
 
 async function syncFromBloggerIfRequested() {
@@ -416,10 +484,10 @@ async function syncFromBloggerIfRequested() {
     while (startIndex <= 1500) {
       const url = `${BLOGGER_ORIGIN}/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=${pageSize}`;
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 10000);
+      const timer = setTimeout(() => ctrl.abort(), 15000);
       const res = await fetch(url, {
         signal: ctrl.signal,
-        headers: { Accept: 'application/json', 'User-Agent': 'EmrePelit-SciPhil-SSG/5.2' },
+        headers: { Accept: 'application/json', 'User-Agent': 'EmrePelit-SciPhil-SSG/5.3' },
       });
       clearTimeout(timer);
       if (!res.ok) break;
@@ -449,43 +517,63 @@ async function syncFromBloggerIfRequested() {
     const mergedEntries = allRawEntries.map((raw, idx) => {
       const idStr = raw?.id?.$t || '';
       const postMatch = idStr.match(/post-(\d+)/);
+      const bloggerPostId = postMatch ? postMatch[1] : `idx-${idx + 1}`;
       const id = postMatch ? `blogger-${postMatch[1]}` : `blogger-idx-${idx + 1}`;
       const prev = existingMap.get(id);
-      const title = raw?.title?.$t || prev?.title || 'Untitled';
+      const title = (raw?.title?.$t || prev?.title || 'Untitled').trim();
       const rawHtml = raw?.content?.$t || raw?.summary?.$t || '';
-      const plain = stripHtmlTags(rawHtml);
-      const paragraphs = rawHtml
-        .split(/<\/p>|<br\s*\/?>\s*<br\s*\/?>/i)
-        .map((p) => stripHtmlTags(p))
-        .filter((p) => p.length > 24);
+      const paragraphs = extractFullBloggerParagraphs(rawHtml, title);
+      const flatText = paragraphs.join(' ');
+      const publishedIso = raw?.published?.$t || prev?.publishedIso || '2026-11-01T00:00:00Z';
+      const updatedIso = raw?.updated?.$t || prev?.updatedIso || publishedIso;
       const linkAlt = Array.isArray(raw?.link) ? raw.link.find((l) => l.rel === 'alternate') : null;
-      const classified = classifyEntry(title, plain, idx);
+      const classified = classifyEntry(title, flatText, idx);
+      const sentenceCandidates = flatText
+        .split(/(?<=[.!?])\s+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 45 && s.length < 240);
+      const keyFindings =
+        sentenceCandidates.length >= 3
+          ? [
+              sentenceCandidates[0],
+              sentenceCandidates[Math.floor(sentenceCandidates.length / 2)],
+              sentenceCandidates[sentenceCandidates.length - 1],
+            ]
+          : prev?.keyFindings || [];
+      const wordCount = flatText.split(/\s+/).filter(Boolean).length;
+      const readTimeMinutes = Math.max(4, Math.min(25, Math.round(wordCount / 165)));
       return {
         ...(prev || {}),
         id,
+        bloggerPostId,
         postNumber: total - idx,
         title,
-        abstract: (paragraphs[0] || plain || title).slice(0, 360),
-        paragraphs: paragraphs.length > 0 ? paragraphs : prev?.paragraphs || [plain || title],
-        keyFindings: prev?.keyFindings || [],
+        abstract: flatText.slice(0, 480) + (flatText.length > 480 ? '...' : ''),
+        paragraphs,
+        keyFindings,
+        readTimeMinutes,
         category: classified.simulationType === 'software' ? classified.category : prev?.category || classified.category,
         simulationType: classified.simulationType === 'software' ? classified.simulationType : prev?.simulationType || classified.simulationType,
-        publishedAt: (raw?.published?.$t || prev?.publishedAt || '2026-11-01').slice(0, 10),
+        publishedAt: publishedIso.slice(0, 10),
+        publishedIso,
+        updatedIso,
         bloggerUrl: linkAlt?.href || prev?.bloggerUrl || `${BLOGGER_ORIGIN}/`,
-        sourceLang: prev?.sourceLang || detectLang(title, plain),
+        sourceLang: prev?.sourceLang || detectLang(title, flatText),
       };
     });
 
     const nextCache = {
+      fullTextVersion: 2,
       blogTitle: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi',
       blogUrl: BLOGGER_ORIGIN,
       totalResults: total,
-      latestPostId: mergedEntries[0]?.id || '',
+      latestPostId: allRawEntries[0]?.id?.$t || mergedEntries[0]?.id || '',
+      latestUpdatedIso: allRawEntries[0]?.updated?.$t || new Date().toISOString(),
       syncedAt: new Date().toISOString(),
       entries: mergedEntries,
     };
     fs.writeFileSync(CACHE_PATH, JSON.stringify(nextCache), 'utf-8');
-    console.log(`[prerender] Synced ${mergedEntries.length} posts live from Blogger.`);
+    console.log(`[prerender] Synced ${mergedEntries.length} FULL untruncated posts live from Blogger.`);
     return mergedEntries;
   } catch (err) {
     console.warn('[prerender] Live Blogger --sync fallback to local cache:', err?.message || err);
@@ -902,7 +990,115 @@ async function run() {
     }
   }
 
-  // 5. Emit clean static sitemaps (including sitemap-12-languages.xml) & robots.txt into /dist
+  // 4b. Prerender Interactive Riddle-Puzzle & Q&A Weekly Arena routes (/arena & /<12-langs>/arena)
+  const arenaHreflangs = Object.fromEntries(
+    SUPPORTED_12_LANGS.map((l) => [l, `${CANONICAL_ORIGIN}/${l}/arena`])
+  );
+  const arenaMetaByLang = {
+    tr: {
+      title: 'Bilmece-Bulmaca & Soru-Cevap Haftalık Arenası (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Herkese açık 12 dilli orta zorlukta bilim ve felsefe bilmece-bulmaca arenası. Doğru +50, boş +20, yanlış -20 puan. Giriş yapan kullanıcılar kendi belirledikleri kullanıcı adıyla Haftalık İlk 5 listesinde yer alır.',
+      h1: 'Bilmece-Bulmaca & Soru-Cevap Haftalık Arenası',
+    },
+    en: {
+      title: 'Riddle-Puzzle & Q&A Weekly Arena (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Open 12-language medium-difficulty science & philosophy riddle-puzzle arena (+50 correct, +20 blank, -20 wrong). Anyone can practice; signed-in users appear in the Weekly Top 5 with their chosen custom username.',
+      h1: 'Riddle-Puzzle & Q&A Weekly Arena',
+    },
+    es: {
+      title: 'Arena Semanal de Acertijos y Preguntas (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Arena interactiva en 12 idiomas de acertijos y preguntas de ciencia y filosofía (+50 acierto, +20 en blanco, -20 error) con Top 5 Semanal para usuarios registrados.',
+      h1: 'Arena Semanal de Acertijos y Preguntas',
+    },
+    de: {
+      title: 'Wöchentliche Rätsel- & Quiz-Arena (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Offene 12-sprachige Wissenschafts- und Philosophie-Rätselarena (+50 richtig, +20 leer, -20 falsch) mit wöchentlicher Top-5-Rangliste für angemeldete Nutzer.',
+      h1: 'Wöchentliche Rätsel- & Quiz-Arena',
+    },
+    fr: {
+      title: 'Arène Hebdomadaire d’Énigmes & Quiz (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Arène interactive en 12 langues d’énigmes et questions de science et philosophie (+50 juste, +20 vide, -20 erreur) avec Top 5 Hebdomadaire pour les utilisateurs connectés.',
+      h1: 'Arène Hebdomadaire d’Énigmes & Quiz',
+    },
+    ru: {
+      title: 'Еженедельная Арена Загадок и Вопросов (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Открытая арена загадок и викторин по науке и философии на 12 языках (+50 верно, +20 пропуск, -20 ошибка) с еженедельным Топ-5 для авторизованных пользователей.',
+      h1: 'Еженедельная Арена Загадок и Вопросов',
+    },
+    ar: {
+      title: 'ساحة الألغاز والأسئلة الأسبوعية (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'ساحة تفاعلية بـ 12 لغة لألغاز وأسئلة العلوم والفلسفة (+50 صحيح، +20 فارغ، -20 خطأ) مع قائمة أفضل 5 أسبوعياً للمستخدمين المسجلين.',
+      h1: 'ساحة الألغاز والأسئلة الأسبوعية',
+    },
+    zh: {
+      title: '每周谜题与问答竞技场 (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: '面向所有人的12语言中等难度科学与哲学谜题问答竞技场（答对+50、留空+20、答错-20），登录用户可用自定义用户名登上每周前5名榜单。',
+      h1: '每周谜题与问答竞技场',
+    },
+    ja: {
+      title: '週間謎解き＆Q&Aアリーナ (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: '誰でも挑戦できる12言語対応・中級難易度の科学と哲学の謎解き＆Q&Aアリーナ（正解+50、未回答+20、不正解-20）。ログインユーザーは希望のユーザー名で週間トップ5に掲載されます。',
+      h1: '週間謎解き＆Q&Aアリーナ',
+    },
+    pt: {
+      title: 'Arena Semanal de Enigmas e Perguntas (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Arena interativa em 12 idiomas de enigmas e perguntas de ciência e filosofia (+50 acerto, +20 em branco, -20 erro) com Top 5 Semanal para usuários autenticados.',
+      h1: 'Arena Semanal de Enigmas e Perguntas',
+    },
+    it: {
+      title: 'Arena Settimanale Enigmi & Domande (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: 'Arena interattiva in 12 lingue di enigmi e domande di scienza e filosofia (+50 corretto, +20 vuoto, -20 errato) con Top 5 Settimanale per utenti autenticati.',
+      h1: 'Arena Settimanale Enigmi & Domande',
+    },
+    ko: {
+      title: '주간 수수께끼 & Q&A 아레나 (+50 / +20 / -20) — Emre Pelit Sci-Phil',
+      desc: '누구나 참여할 수 있는 12개 언어 중급 난이도 과학·철학 수수께끼 및 Q&A 아레나(정답 +50, 미응답 +20, 오답 -20). 로그인 사용자는 직접 설정한 사용자 이름으로 주간 TOP 5에 등재됩니다.',
+      h1: '주간 수수께끼 & Q&A 아레나',
+    },
+  };
+
+  for (const arenaRoute of ['/arena', ...SUPPORTED_12_LANGS.map((l) => `/${l}/arena`)]) {
+    const routeLang = SUPPORTED_12_LANGS.find((l) => arenaRoute.startsWith(`/${l}/`)) || 'tr';
+    const arenaMeta = arenaMetaByLang[routeLang] || arenaMetaByLang.en;
+    const hubPath = LANG_HUB_META[routeLang].path;
+    const canonicalUrl = `${CANONICAL_ORIGIN}${arenaRoute}`;
+    const arenaQuizLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Quiz',
+      '@id': `${canonicalUrl}#weekly-arena`,
+      name: arenaMeta.h1,
+      description: arenaMeta.desc,
+      url: canonicalUrl,
+      inLanguage: routeLang,
+      educationalLevel: 'Intermediate',
+      isAccessibleForFree: true,
+      author: { '@type': 'Person', name: 'Emre Pelit', url: `${CANONICAL_ORIGIN}/` },
+      publisher: { '@type': 'Organization', name: 'Emre Pelit — Sci-Phil Bilim, Felsefe ve Simülasyon Arşivi', url: `${CANONICAL_ORIGIN}/` },
+    };
+    const rootHtml = `
+<main class="max-w-4xl mx-auto px-6 py-10 space-y-6">
+  <nav aria-label="Breadcrumb"><a href="${hubPath}">Hub</a> / <span>${escapeHtml(arenaMeta.h1)}</span></nav>
+  <article>
+    <h1>${escapeHtml(arenaMeta.h1)}</h1>
+    <p>${escapeHtml(arenaMeta.desc)}</p>
+    <p><strong>Scoring:</strong> +50 Correct · +20 Blank · -20 Wrong · 12 Languages · KVKK (6698) &amp; EU GDPR (2016/679) Compliant.</p>
+  </article>
+</main>`.trim();
+
+    const html = injectHeadAndRoot(baseHtml, {
+      lang: routeLang,
+      title: arenaMeta.title,
+      description: arenaMeta.desc,
+      canonicalUrl,
+      jsonLd: arenaQuizLd,
+      hreflangBlock: buildReciprocalHreflangBlock(arenaHreflangs, `${CANONICAL_ORIGIN}/arena`),
+      rootHtml,
+    });
+    writeHtmlRoute(arenaRoute, html);
+    generatedHtmlCount += 1;
+  }
+
+  // 5. Emit clean static sitemaps (including /arena, /:lang/arena, governance, & sitemap-12-languages.xml) & robots.txt into /dist
   const todayIso = new Date().toISOString().slice(0, 10);
   const articleUrlsXml = snapshot
     .map(
@@ -946,29 +1142,100 @@ async function run() {
     .join('\n');
   const sitemapTurkish12LanguagesXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${turkish12LangUrlsXml}\n</urlset>\n`;
 
-  const mainPaths = ['/', ...SUPPORTED_12_LANGS.filter((l) => l !== 'tr').map((l) => `/${l}/`), '/archive', ...SUPPORTED_12_LANGS.map((l) => `/${l}/archive`)];
+  const govPaths = Object.keys(GOVERNANCE_PAGES).flatMap((k) => SUPPORTED_12_LANGS.map((l) => `/${l}/${k}`));
+  const mainPaths = [
+    '/',
+    ...SUPPORTED_12_LANGS.filter((l) => l !== 'tr').map((l) => `/${l}/`),
+    '/archive',
+    ...SUPPORTED_12_LANGS.map((l) => `/${l}/archive`),
+    '/arena',
+    ...SUPPORTED_12_LANGS.map((l) => `/${l}/arena`),
+    ...govPaths,
+  ];
   const mainUrlsXml = mainPaths
     .map(
       (p) =>
-        `  <url>\n    <loc>${CANONICAL_ORIGIN}${p}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>${p === '/' ? '1.0' : '0.95'}</priority>\n  </url>`
+        `  <url>\n    <loc>${CANONICAL_ORIGIN}${p}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>${p.includes('/privacy') || p.includes('/kvkk') || p.includes('/terms') || p.includes('/imprint') || p.includes('/disclaimer') || p.includes('/methodology') ? 'monthly' : 'daily'}</changefreq>\n    <priority>${p === '/' ? '1.0' : p.includes('/arena') ? '0.96' : p.includes('/archive') || /^\/[a-z]{2}\/$/.test(p) ? '0.95' : '0.65'}</priority>\n  </url>`
     )
     .join('\n');
   const sitemapMainXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${mainUrlsXml}\n</urlset>\n`;
+  const sitemapCombinedXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${mainUrlsXml}\n${articleUrlsXml}\n</urlset>\n`;
 
   const sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-main.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-articles.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-turkish-12-languages.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-12-languages.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${CANONICAL_ORIGIN}/sitemap-scholar.xml</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n</sitemapindex>\n`;
 
-  const robotsTxt = `User-agent: *\nAllow: /\n\nSitemap: ${CANONICAL_ORIGIN}/sitemap_index.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-articles.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-turkish-12-languages.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-12-languages.xml\nSitemap: ${CANONICAL_ORIGIN}/sitemap-scholar.xml\n`;
+  const robotsTxt = [
+    'User-agent: Googlebot',
+    'Allow: /',
+    '',
+    'User-agent: Bingbot',
+    'Allow: /',
+    '',
+    'User-agent: DuckDuckBot',
+    'Allow: /',
+    '',
+    'User-agent: Applebot',
+    'Allow: /',
+    '',
+    'User-agent: Yandex',
+    'Allow: /',
+    '',
+    'User-agent: Baiduspider',
+    'Allow: /',
+    '',
+    'User-agent: Yeti',
+    'Allow: /',
+    '',
+    'User-agent: SeznamBot',
+    'Allow: /',
+    '',
+    '# AI Search & Citation Crawlers',
+    'User-agent: GPTBot',
+    'Allow: /',
+    '',
+    'User-agent: OAI-SearchBot',
+    'Allow: /',
+    '',
+    'User-agent: ClaudeBot',
+    'Allow: /',
+    '',
+    'User-agent: PerplexityBot',
+    'Allow: /',
+    '',
+    'User-agent: Google-Extended',
+    'Allow: /',
+    '',
+    'User-agent: Applebot-Extended',
+    'Allow: /',
+    '',
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /api/',
+    'Disallow: /*?section=',
+    'Disallow: /*?tab=',
+    '',
+    '# Canonical XML Sitemaps & Atom/RSS Feed',
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap_index.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap-main.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap-articles.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap-turkish-12-languages.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap-12-languages.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/sitemap-scholar.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/rss.xml`,
+    `Sitemap: ${CANONICAL_ORIGIN}/atom.xml`,
+    '',
+  ].join('\n');
 
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap-articles.xml'), sitemapArticlesXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap-turkish-12-languages.xml'), sitemapTurkish12LanguagesXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap-12-languages.xml'), sitemap12LanguagesXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap-main.xml'), sitemapMainXml, 'utf-8');
-  fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), sitemapArticlesXml, 'utf-8');
+  fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), sitemapCombinedXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap_index.xml'), sitemapIndexXml, 'utf-8');
   fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotsTxt, 'utf-8');
 
   console.log(
-    `[prerender] Complete: ${snapshot.length} snapshot items + ${generatedHtmlCount} static full-body SSG HTML routes (12 langs) + static sitemaps.`
+    `[prerender] Complete: ${snapshot.length} snapshot items + ${generatedHtmlCount} static full-body SSG HTML routes (12 langs incl. /arena) + static sitemaps.`
   );
 }
 

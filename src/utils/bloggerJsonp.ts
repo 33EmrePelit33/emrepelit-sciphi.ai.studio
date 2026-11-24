@@ -26,18 +26,45 @@ export interface JsonpBloggerSyncResult {
   entries: JsonpBloggerEntry[];
 }
 
-function stripHtmlBasic(html: string): string {
-  return String(html || '')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
+function decodeHtmlEntitiesBasic(input: string): string {
+  return String(input || '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      const cp = parseInt(hex, 16);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : '';
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      const cp = parseInt(dec, 10);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : '';
+    })
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&hellip;/gi, '…')
+    .replace(/&lsquo;/gi, '‘')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&rdquo;/gi, '”');
+}
+
+function stripHtmlPreserveParagraphs(html: string): string {
+  const withBreaks = String(html || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote|tr|section|article|pre)>/gi, '\n\n')
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ');
+  return decodeHtmlEntitiesBasic(withBreaks)
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -154,22 +181,33 @@ export async function fetchBloggerFeedViaJsonp(
       ? raw.link.find((l: any) => l?.rel === 'alternate')?.href
       : undefined;
     const rawHtml = String(raw?.content?.$t || raw?.summary?.$t || title);
-    const plainText = stripHtmlBasic(rawHtml);
-    const splitParas = plainText
-      .split(/(?<=[.!?])\s+(?=[A-ZÇĞİÖŞÜ0-9"“])/)
-      .reduce<string[]>((acc, sentence) => {
-        const last = acc[acc.length - 1];
-        if (!last || last.length > 360) {
-          acc.push(sentence);
-        } else {
-          acc[acc.length - 1] = `${last} ${sentence}`;
-        }
-        return acc;
-      }, [])
-      .filter(Boolean);
+    const structuredPlain = stripHtmlPreserveParagraphs(rawHtml);
+    const rawBlocks = structuredPlain
+      .split(/\n{2,}/)
+      .map((b) => b.replace(/\s+/g, ' ').trim())
+      .filter((b) => b.length > 0);
+    let paragraphs: string[] = [];
+    if (rawBlocks.length >= 2) {
+      paragraphs = rawBlocks;
+    } else {
+      const flatText = structuredPlain.replace(/\s+/g, ' ').trim();
+      const splitParas = flatText
+        .split(/(?<=[.!?])\s+(?=[A-ZÇĞİÖŞÜ0-9"“])/)
+        .reduce<string[]>((acc, sentence) => {
+          const last = acc[acc.length - 1];
+          if (!last || last.length > 360) {
+            acc.push(sentence);
+          } else {
+            acc[acc.length - 1] = `${last} ${sentence}`;
+          }
+          return acc;
+        }, [])
+        .filter(Boolean);
+      paragraphs = splitParas.length > 0 ? splitParas : [flatText || title];
+    }
 
-    const paragraphs = splitParas.length > 0 ? splitParas : [plainText || title];
-    const abstract = paragraphs[0].slice(0, 420);
+    const flatForAbstract = paragraphs.join(' ');
+    const abstract = flatForAbstract.slice(0, 480) + (flatForAbstract.length > 480 ? '...' : '');
 
     return {
       id: `blogger-${bloggerPostId}`,

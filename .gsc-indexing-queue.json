@@ -1,14 +1,14 @@
 {
   "success": true,
-  "queueId": "GSC-Q-C6C940BD6F6C",
-  "queuedAt": "2026-11-18T16:55:40.894Z",
+  "queueId": "GSC-Q-4B57EE8B5519",
+  "queuedAt": "2026-11-23T20:12:05.860Z",
   "propertyOrigin": "https://emrepelit-sciphi.ai.studio",
   "ownerEmail": "emrepelit39@gmail.com",
   "verificationFileUrl": "https://emrepelit-sciphi.ai.studio/google5d3436c931b6024c.html",
   "verificationMetaToken": "5d3436c931b6024c",
-  "totalArticlesQueued": 316,
+  "totalArticlesQueued": 320,
   "totalCorePagesQueued": 103,
-  "totalQueuedUrls": 3638,
+  "totalQueuedUrls": 3688,
   "languagesCount": 12,
   "redirectUrlsInQueue": 0,
   "sitemapsSubmitted": [
@@ -49,13 +49,125 @@
     },
     {
       "key": "BLOG_POSTING_SCHEMA_JSONLD",
-      "label": "Dinamik BlogPosting + VideoObject (60s) + Quiz + Highwire Citation Meta",
+      "label": "Dinamik BlogPosting + VideoObject (12 Dil · Süre Kısıtsız) + Quiz + Highwire Citation Meta",
       "ok": true
     }
   ],
   "sampleArticleItems": [
     {
       "order": 1,
+      "articleId": "blogger-8613609838574378326",
+      "postNumber": 320,
+      "title": "The Most Practical Way for a Human to Understand the Creator",
+      "archiveCode": "SCIPHIL-320",
+      "publishedAt": "2026-11-23",
+      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/en/article/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/en/article/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+      "all12LangUrls": [
+        "https://emrepelit-sciphi.ai.studio/tr/makale/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/en/article/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/es/articulo/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/de/artikel/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/fr/article/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ru/statya/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ar/maqal/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ja/ronbun/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/pt/artigo/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/it/articolo/the-most-practical-way-for-a-human-to-understand-the-creator-320",
+        "https://emrepelit-sciphi.ai.studio/ko/nonmun/the-most-practical-way-for-a-human-to-understand-the-creator-320"
+      ],
+      "all12LangUrlsCount": 12,
+      "ssrRendered": true,
+      "selfCanonical200Ok": true,
+      "status": "QUEUED_FOR_GSC_200_OK"
+    },
+    {
+      "order": 2,
+      "articleId": "blogger-1502242255066606425",
+      "postNumber": 319,
+      "title": "İnsanın Yaratıcı’yı Anlamak İçin En Pratik Yolu",
+      "archiveCode": "SCIPHIL-319",
+      "publishedAt": "2026-11-23",
+      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+      "all12LangUrls": [
+        "https://emrepelit-sciphi.ai.studio/tr/makale/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/en/article/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/es/articulo/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/de/artikel/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/fr/article/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/ru/statya/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/ar/maqal/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/ja/ronbun/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/pt/artigo/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/it/articolo/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319",
+        "https://emrepelit-sciphi.ai.studio/ko/nonmun/insanin-yaratici-yi-anlamak-icin-en-pratik-yolu-319"
+      ],
+      "all12LangUrlsCount": 12,
+      "ssrRendered": true,
+      "selfCanonical200Ok": true,
+      "status": "QUEUED_FOR_GSC_200_OK"
+    },
+    {
+      "order": 3,
+      "articleId": "blogger-3291259342360549163",
+      "postNumber": 318,
+      "title": "The Fundamental Difference Between a QPU and the Heart",
+      "archiveCode": "SCIPHIL-318",
+      "publishedAt": "2026-11-19",
+      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/en/article/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/qpu-ile-kalp-arasindaki-temel-fark-317",
+      "all12LangUrls": [
+        "https://emrepelit-sciphi.ai.studio/tr/makale/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/en/article/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/es/articulo/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/de/artikel/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/fr/article/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ru/statya/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ar/maqal/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ja/ronbun/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/pt/artigo/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/it/articolo/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/ko/nonmun/the-fundamental-difference-between-a-qpu-and-the-heart-318"
+      ],
+      "all12LangUrlsCount": 12,
+      "ssrRendered": true,
+      "selfCanonical200Ok": true,
+      "status": "QUEUED_FOR_GSC_200_OK"
+    },
+    {
+      "order": 4,
+      "articleId": "blogger-856805921857833989",
+      "postNumber": 317,
+      "title": "QPU ile Kalp Arasındaki Temel Fark",
+      "archiveCode": "SCIPHIL-317",
+      "publishedAt": "2026-11-19",
+      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/qpu-ile-kalp-arasindaki-temel-fark-317",
+      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/qpu-ile-kalp-arasindaki-temel-fark-317",
+      "all12LangUrls": [
+        "https://emrepelit-sciphi.ai.studio/tr/makale/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/en/article/the-fundamental-difference-between-a-qpu-and-the-heart-318",
+        "https://emrepelit-sciphi.ai.studio/es/articulo/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/de/artikel/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/fr/article/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/ru/statya/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/ar/maqal/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/ja/ronbun/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/pt/artigo/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/it/articolo/qpu-ile-kalp-arasindaki-temel-fark-317",
+        "https://emrepelit-sciphi.ai.studio/ko/nonmun/qpu-ile-kalp-arasindaki-temel-fark-317"
+      ],
+      "all12LangUrlsCount": 12,
+      "ssrRendered": true,
+      "selfCanonical200Ok": true,
+      "status": "QUEUED_FOR_GSC_200_OK"
+    },
+    {
+      "order": 5,
       "articleId": "blogger-258995342970019936",
       "postNumber": 316,
       "title": "The Conventional Monotony of Human Comprehension, the Silicon-Based Equivalent of Biological Processes, and the Incomprehensibility of Human Beings",
@@ -83,7 +195,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 2,
+      "order": 6,
       "articleId": "blogger-6317429267560308262",
       "postNumber": 315,
       "title": "İnsan Kavrayışının Genelgeçer Tekdüzeliği, Biyolojik Süreçlerin Silikon Tabanlı Eşdeğeri ve İnsanların Anlaşılmazlığı",
@@ -111,7 +223,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 3,
+      "order": 7,
       "articleId": "blogger-5177748668336319456",
       "postNumber": 314,
       "title": "Was the Arrival Order of the Prophets Really Pre-Determined, On What Basis Was It Decided, and What Kind of Arrangement Was Made in the Realm of Elest?",
@@ -139,7 +251,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 4,
+      "order": 8,
       "articleId": "blogger-4647342132829770088",
       "postNumber": 313,
       "title": "Peygamberlerin Geliş Sırası Gerçekten Belli miydi, Neye Göre Belirlenmiştir ve Elest’te Nasıl Bir Düzenleme Yapılmıştır",
@@ -167,7 +279,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 5,
+      "order": 9,
       "articleId": "blogger-8403152389631504831",
       "postNumber": 312,
       "title": "Si la Noción del “Tiempo Pasado” Ha Desaparecido, ¿Puede Ser Real el “Tiempo Presente”?",
@@ -195,7 +307,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 6,
+      "order": 10,
       "articleId": "blogger-9223205695730662042",
       "postNumber": 311,
       "title": "If the Notion of “Past Time” Has Vanished, Can the “Present Time” Be Real?",
@@ -223,7 +335,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 7,
+      "order": 11,
       "articleId": "blogger-8511316585908488579",
       "postNumber": 310,
       "title": "“Geçmiş Zaman” Mevhumu Yok Olduysa “Şimdiki Zaman” Gerçek Olabilir mi?",
@@ -251,7 +363,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 8,
+      "order": 12,
       "articleId": "blogger-3265012234664831077",
       "postNumber": 309,
       "title": "Puede que existan los extraterrestres, pero es dudoso que los estemos buscando en el lugar correcto",
@@ -279,7 +391,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 9,
+      "order": 13,
       "articleId": "blogger-5944286117196229080",
       "postNumber": 308,
       "title": "Aliens May Exist, But Whether We Are Looking for Them in the Right Place Is Doubtful",
@@ -307,7 +419,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 10,
+      "order": 14,
       "articleId": "blogger-3409168328583454003",
       "postNumber": 307,
       "title": "Uzaylılar Olabilir Ama Onları Doğru Yerde mi Arıyoruz Orası Şüpheli",
@@ -335,7 +447,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 11,
+      "order": 15,
       "articleId": "blogger-207727546784801585",
       "postNumber": 306,
       "title": "The Origin of Destiny: Everything Had Actually Already Happened, Yet Retrieving and Utilizing Information from the Entropic Flow Comes at a Cost",
@@ -363,7 +475,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 12,
+      "order": 16,
       "articleId": "blogger-7267123953803072777",
       "postNumber": 305,
       "title": "Kaderin Kökeni: Aslında Her Şey Olup Bitmişti Ama Entropik Akıştan Bilgi Getirmenin ve Kullanmanın da Bir Maliyeti Var",
@@ -391,7 +503,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 13,
+      "order": 17,
       "articleId": "blogger-5175491757693355248",
       "postNumber": 304,
       "title": "Imaginons que nous déléguions tout le travail aux LLM, et après ??",
@@ -419,7 +531,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 14,
+      "order": 18,
       "articleId": "blogger-4228213414265780236",
       "postNumber": 303,
       "title": "Imaginemos que delegamos todo el trabajo a los LLM, ¿y después qué??",
@@ -447,7 +559,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 15,
+      "order": 19,
       "articleId": "blogger-3868182211000622951",
       "postNumber": 302,
       "title": "Stellen wir uns vor, wir übertragen alle Aufgaben an LLMs – und was dann??",
@@ -475,7 +587,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 16,
+      "order": 20,
       "articleId": "blogger-2690333908523039123",
       "postNumber": 301,
       "title": "Let’s Imagine We Delegate All Work to LLMs, So What Next??",
@@ -503,7 +615,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 17,
+      "order": 21,
       "articleId": "blogger-8695035383509103619",
       "postNumber": 300,
       "title": "Bütün İşleri LLM’lere Yüklediğimizi Düşünelim, E Peki Sonra??",
@@ -531,7 +643,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 18,
+      "order": 22,
       "articleId": "blogger-6602475177705014283",
       "postNumber": 299,
       "title": "Si les interfaces cerveau-machine se développent jusqu'au niveau visé, peut-on encore parler d'autonomie mentale?",
@@ -559,7 +671,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 19,
+      "order": 23,
       "articleId": "blogger-1867758827393348219",
       "postNumber": 298,
       "title": "Wenn sich Gehirn-Computer-Schnittstellen bis zum angestrebten Punkt entwickeln, kann man dann noch von geistiger Autonomie sprechen?",
@@ -587,7 +699,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 20,
+      "order": 24,
       "articleId": "blogger-7920225023379584655",
       "postNumber": 297,
       "title": "Si las Interfaces Cerebro-Computadora se Desarrollan Hasta el Nivel Previsto, ¿Se Puede Hablar de Autonomía Mental?",
@@ -615,7 +727,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 21,
+      "order": 25,
       "articleId": "blogger-4618820121316311603",
       "postNumber": 296,
       "title": "If Brain-Computer Interfaces Develop to Their Targeted Point, Can We Still Speak of Mental Autonomy?",
@@ -643,7 +755,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 22,
+      "order": 26,
       "articleId": "blogger-1845361267145572207",
       "postNumber": 295,
       "title": "Beyin Bilgisayar Arayüzleri Hedeflenen Noktaya Kadar Gelişirse Zihinsel Özerklikten Bahsedilebilir Mi?",
@@ -671,7 +783,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 23,
+      "order": 27,
       "articleId": "blogger-2350372081388287611",
       "postNumber": 294,
       "title": "L’Univers a toujours été un phénomène singulier et le restera pour toujours",
@@ -699,7 +811,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 24,
+      "order": 28,
       "articleId": "blogger-2649134577666013611",
       "postNumber": 293,
       "title": "Das Universum war schon immer ein einzigartiges Phänomen, und das wird es für immer bleiben",
@@ -727,7 +839,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 25,
+      "order": 29,
       "articleId": "blogger-8987128337482146517",
       "postNumber": 292,
       "title": "El Universo Siempre Fue Un Fenómeno Singular, Y Así Permanecerá Para Siempre",
@@ -755,7 +867,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 26,
+      "order": 30,
       "articleId": "blogger-2534219432515261761",
       "postNumber": 291,
       "title": "The Universe Has Always Been a Singular Phenomenon, and Forever It Shall Remain So",
@@ -783,7 +895,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 27,
+      "order": 31,
       "articleId": "blogger-8837081716175656566",
       "postNumber": 290,
       "title": "Evren Her Zaman Tekil Bir Olguydu ve İlelebet de Öyle Kalacak",
@@ -811,7 +923,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 28,
+      "order": 32,
       "articleId": "blogger-4599366178067641283",
       "postNumber": 289,
       "title": "Beweist die Tatsache, dass LLMs menschliches Verhalten nachahmen, dass sie ein „Bewusstsein“ besitzen?",
@@ -839,7 +951,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 29,
+      "order": 33,
       "articleId": "blogger-8383233014379744525",
       "postNumber": 288,
       "title": "Le fait que les LLM imitent le comportement humain prouve-t-il qu'ils sont dotés de « conscience » ?",
@@ -867,7 +979,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 30,
+      "order": 34,
       "articleId": "blogger-8998131455154199161",
       "postNumber": 287,
       "title": "¿El hecho de que los LLM imiten el comportamiento humano demuestra que tienen \"conciencia\"?",
@@ -895,7 +1007,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 31,
+      "order": 35,
       "articleId": "blogger-4175545190349486799",
       "postNumber": 286,
       "title": "Does the Fact That LLMs Mimic Human Behavior Show They Have \"Consciousness\"?",
@@ -923,7 +1035,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 32,
+      "order": 36,
       "articleId": "blogger-3117827894793638348",
       "postNumber": 285,
       "title": "LLM’lerin İnsan Davranışını Taklit Etmesi Onların “Şuur” Sahibi Olduklarını Gösterir mi",
@@ -951,7 +1063,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 33,
+      "order": 37,
       "articleId": "blogger-1093763069883967531",
       "postNumber": 284,
       "title": "La structure de simulation du temps et la perception neuronale du temps",
@@ -979,7 +1091,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 34,
+      "order": 38,
       "articleId": "blogger-1491965123809274702",
       "postNumber": 283,
       "title": "Die Simulationsstruktur der Zeit und die neuronale Zeitwahrnehmung",
@@ -1007,7 +1119,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 35,
+      "order": 39,
       "articleId": "blogger-6479824086238427364",
       "postNumber": 282,
       "title": "La estructura de simulación del tiempo y la percepción neuronal del tiempo",
@@ -1035,7 +1147,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 36,
+      "order": 40,
       "articleId": "blogger-9029718889265878465",
       "postNumber": 281,
       "title": "The Simulation Structure of Time and Neuronal Time Perception",
@@ -1063,7 +1175,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 37,
+      "order": 41,
       "articleId": "blogger-3395198863934648239",
       "postNumber": 280,
       "title": "Zamanın Simülasyon Yapısı ve Nöronal Zaman Algısı",
@@ -1091,7 +1203,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 38,
+      "order": 42,
       "articleId": "blogger-5859255386358216618",
       "postNumber": 279,
       "title": "Die Kunst des Erschaffens und was möglich ist",
@@ -1119,7 +1231,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 39,
+      "order": 43,
       "articleId": "blogger-6761424698313629879",
       "postNumber": 278,
       "title": "L'art de la création et ce qui peut être accompli",
@@ -1147,7 +1259,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 40,
+      "order": 44,
       "articleId": "blogger-4758083323546371995",
       "postNumber": 277,
       "title": "El arte de la creación y lo que se puede hacer",
@@ -1175,7 +1287,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 41,
+      "order": 45,
       "articleId": "blogger-6451327201890959025",
       "postNumber": 276,
       "title": "The Art of Creation and What Can Be Done",
@@ -1203,7 +1315,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 42,
+      "order": 46,
       "articleId": "blogger-1885775824888267248",
       "postNumber": 275,
       "title": "Yaratma Sanatı ve Yapılabilecekler",
@@ -1231,7 +1343,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 43,
+      "order": 47,
       "articleId": "blogger-2111883134564337736",
       "postNumber": 274,
       "title": "Le boson de Higgs en tant que forme d'énergie",
@@ -1259,7 +1371,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 44,
+      "order": 48,
       "articleId": "blogger-2466851869420345449",
       "postNumber": 273,
       "title": "Higgs als eine Form von Energie",
@@ -1287,7 +1399,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 45,
+      "order": 49,
       "articleId": "blogger-2918383933425906055",
       "postNumber": 272,
       "title": "Higgs como una Forma de Energía",
@@ -1315,7 +1427,7 @@
       "status": "QUEUED_FOR_GSC_200_OK"
     },
     {
-      "order": 46,
+      "order": 50,
       "articleId": "blogger-9029261098352429183",
       "postNumber": 271,
       "title": "HIGGS Particle as a Form of Energy",
@@ -1341,121 +1453,9 @@
       "ssrRendered": true,
       "selfCanonical200Ok": true,
       "status": "QUEUED_FOR_GSC_200_OK"
-    },
-    {
-      "order": 47,
-      "articleId": "blogger-8417669536166363827",
-      "postNumber": 270,
-      "title": "Bir Enerji Formu Olarak HIGGS Parçacığı",
-      "archiveCode": "SCIPHIL-270",
-      "publishedAt": "2026-09-18",
-      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/bir-enerji-formu-olarak-higgs-parcacigi-270",
-      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/bir-enerji-formu-olarak-higgs-parcacigi-270",
-      "all12LangUrls": [
-        "https://emrepelit-sciphi.ai.studio/tr/makale/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/en/article/higgs-particle-as-a-form-of-energy-271",
-        "https://emrepelit-sciphi.ai.studio/es/articulo/higgs-como-una-forma-de-energia-272",
-        "https://emrepelit-sciphi.ai.studio/de/artikel/higgs-als-eine-form-von-energie-273",
-        "https://emrepelit-sciphi.ai.studio/fr/article/le-boson-de-higgs-en-tant-que-forme-d-energie-274",
-        "https://emrepelit-sciphi.ai.studio/ru/statya/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/ar/maqal/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/ja/ronbun/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/pt/artigo/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/it/articolo/bir-enerji-formu-olarak-higgs-parcacigi-270",
-        "https://emrepelit-sciphi.ai.studio/ko/nonmun/bir-enerji-formu-olarak-higgs-parcacigi-270"
-      ],
-      "all12LangUrlsCount": 12,
-      "ssrRendered": true,
-      "selfCanonical200Ok": true,
-      "status": "QUEUED_FOR_GSC_200_OK"
-    },
-    {
-      "order": 48,
-      "articleId": "blogger-5380581445339975511",
-      "postNumber": 269,
-      "title": "La esencia de la diferencia entre el cerebro y el corazón en los seres humanos y otros seres vivos",
-      "archiveCode": "SCIPHIL-269",
-      "publishedAt": "2026-09-16",
-      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/es/articulo/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-      "all12LangUrls": [
-        "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/en/article/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/es/articulo/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/de/artikel/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/fr/article/les-voies-du-developpement-de-l-esprit-humain-et-les-obstacles-actuels-263",
-        "https://emrepelit-sciphi.ai.studio/ru/statya/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/ar/maqal/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/ja/ronbun/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/pt/artigo/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/it/articolo/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/ko/nonmun/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269"
-      ],
-      "all12LangUrlsCount": 12,
-      "ssrRendered": true,
-      "selfCanonical200Ok": true,
-      "status": "QUEUED_FOR_GSC_200_OK"
-    },
-    {
-      "order": 49,
-      "articleId": "blogger-844298021153123201",
-      "postNumber": 268,
-      "title": "The Essence of the Difference Between the Brain and the Heart in Humans and Other Living Beings",
-      "archiveCode": "SCIPHIL-268",
-      "publishedAt": "2026-09-16",
-      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/en/article/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-      "all12LangUrls": [
-        "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/en/article/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/es/articulo/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/de/artikel/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/fr/article/les-voies-du-developpement-de-l-esprit-humain-et-les-obstacles-actuels-263",
-        "https://emrepelit-sciphi.ai.studio/ru/statya/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/ar/maqal/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/ja/ronbun/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/pt/artigo/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/it/articolo/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/ko/nonmun/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268"
-      ],
-      "all12LangUrlsCount": 12,
-      "ssrRendered": true,
-      "selfCanonical200Ok": true,
-      "status": "QUEUED_FOR_GSC_200_OK"
-    },
-    {
-      "order": 50,
-      "articleId": "blogger-93447762630259848",
-      "postNumber": 267,
-      "title": "Beyin ve Kalp Arasındaki Farkın İnsan ile Diğer Canlılardaki Mahiyeti",
-      "archiveCode": "SCIPHIL-267",
-      "publishedAt": "2026-09-16",
-      "canonicalUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-      "xDefaultUrl": "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-      "all12LangUrls": [
-        "https://emrepelit-sciphi.ai.studio/tr/makale/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/en/article/the-essence-of-the-difference-between-the-brain-and-the-heart-in-humans-268",
-        "https://emrepelit-sciphi.ai.studio/es/articulo/la-esencia-de-la-diferencia-entre-el-cerebro-y-el-corazon-en-los-seres-269",
-        "https://emrepelit-sciphi.ai.studio/de/artikel/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/fr/article/les-voies-du-developpement-de-l-esprit-humain-et-les-obstacles-actuels-263",
-        "https://emrepelit-sciphi.ai.studio/ru/statya/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/ar/maqal/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/zh/wenzhang/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/ja/ronbun/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/pt/artigo/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/it/articolo/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267",
-        "https://emrepelit-sciphi.ai.studio/ko/nonmun/beyin-ve-kalp-arasindaki-farkin-insan-ile-diger-canlilardaki-mahiyeti-267"
-      ],
-      "all12LangUrlsCount": 12,
-      "ssrRendered": true,
-      "selfCanonical200Ok": true,
-      "status": "QUEUED_FOR_GSC_200_OK"
     }
   ],
-  "allArticleItemsCount": 316,
+  "allArticleItemsCount": 320,
   "corePageUrlsSample": [
     "https://emrepelit-sciphi.ai.studio/",
     "https://emrepelit-sciphi.ai.studio/archive",
@@ -1507,14 +1507,32 @@
       "batchesSent": 1
     },
     {
-      "engine": "websub-pubsubhubbub (/rss.xml)",
+      "engine": "seznam-indexnow",
+      "endpoint": "https://search.seznam.cz/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "naver-indexnow",
+      "endpoint": "https://searchadvisor.naver.com/indexnow",
+      "httpStatus": 200,
+      "batchesSent": 1
+    },
+    {
+      "engine": "google-pubsubhubbub (/rss.xml)",
       "endpoint": "https://pubsubhubbub.appspot.com/",
       "httpStatus": 204,
       "batchesSent": 1
     },
     {
-      "engine": "websub-pubsubhubbub (/atom.xml)",
+      "engine": "google-pubsubhubbub (/atom.xml)",
       "endpoint": "https://pubsubhubbub.appspot.com/",
+      "httpStatus": 204,
+      "batchesSent": 1
+    },
+    {
+      "engine": "superfeedr-websub (/rss.xml)",
+      "endpoint": "https://pubsubhubbub.superfeedr.com/",
       "httpStatus": 204,
       "batchesSent": 1
     }

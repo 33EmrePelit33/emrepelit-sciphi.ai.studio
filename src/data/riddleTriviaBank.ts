@@ -16,7 +16,7 @@ export interface ArenaQuestionItem {
   difficulty: 'medium';
   correctIndex: 0 | 1 | 2 | 3;
   relatedKeyword: string;
-  content: Record<LanguageCode, ArenaItemLocalizedContent>;
+  content: Partial<Record<LanguageCode, ArenaItemLocalizedContent>>;
 }
 
 export const ARENA_SCORING = {
@@ -2201,7 +2201,7 @@ export interface ArenaUiStrings {
   privateOnlyNote: string;
 }
 
-export const ARENA_UI_STRINGS: Record<LanguageCode, ArenaUiStrings> = {
+export const ARENA_UI_STRINGS: Partial<Record<LanguageCode, ArenaUiStrings>> & { tr: ArenaUiStrings; en: ArenaUiStrings } = {
   tr: {
     sectionKicker: 'Etkileşimli Bilim & Felsefe Arenası · Herkese Açık',
     title: 'Bilmece-Bulmaca & Soru-Cevap Oyunu ve Haftalık İlk 5',
@@ -2803,3 +2803,202 @@ export const ARENA_UI_STRINGS: Record<LanguageCode, ArenaUiStrings> = {
     privateOnlyNote: '순위표에 등록하지 않고 비공개로 점수만 확인할 수도 있습니다.',
   },
 };
+
+export const ARENA_NAV_SHORTCUT_LABELS: Record<LanguageCode, string> = {
+  tr: 'Bilmece & Arena',
+  en: 'Riddles & Arena',
+  es: 'Acertijos y Arena',
+  de: 'Rätsel & Arena',
+  fr: 'Énigmes & Arène',
+  ru: 'Загадки и Арена',
+  ar: 'ألغاز وساحة',
+  zh: '谜题与竞技场',
+  ja: '謎解きアリーナ',
+  pt: 'Enigmas e Arena',
+  it: 'Enigmi e Arena',
+  ko: '수수께끼 아레나',
+  no: 'Gåter & Arena',
+  is: 'Gátur & Leikvangur',
+  da: 'Gåder & Arena',
+  sv: 'Gåtor & Arena',
+  nl: 'Raadsels & Arena',
+  fi: 'Arvoitukset & Areena',
+  ga: 'Tomhas & Airéine',
+  lb: 'Rätselen & Arena',
+  rm: 'Indovinels & Arena',
+  ms: 'Teka-teki & Arena',
+  ta: 'புதிர் அரங்கம்',
+};
+
+export interface ArenaAuthStrings {
+  openPracticeAuthBoardNote: string;
+  signInRequiredTitle: string;
+  signInRequiredDesc: string;
+  signInToJoinTop5Btn: string;
+  signedInCustomNameNote: string;
+  customUsernameLabel: string;
+  customUsernamePlaceholder: string;
+  myStandingLabel: string;
+  leaderboardVerifiedOnlyNote: string;
+  keptBestScoreNotice: string;
+}
+
+export const ARENA_AUTH_STRINGS: Partial<Record<LanguageCode, ArenaAuthStrings>> & { tr: ArenaAuthStrings; en: ArenaAuthStrings } = {
+  tr: {
+    openPracticeAuthBoardNote: 'Herkes giriş yapmadan deneyebilir · Haftalık İlk 5 yalnızca giriş yapanların seçtiği kullanıcı adları içindir',
+    signInRequiredTitle: 'Haftalık İlk 5’e Kendi Kullanıcı Adınızla Katılın',
+    signInRequiredDesc:
+      'Arenada herkes giriş yapmadan kendini özgürce deneyebilir. Puanınızı ve kendi belirleyeceğiniz kullanıcı adınızı Haftalık İlk 5 listesinde göstermek için Google ile giriş yapın (mevcut tur puanınız korunur).',
+    signInToJoinTop5Btn: 'Google ile Giriş Yap & Kullanıcı Adı Seç',
+    signedInCustomNameNote: 'Oturum açık — Listede görünmek için kendi belirleyeceğiniz kullanıcı adını girin (e-posta adresiniz asla kamuya açılmaz).',
+    customUsernameLabel: 'Listede Görünecek Kullanıcı Adınız (2–24 karakter)',
+    customUsernamePlaceholder: 'Örn. KuantumGezgini',
+    myStandingLabel: 'Bu Haftaki Kaydınız',
+    leaderboardVerifiedOnlyNote: 'İlk 5 listesinde yalnızca giriş yaparak oynayan kullanıcıların kendi belirledikleri kullanıcı adları yer alır.',
+    keptBestScoreNotice: 'Kullanıcı adınız güncellendi; bu haftaki daha yüksek en iyi puanınız korundu.',
+  },
+  en: {
+    openPracticeAuthBoardNote: 'Anyone can practice freely · Weekly Top 5 shows custom usernames of signed-in players only',
+    signInRequiredTitle: 'Join the Weekly Top 5 with Your Custom Username',
+    signInRequiredDesc:
+      'Anyone can practice in the Arena without signing in. To publish your verified score and custom chosen username to the Weekly Top 5, sign in with Google (your current round score is preserved).',
+    signInToJoinTop5Btn: 'Sign in with Google & Choose Username',
+    signedInCustomNameNote: 'Signed in — Choose any custom username for the public Top 5 (your Google email is never shown publicly).',
+    customUsernameLabel: 'Your Chosen Public Username (2–24 characters)',
+    customUsernamePlaceholder: 'e.g. QuantumThinker',
+    myStandingLabel: 'Your Current Weekly Entry',
+    leaderboardVerifiedOnlyNote: 'Only signed-in players appear in the Weekly Top 5 with their own chosen usernames.',
+    keptBestScoreNotice: 'Your custom username was updated while keeping your higher best score for this week.',
+  },
+  es: {
+    openPracticeAuthBoardNote: 'Cualquiera puede practicar · El Top 5 semanal muestra solo nombres elegidos por usuarios autenticados',
+    signInRequiredTitle: 'Únete al Top 5 Semanal con tu Nombre de Usuario',
+    signInRequiredDesc:
+      'Cualquiera puede probar la Arena sin iniciar sesión. Para publicar tu puntuación y tu nombre de usuario personalizado en el Top 5 semanal, inicia sesión con Google.',
+    signInToJoinTop5Btn: 'Entrar con Google y Elegir Nombre',
+    signedInCustomNameNote: 'Sesión iniciada — Elige tu propio nombre de usuario público (tu correo nunca se muestra).',
+    customUsernameLabel: 'Tu Nombre de Usuario Elegido (2–24 caracteres)',
+    customUsernamePlaceholder: 'Ej. ViajeroCuantico',
+    myStandingLabel: 'Tu Registro de Esta Semana',
+    leaderboardVerifiedOnlyNote: 'Solo los usuarios que inician sesión aparecen en el Top 5 semanal con su nombre elegido.',
+    keptBestScoreNotice: 'Se actualizó tu nombre de usuario conservando tu mejor puntuación de la semana.',
+  },
+  de: {
+    openPracticeAuthBoardNote: 'Jeder kann frei üben · Die Top 5 zeigen nur selbst gewählte Benutzernamen angemeldeter Spieler',
+    signInRequiredTitle: 'Mit eigenem Benutzernamen in die wöchentlichen Top 5',
+    signInRequiredDesc:
+      'Jeder kann die Arena ohne Anmeldung ausprobieren. Um mit deinem selbst gewählten Benutzernamen in den wöchentlichen Top 5 zu erscheinen, melde dich mit Google an.',
+    signInToJoinTop5Btn: 'Mit Google anmelden & Namen wählen',
+    signedInCustomNameNote: 'Angemeldet — Wähle deinen eigenen öffentlichen Benutzernamen (deine E-Mail bleibt geheim).',
+    customUsernameLabel: 'Dein gewählter Benutzername (2–24 Zeichen)',
+    customUsernamePlaceholder: 'z.B. QuantenDenker',
+    myStandingLabel: 'Dein aktueller Wocheneintrag',
+    leaderboardVerifiedOnlyNote: 'In den Top 5 erscheinen ausschließlich angemeldete Nutzer mit ihrem selbst gewählten Benutzernamen.',
+    keptBestScoreNotice: 'Dein Benutzername wurde aktualisiert; dein höherer Wochenrekord blieb erhalten.',
+  },
+  fr: {
+    openPracticeAuthBoardNote: 'Essai libre pour tous · Le Top 5 affiche uniquement les pseudos des joueurs connectés',
+    signInRequiredTitle: 'Rejoignez le Top 5 avec Votre Nom d’Utilisateur',
+    signInRequiredDesc:
+      'Chacun peut s’essayer librement dans l’Arène. Pour afficher votre score et le nom d’utilisateur de votre choix dans le Top 5 hebdomadaire, connectez-vous avec Google.',
+    signInToJoinTop5Btn: 'Connexion Google & Choisir un Pseudo',
+    signedInCustomNameNote: 'Connecté — Choisissez le nom d’utilisateur public de votre choix (votre e-mail n’est jamais affiché).',
+    customUsernameLabel: 'Votre Nom d’Utilisateur Choisi (2–24 caractères)',
+    customUsernamePlaceholder: 'Ex. EspritQuantique',
+    myStandingLabel: 'Votre Entrée de la Semaine',
+    leaderboardVerifiedOnlyNote: 'Seuls les joueurs connectés apparaissent dans le Top 5 avec le nom d’utilisateur qu’ils ont choisi.',
+    keptBestScoreNotice: 'Votre nom d’utilisateur a été mis à jour tout en conservant votre meilleur score de la semaine.',
+  },
+  ru: {
+    openPracticeAuthBoardNote: 'Тренировка открыта всем · В Топ-5 попадают только авторизованные игроки со своим ником',
+    signInRequiredTitle: 'Войдите, чтобы попасть в Топ-5 со своим ником',
+    signInRequiredDesc:
+      'Каждый может свободно проверить себя на Арене. Чтобы ваш результат и выбранное имя пользователя отобразились в недельном Топ-5, войдите через Google.',
+    signInToJoinTop5Btn: 'Войти через Google и выбрать ник',
+    signedInCustomNameNote: 'Вы вошли — введите желаемое имя пользователя для рейтинга (email никогда не публикуется).',
+    customUsernameLabel: 'Ваше имя пользователя (2–24 символа)',
+    customUsernamePlaceholder: 'Напр. КвантМысли',
+    myStandingLabel: 'Ваша запись на этой неделе',
+    leaderboardVerifiedOnlyNote: 'В Топ-5 отображаются только вошедшие пользователи с выбранными ими именами.',
+    keptBestScoreNotice: 'Имя пользователя обновлено; сохранён ваш более высокий результат недели.',
+  },
+  ar: {
+    openPracticeAuthBoardNote: 'التجربة متاحة للجميع · تظهر في قائمة أفضل 5 أسماء المستخدمين المختارة للمسجلين فقط',
+    signInRequiredTitle: 'انضم لقائمة أفضل 5 باسم المستخدم الذي تختاره',
+    signInRequiredDesc:
+      'يمكن للجميع تجربة الساحة بحرية دون تسجيل. لعرض نتيجتك واسم المستخدم الذي تختاره في قائمة أفضل 5 أسبوعياً، سجّل الدخول عبر Google.',
+    signInToJoinTop5Btn: 'الدخول عبر Google واختيار اسم مستخدم',
+    signedInCustomNameNote: 'تم تسجيل الدخول — اختر اسم المستخدم العام الذي تريده (لا يُعرض بريدك أبداً).',
+    customUsernameLabel: 'اسم المستخدم الذي تختاره (2–24 حرفاً)',
+    customUsernamePlaceholder: 'مثال: باحث_الكم',
+    myStandingLabel: 'ترتيبك هذا الأسبوع',
+    leaderboardVerifiedOnlyNote: 'تضم قائمة أفضل 5 فقط المستخدمين المسجلين بأسماء المستخدمين التي يختارونها بأنفسهم.',
+    keptBestScoreNotice: 'تم تحديث اسم المستخدم مع الاحتفاظ بأعلى درجة حققتها هذا الأسبوع.',
+  },
+  zh: {
+    openPracticeAuthBoardNote: '所有人均可免登录体验 · 每周前5名仅展示已登录玩家自选的用户名',
+    signInRequiredTitle: '登录并以自选用户名登上每周前5名',
+    signInRequiredDesc:
+      '任何人都无需登录即可在竞技场自由挑战。如需将您的分数与自选用户名展示在每周前5名榜单中，请使用 Google 登录（当前回合得分将保留）。',
+    signInToJoinTop5Btn: '使用 Google 登录并设置用户名',
+    signedInCustomNameNote: '已登录 — 请设置要在榜单显示的自选用户名（绝不公开邮箱）。',
+    customUsernameLabel: '您的自选公开用户名（2–24个字符）',
+    customUsernamePlaceholder: '例如：量子行者',
+    myStandingLabel: '您本周的记录',
+    leaderboardVerifiedOnlyNote: '每周前5名仅显示已登录玩家自行设定的用户名。',
+    keptBestScoreNotice: '用户名已更新，同时保留了您本周更高的最佳得分。',
+  },
+  ja: {
+    openPracticeAuthBoardNote: '誰でも自由に挑戦可能 · 週間トップ5はログイン済みプレイヤーの希望ユーザー名のみ表示',
+    signInRequiredTitle: 'ログインして希望ユーザー名で週間トップ5へ',
+    signInRequiredDesc:
+      '誰でもログイン不要でアリーナを試せます。スコアとご自身で決めたユーザー名を週間トップ5に掲載するには Google でログインしてください。',
+    signInToJoinTop5Btn: 'Googleでログインしてユーザー名を設定',
+    signedInCustomNameNote: 'ログイン済み — トップ5に表示する希望ユーザー名を入力してください（メールは非公開）。',
+    customUsernameLabel: '表示するユーザー名（2〜24文字）',
+    customUsernamePlaceholder: '例：量子旅人',
+    myStandingLabel: '今週のあなたの記録',
+    leaderboardVerifiedOnlyNote: '週間トップ5にはログイン済みユーザーが自ら設定したユーザー名のみが表示されます。',
+    keptBestScoreNotice: 'ユーザー名を更新し、今週のより高いベストスコアを維持しました。',
+  },
+  pt: {
+    openPracticeAuthBoardNote: 'Todos podem praticar livremente · O Top 5 exibe apenas nomes escolhidos por usuários autenticados',
+    signInRequiredTitle: 'Entre no Top 5 Semanal com Seu Nome de Usuário',
+    signInRequiredDesc:
+      'Qualquer pessoa pode praticar na Arena sem entrar. Para exibir sua pontuação e o nome de usuário escolhido por você no Top 5 semanal, entre com o Google.',
+    signInToJoinTop5Btn: 'Entrar com Google e Escolher Nome',
+    signedInCustomNameNote: 'Conectado — Escolha o nome de usuário público que preferir (seu e-mail nunca é exibido).',
+    customUsernameLabel: 'Seu Nome de Usuário Escolhido (2–24 caracteres)',
+    customUsernamePlaceholder: 'Ex. ViajanteQuantico',
+    myStandingLabel: 'Seu Registro desta Semana',
+    leaderboardVerifiedOnlyNote: 'Apenas usuários autenticados aparecem no Top 5 semanal com o nome de usuário escolhido por eles.',
+    keptBestScoreNotice: 'Seu nome de usuário foi atualizado mantendo sua maior pontuação desta semana.',
+  },
+  it: {
+    openPracticeAuthBoardNote: 'Prova libera per tutti · La Top 5 mostra solo i nomi utente scelti dagli utenti autenticati',
+    signInRequiredTitle: 'Entra nella Top 5 Settimanale con il Tuo Nome Utente',
+    signInRequiredDesc:
+      'Chiunque può mettersi alla prova nell’Arena senza accedere. Per mostrare il tuo punteggio e il nome utente scelto da te nella Top 5 settimanale, accedi con Google.',
+    signInToJoinTop5Btn: 'Accedi con Google e Scegli Nome',
+    signedInCustomNameNote: 'Accesso effettuato — Scegli il nome utente pubblico che preferisci (la tua email resta privata).',
+    customUsernameLabel: 'Il Tuo Nome Utente Scelto (2–24 caratteri)',
+    customUsernamePlaceholder: 'Es. MenteQuantica',
+    myStandingLabel: 'La Tua Posizione Settimanale',
+    leaderboardVerifiedOnlyNote: 'Nella Top 5 compaiono solo gli utenti che giocano dopo l’accesso con il nome utente scelto da loro.',
+    keptBestScoreNotice: 'Nome utente aggiornato mantenendo il tuo miglior punteggio della settimana.',
+  },
+  ko: {
+    openPracticeAuthBoardNote: '누구나 로그인 없이 체험 가능 · 주간 TOP 5에는 로그인 사용자가 직접 정한 닉네임만 표시',
+    signInRequiredTitle: '로그인하고 직접 정한 사용자명으로 주간 TOP 5 도전',
+    signInRequiredDesc:
+      '누구나 로그인 없이 아레나에서 자유롭게 도전할 수 있습니다. 점수와 직접 지정한 사용자명을 주간 TOP 5에 등록하려면 Google로 로그인하세요.',
+    signInToJoinTop5Btn: 'Google 로그인 및 사용자명 설정',
+    signedInCustomNameNote: '로그인됨 — 순위표에 표시할 사용자명을 직접 입력하세요(이메일은 절대 공개되지 않습니다).',
+    customUsernameLabel: '표시할 사용자명 (2–24자)',
+    customUsernamePlaceholder: '예: 양자탐험가',
+    myStandingLabel: '이번 주 내 기록',
+    leaderboardVerifiedOnlyNote: '주간 TOP 5에는 로그인 후 참여한 사용자가 직접 지정한 사용자명만 표시됩니다.',
+    keptBestScoreNotice: '사용자명이 업데이트되었으며 이번 주 최고 점수가 유지되었습니다.',
+  },
+};
+

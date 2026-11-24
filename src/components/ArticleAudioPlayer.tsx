@@ -177,11 +177,11 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
     currentSegmentIndexRef.current = 0;
   }, [clearAudioGuards]);
 
-  // Sync audio language when site language changes
+  // Sync audio language when site language changes or article changes
   useEffect(() => {
     stopNarration();
     setAudioLang(language);
-  }, [language, stopNarration]);
+  }, [language, article.id, stopNarration]);
 
   // Warm up browser voices
   useEffect(() => {
@@ -271,66 +271,57 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
       const isTr = targetLangCode === 'tr';
       const rawItems: { sectionLabel: string; isSectionStart: boolean; text: string }[] = [
         {
-          sectionLabel: isTr ? 'BAŞLIK & KÜNYE' : 'TITLE & METADATA',
+          sectionLabel: isTr ? 'BAŞLIK' : 'TITLE',
           isSectionStart: true,
           text: isTr
-            ? `${content.title}. ${content.subtitle}. Münhasır Yazar ve Eser Sahibi: Emre Pelit. Disiplin: ${article.category}.`
-            : `${content.title}. ${content.subtitle}. Author: Emre Pelit. Category: ${article.category}.`,
+            ? `${content.title}. Yazar: Emre Pelit.`
+            : `${content.title}. Author: Emre Pelit.`,
         },
       ];
 
       const splitIntoSentences = (paragraph: string): string[] => {
         const cleaned = paragraph.replace(/\s+/g, ' ').trim();
         if (!cleaned) return [];
-        const matches = cleaned.match(/[^.!?。！？]+[.!?。！？]+|\S+/g);
+        const matches = cleaned.match(/[^.!?。！？]+[.!?。！？]+|\S+[^.!?。！？]*/g);
         return matches ? matches.map((s) => s.trim()).filter(Boolean) : [cleaned];
       };
 
-      splitIntoSentences(content.abstract).forEach((s, idx) => {
-        rawItems.push({
-          sectionLabel: isTr ? 'ÖZET' : 'ABSTRACT',
-          isSectionStart: idx === 0,
-          text: s,
-        });
-      });
-
-      if (targetScope === 'full') {
-        content.keyFindings.forEach((finding, fIdx) => {
+      if (targetScope === 'abstract') {
+        splitIntoSentences(content.abstract || content.contentParagraphs[0] || '').forEach((s, idx) => {
           rawItems.push({
-            sectionLabel: isTr ? `BULGU ${fIdx + 1}` : `FINDING ${fIdx + 1}`,
-            isSectionStart: fIdx === 0,
-            text: isTr
-              ? `Temel Bulgu ${fIdx + 1}: ${finding}`
-              : `Key Finding ${fIdx + 1}: ${finding}`,
+            sectionLabel: isTr ? 'ÖZET' : 'ABSTRACT',
+            isSectionStart: idx === 0,
+            text: s,
           });
         });
+      } else {
+        // Full mode: narrate the ENTIRE full Blogger article from Paragraph 1 to the very last paragraph verbatim
+        const fullParagraphs =
+          content.contentParagraphs.length > 0
+            ? content.contentParagraphs
+            : [content.abstract].filter(Boolean);
 
-        content.contentParagraphs.forEach((para, pIdx) => {
-          splitIntoSentences(para).forEach((s, sIdx) => {
+        const normalizedTitle = content.title.replace(/\s+/g, ' ').trim().toLowerCase();
+        fullParagraphs.forEach((para, pIdx) => {
+          const trimmedPara = para.replace(/\s+/g, ' ').trim();
+          if (!trimmedPara) return;
+          // Avoid repeating the exact title if paragraph 0 is identical to the title already read
+          if (pIdx === 0 && trimmedPara.toLowerCase() === normalizedTitle) return;
+          splitIntoSentences(trimmedPara).forEach((s, sIdx) => {
             rawItems.push({
-              sectionLabel: isTr ? `BÖLÜM ${pIdx + 1}` : `SECTION ${pIdx + 1}`,
+              sectionLabel: isTr ? `PARAGRAF ${pIdx + 1}` : `PARAGRAPH ${pIdx + 1}`,
               isSectionStart: sIdx === 0,
               text: s,
             });
           });
         });
 
-        if (content.methodologyNote) {
-          splitIntoSentences(content.methodologyNote).forEach((s, mIdx) => {
-            rawItems.push({
-              sectionLabel: isTr ? 'SİMÜLASYON' : 'SIMULATION',
-              isSectionStart: mIdx === 0,
-              text: s,
-            });
-          });
-        }
-
         rawItems.push({
-          sectionLabel: isTr ? 'SONUÇ & TELİF' : 'CONCLUSION',
+          sectionLabel: isTr ? 'SON' : 'END',
           isSectionStart: true,
           text: isTr
-            ? `Bu makalenin tamamı Emre Pelit tarafından kaleme alınmış olup tüm bilimsel ve felsefi telif hakları münhasıran Emre Pelit'e aittir.`
-            : `This complete monograph is authored exclusively by Emre Pelit. All rights reserved.`,
+            ? 'Makalenin tam metin seslendirmesi sona erdi. Yazar: Emre Pelit.'
+            : 'End of full article narration. Author: Emre Pelit.',
         });
       }
 
@@ -1193,7 +1184,7 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
               </span>
             </div>
             <span className="text-stone-500">
-              {({
+              {(({
                 tr: 'Tüm Makale Seslendirme Akışı · Aktif Cümle',
                 en: 'Full Article Audio Stream · Active Sentence',
                 es: 'Flujo de Audio Completo · Oración Activa',
@@ -1206,7 +1197,7 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
                 pt: 'Fluxo de Áudio Completo · Frase Ativa',
                 it: 'Flusso Audio Completo · Frase Attiva',
                 ko: '전체 논문 오디오 스트림 · 현재 문장',
-              }[language] || 'Full Article Audio Stream · Active Sentence')}
+              } as Partial<Record<LanguageCode, string>>)[language] || 'Full Article Audio Stream · Active Sentence')}
               : {activeSentenceIndex + 1}/{transcriptSegments.length}
             </span>
           </div>
@@ -1250,7 +1241,7 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
               · {intonationUi.syntheticBadge}
             </span>
             <span className="font-mono tabular-nums text-stone-500">
-              {({
+              {(({
                 tr: 'Emre Pelit Telifi · Tam Makale İlerlemesi',
                 en: '© Emre Pelit · Full Article Progress',
                 es: '© Emre Pelit · Progreso Completo',
@@ -1263,13 +1254,18 @@ export const ArticleAudioPlayer: React.FC<ArticleAudioPlayerProps> = ({
                 pt: '© Emre Pelit · Progresso Completo',
                 it: '© Emre Pelit · Avanzamento Completo',
                 ko: '© Emre Pelit · 전체 진행률',
-              }[language] || '© Emre Pelit · Full Article Progress')}
+              } as Partial<Record<LanguageCode, string>>)[language] || '© Emre Pelit · Full Article Progress')}
               : {progressPercent}%
             </span>
           </div>
           <div className="flex items-start gap-1.5 text-[10px] text-stone-500 leading-snug">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
-            <span>{intonationUi.zeroLiabilityVoiceDisclaimer}</span>
+            <span>
+              {language === 'tr'
+                ? '6698 Sayılı KVKK & AB GDPR (2016/679) Uyumlu: Makalenin tamamı baştan sona tamamen cihaz içi sentetik sesle okunur; gerçek kişi sesi, biyometrik veri veya izleme çerezi kullanılmaz. '
+                : 'KVKK (6698) & EU GDPR (2016/679) Compliant: The complete article is narrated start-to-finish using browser-local synthetic speech; zero real-person voice, biometrics, or tracking. '}
+              {intonationUi.zeroLiabilityVoiceDisclaimer}
+            </span>
           </div>
         </div>
       )}

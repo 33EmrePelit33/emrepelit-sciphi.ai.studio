@@ -52,7 +52,7 @@ interface BannerStrings {
   gpcNotice: string;
 }
 
-const BANNER_COPY: Record<LanguageCode, BannerStrings> = {
+const BANNER_COPY: Partial<Record<LanguageCode, BannerStrings>> & { en: BannerStrings } = {
   tr: {
     badge: '6698 Sayılı KVKK & AB GDPR Açık Rıza Merkezi',
     title: 'Kişisel Veri, Çerez ve Tercih Yönetimi',

@@ -313,45 +313,24 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     verifiedAt: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
   });
 
-  // Automatically index all 10 websites' 306 articles, maximize SEO/Domain Authority (100/100), and verify Zero-Trust Security across all 10 nodes on mount
+  // Lightweight on-open sync: ONLY fetch live GitHub metadata & trigger clean live recalculation when Analytics Panel is opened (zero mount-time POST storms!)
+  const hasAutoRecalculatedOnOpenRef = React.useRef<boolean>(false);
   useEffect(() => {
-    void fetch('/api/indexing/index-all-301-sites-articles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetDomain: 'ALL_10_SITES' }),
-    }).catch(() => {});
-    void fetch('/api/seo/maximize-301-authority', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    }).catch(() => {});
-    void fetch('/api/security/full-audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.batchToken) {
-          setSecuritySealState({
-            batchToken: data.batchToken,
-            merkleRoot: data.merkleRoot || securitySealState.merkleRoot,
-            verifiedAt: (data.verifiedAt || new Date().toISOString()).replace('T', ' ').slice(0, 19) + ' UTC',
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Close Analytics modal on Escape key & fetch live GitHub 33EmrePelit33 node metadata
-  useEffect(() => {
-    if (isAnalyticsModalOpen && !githubNodeMeta) {
-      void fetch('/api/network/github-33emrepelit33')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.login && Array.isArray(data?.repos)) {
-            setGithubNodeMeta(data as GitHub33NodeMeta);
-          }
-        })
-        .catch(() => {});
+    if (isAnalyticsModalOpen) {
+      if (!githubNodeMeta) {
+        void fetch('/api/network/github-33emrepelit33')
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (data?.login && Array.isArray(data?.repos)) {
+              setGithubNodeMeta(data as GitHub33NodeMeta);
+            }
+          })
+          .catch(() => {});
+      }
+      if (onRecalculateAllNodes && !hasAutoRecalculatedOnOpenRef.current) {
+        hasAutoRecalculatedOnOpenRef.current = true;
+        void onRecalculateAllNodes();
+      }
     }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isAnalyticsModalOpen) {
@@ -360,7 +339,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAnalyticsModalOpen, githubNodeMeta]);
+  }, [isAnalyticsModalOpen, githubNodeMeta, onRecalculateAllNodes]);
 
   // Analytics Panel Measurement Controls State
   const [analyticsTargetDomain, setAnalyticsTargetDomain] = useState<string>(
@@ -940,7 +919,11 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xs font-extrabold rounded-xs cursor-pointer transition-colors disabled:opacity-60"
               >
                 <Calculator className={`w-3.5 h-3.5 ${isRecalculatingAllNodes ? 'animate-spin' : ''}`} />
-                <span>{isRecalculatingAllNodes ? 'Senkronize Ediliyor...' : `Tüm ${strictNodes.length} Düğümü Senkronize Et`}</span>
+                <span>
+                  {isRecalculatingAllNodes
+                    ? 'Yeniden Hesaplanıyor...'
+                    : `Tüm ${strictNodes.length} Düğüm & Kümülatif Toplamları Yeniden Hesapla`}
+                </span>
               </button>
             )}
             {onForceLiveSync && (
@@ -1367,7 +1350,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     </tr>
 
                     <tr className="hover:bg-slate-900/50">
-                      <td className="py-2 px-3 font-bold text-teal-300">5B. Geniş Özet Videosu (12 Dil) İzlenme</td>
+                      <td className="py-2 px-3 font-bold text-teal-300">5B. Geniş Özet Videosu (23 Dil) İzlenme</td>
                       <td className="py-2 px-3 text-right text-emerald-300 font-bold">
                         {articleCumulativeData.totalVideoPlaysAllArticles.toLocaleString('tr-TR')} izlenme
                       </td>
@@ -1725,7 +1708,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                             <span className="text-[9px] text-slate-400">({elapsedDays}g)</span>
                           </td>
                           <td className="py-2 px-2.5 text-right text-emerald-300 font-bold">
-                            {Math.max(activeArticles.length, node.articlesCount, 318)}
+                            {Math.max(activeArticles.length, node.articlesCount, 320)}
                           </td>
                           <td className="py-2 px-2.5 text-right font-bold text-cyan-300">
                             {nodeViews.toLocaleString('tr-TR')}
@@ -2864,7 +2847,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
                     <option value="tr_desc">Türkiye Okunmasına Göre</option>
                     <option value="eu_desc">Avrupa Okunmasına Göre</option>
                     <option value="amer_desc">Amerika Okunmasına Göre</option>
-                    <option value="rank_asc">Sıra Numarasına Göre (#1 → #{Math.max(318, activeArticles.length)})</option>
+                    <option value="rank_asc">Sıra Numarasına Göre (#1 → #{Math.max(320, activeArticles.length)})</option>
                   </select>
                 </div>
 
@@ -3799,7 +3782,7 @@ export const Network301Hub: React.FC<Network301HubProps> = ({
         {activeHubTab === 'benchmark' && (
           <AnalyticsBenchmarkReport
             cumulative={cumulative}
-            totalArticlesCount={Math.max(318, activeArticles.length, bloggerSyncedCount || 318)}
+            totalArticlesCount={Math.max(320, activeArticles.length, bloggerSyncedCount || 320)}
           />
         )}
       </div>

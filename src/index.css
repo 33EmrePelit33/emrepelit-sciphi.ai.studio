@@ -316,11 +316,23 @@
   }
 }
 
-/* Performance: Defer layout & paint of off-screen article cards until scrolled near viewport */
+/* Performance: Defer layout & paint of off-screen article cards and heavy sections until scrolled near viewport */
 .article-card-cv {
   content-visibility: auto;
-  contain-intrinsic-size: 920px;
+  contain-intrinsic-size: auto 920px;
 }
+
+.below-fold-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 760px;
+}
+
+/* Smooth GPU-composited micro-transitions for responsive, fluid UI feel */
+.fluid-panel {
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
 
 
 

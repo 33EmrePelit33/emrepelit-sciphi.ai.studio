@@ -15,19 +15,18 @@ interface TocSection {
   shortLabel: string;
 }
 
-const TOC_I18N: Record<
-  LanguageCode,
-  {
-    heading: string;
-    remaining: (mins: number) => string;
-    completed: string;
-    summary: string;
-    sectionPrefix: string;
-    citations: string;
-    qa: string;
-    progressLabel: string;
-  }
-> = {
+type TocI18nStrings = {
+  heading: string;
+  remaining: (mins: number) => string;
+  completed: string;
+  summary: string;
+  sectionPrefix: string;
+  citations: string;
+  qa: string;
+  progressLabel: string;
+};
+
+const TOC_I18N: Partial<Record<LanguageCode, TocI18nStrings>> & { en: TocI18nStrings } = {
   tr: {
     heading: 'Yapışkan İçindekiler',
     remaining: (m) => (m <= 1 ? '< 1 dk kaldı' : `~${m} dk kaldı`),
