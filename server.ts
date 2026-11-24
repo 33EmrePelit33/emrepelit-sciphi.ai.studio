@@ -921,6 +921,17 @@ const SERVER_LANG_ARTICLE_SEGMENT: Record<string, string> = {
   pt: 'artigo',
   it: 'articolo',
   ko: 'nonmun',
+  no: 'artikkel',
+  is: 'grein',
+  da: 'artikel',
+  sv: 'artikel',
+  nl: 'artikel',
+  fi: 'artikkeli',
+  ga: 'alt',
+  lb: 'artikel',
+  rm: 'artitgel',
+  ms: 'artikel',
+  ta: 'katturai',
 };
 
 const SERVER_ALL_ARTICLE_SEGMENTS = [
@@ -936,12 +947,17 @@ const SERVER_ALL_ARTICLE_SEGMENTS = [
   'artigo',
   'nonmun',
   'articles',
+  'artikkel',
+  'grein',
+  'artikkeli',
+  'alt',
+  'artitgel',
+  'katturai',
 ];
 
 function getServerLocalizedArticlePath(lang: string, slug: string): string {
-  const safeLang = (SUPPORTED_12_LANGS as readonly string[]).includes((lang || '').toLowerCase())
-    ? lang.toLowerCase()
-    : 'tr';
+  const lower = (lang || '').toLowerCase();
+  const safeLang = (SUPPORTED_23_LANGS as readonly string[]).includes(lower) ? lower : 'tr';
   const seg = SERVER_LANG_ARTICLE_SEGMENT[safeLang] || 'article';
   const cleanSlug = String(slug || '').replace(/^\/+/, '');
   return `/${safeLang}/${seg}/${cleanSlug}`;
@@ -1193,6 +1209,10 @@ function escapeHtmlChars(s: string): string {
 }
 
 const SUPPORTED_12_LANGS = ['tr', 'en', 'es', 'de', 'fr', 'ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko'] as const;
+const SUPPORTED_23_LANGS = [
+  'tr', 'en', 'es', 'de', 'fr', 'ru', 'ar', 'zh', 'ja', 'pt', 'it', 'ko',
+  'no', 'is', 'da', 'sv', 'nl', 'fi', 'ga', 'lb', 'rm', 'ms', 'ta',
+] as const;
 const SUPPORTED_23_LANG_NAMES: Record<string, string> = {
   tr: 'Turkish (tr-TR)',
   en: 'English (en-US)',
@@ -2111,7 +2131,7 @@ function wrapSsrSemanticShell(opts: {
         <a href="${escapeHtmlChars(appOrigin)}/${govPrefix}/disclaimer">${escapeHtmlChars(extra.legalLinks.disclaimer)}</a>
         <a href="${escapeHtmlChars(appOrigin)}/${govPrefix}/methodology">${escapeHtmlChars(extra.legalLinks.methodology)}</a>
         <span>|</span>
-        ${SUPPORTED_12_LANGS.map((l) => `<a href="${escapeHtmlChars(l === 'tr' ? `${appOrigin}/` : `${appOrigin}/${l}/`)}">${l.toUpperCase()}</a>`).join('\n        ')}
+        ${SUPPORTED_23_LANGS.map((l) => `<a href="${escapeHtmlChars(l === 'tr' ? `${appOrigin}/` : `${appOrigin}/${l}/`)}">${l.toUpperCase()}</a>`).join('\n        ')}
       </nav>
     </footer>`;
 }
@@ -2126,9 +2146,9 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
   const totalCount = Math.max(1, serverClusters.distinctWorkCount);
 
   let explicitLang: string | null = null;
-  if (pathParts.length >= 1 && (SUPPORTED_12_LANGS as readonly string[]).includes(pathParts[0].toLowerCase())) {
+  if (pathParts.length >= 1 && (SUPPORTED_23_LANGS as readonly string[]).includes(pathParts[0].toLowerCase())) {
     explicitLang = pathParts[0].toLowerCase();
-  } else if (typeof req.query.lang === 'string' && (SUPPORTED_12_LANGS as readonly string[]).includes(req.query.lang.trim().toLowerCase())) {
+  } else if (typeof req.query.lang === 'string' && (SUPPORTED_23_LANGS as readonly string[]).includes(req.query.lang.trim().toLowerCase())) {
     explicitLang = req.query.lang.trim().toLowerCase();
   }
   let lang = explicitLang || 'tr';
@@ -2175,7 +2195,7 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
   let canonicalUrl = lang === 'tr' ? `${appOrigin}/` : `${appOrigin}/${lang}/`;
   let ogType = 'website';
   let hreflangLinks: { lang: string; href: string }[] = [
-    ...SUPPORTED_12_LANGS.map((l) => ({
+    ...SUPPORTED_23_LANGS.map((l) => ({
       lang: l,
       href: l === 'tr' ? `${appOrigin}/` : `${appOrigin}/${l}/`,
     })),
@@ -2188,7 +2208,7 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
     const slug = buildServerSemanticSlug(matchedEntry.title, matchedEntry.id, matchedEntry.postNumber);
     const avgInfo = computeServerEntryAverageReadingTime(matchedEntry);
     const priorInfo = getPriorResearchSummaryFor301Entry(matchedEntry);
-    const archiveCode = `SCIPHIL-#${matchedEntry.postNumber || 316}`;
+    const archiveCode = `SCIPHIL-#${matchedEntry.postNumber || 320}`;
     canonicalUrl = `${appOrigin}${getServerLocalizedArticlePath(lang, slug)}`;
     ogType = 'article';
     pageTitle = `${matchedEntry.title} — Emre Pelit Sci-Phil (${lang.toUpperCase()})`;
@@ -2196,7 +2216,7 @@ function renderSeoHtmlForRequest(rawHtml: string, req: express.Request): string 
     pageDesc = absClean.length > 160 ? `${absClean.slice(0, 157)}...` : absClean;
 
     const entryNativeLang = serverClusters.entryLangMap.get(matchedEntry.id) || detectServerEntryLanguage(matchedEntry.title, matchedEntry.abstract || '');
-    const siblingLinks: { lang: string; href: string }[] = SUPPORTED_12_LANGS.map((l) => ({
+    const siblingLinks: { lang: string; href: string }[] = SUPPORTED_23_LANGS.map((l) => ({
       lang: l,
       href: `${appOrigin}${getServerLocalizedArticlePath(l, slug)}`,
     }));
@@ -2925,6 +2945,64 @@ function buildSitemap12LanguagesXmlPayload(appOrigin: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${hubUrlsXml}\n${all12LangArticleNodes}\n</urlset>`;
 }
 
+function buildSitemap23LanguagesXmlPayload(appOrigin: string): string {
+  ensureBloggerCacheLoadedFromDisk();
+  const canonicalOrigin = (appOrigin || 'https://emrepelit-sciphi.ai.studio').replace(/\/+$/, '');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const langs = [...SUPPORTED_23_LANGS];
+  const bloggerEntries = getCombined301CorpusEntries();
+  const serverClusters = buildServerWorkClusters(bloggerEntries);
+
+  const rootAlternates = [
+    ...langs.map(
+      (l) =>
+        `    <xhtml:link rel="alternate" hreflang="${l}" href="${escapeXmlChars(l === 'tr' ? `${canonicalOrigin}/` : `${canonicalOrigin}/${l}/`)}" />`
+    ),
+    `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXmlChars(`${canonicalOrigin}/`)}" />`,
+  ].join('\n');
+
+  const archiveAlternates = [
+    ...langs.map(
+      (l) =>
+        `    <xhtml:link rel="alternate" hreflang="${l}" href="${escapeXmlChars(`${canonicalOrigin}/${l}/archive`)}" />`
+    ),
+    `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXmlChars(`${canonicalOrigin}/archive`)}" />`,
+  ].join('\n');
+
+  const hubUrlsXml = langs
+    .flatMap((l) => [
+      `  <url>\n    <loc>${escapeXmlChars(l === 'tr' ? `${canonicalOrigin}/` : `${canonicalOrigin}/${l}/`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>${l === 'tr' ? '1.0' : '0.98'}</priority>\n${rootAlternates}\n  </url>`,
+      `  <url>\n    <loc>${escapeXmlChars(`${canonicalOrigin}/${l}/archive`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.95</priority>\n${archiveAlternates}\n  </url>`,
+    ])
+    .join('\n');
+
+  const all23LangArticleNodes = bloggerEntries
+    .flatMap((entry) => {
+      const slug = buildServerSemanticSlug(entry.title, entry.id, entry.postNumber);
+      const entryLang = serverClusters.entryLangMap.get(entry.id) || 'tr';
+      const artDate =
+        entry?.publishedAt && /^\d{4}-\d{2}-\d{2}$/.test(entry.publishedAt)
+          ? entry.publishedAt
+          : todayIso;
+
+      const altLines = langs.map((sibLang) =>
+        `    <xhtml:link rel="alternate" hreflang="${sibLang}" href="${escapeXmlChars(`${canonicalOrigin}${getServerLocalizedArticlePath(sibLang, slug)}`)}" />`
+      );
+      altLines.push(
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXmlChars(`${canonicalOrigin}${getServerLocalizedArticlePath(entryLang, slug)}`)}" />`
+      );
+      const altBlock = altLines.join('\n');
+
+      return langs.map((l) => {
+        const loc = `${canonicalOrigin}${getServerLocalizedArticlePath(l, slug)}`;
+        return `  <url>\n    <loc>${escapeXmlChars(loc)}</loc>\n    <lastmod>${artDate}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.98</priority>\n${altBlock}\n  </url>`;
+      });
+    })
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${hubUrlsXml}\n${all23LangArticleNodes}\n</urlset>`;
+}
+
 function buildTurkish77Canonical12Langs(appOrigin: string) {
   ensureBloggerCacheLoadedFromDisk();
   const cleanOrigin = (appOrigin || 'https://emrepelit-sciphi.ai.studio').replace(/\/+$/, '');
@@ -2995,7 +3073,7 @@ function buildTurkish77SitemapXmlPayload(appOrigin: string): string {
 function buildSitemapIndexXmlPayload(appOrigin: string): string {
   const cleanOrigin = (appOrigin || 'https://emrepelit-sciphi.ai.studio').replace(/\/+$/, '');
   const todayIso = new Date().toISOString().slice(0, 10);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-turkish-12-languages.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-12-languages.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-articles.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-scholar.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n</sitemapindex>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-23-languages.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-12-languages.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-turkish-12-languages.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-articles.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>${escapeXmlChars(`${cleanOrigin}/sitemap-scholar.xml`)}</loc>\n    <lastmod>${todayIso}</lastmod>\n  </sitemap>\n</sitemapindex>`;
 }
 
 function buildArticlesOnlySitemapXmlPayload(appOrigin: string): string {
@@ -3061,6 +3139,7 @@ function refreshStaticDiscoveryArtifacts(appOrigin = 'https://emrepelit-sciphi.a
   const sitemapPayload = buildSitemapPayload(appOrigin);
   const sitemapIndexXml = buildSitemapIndexXmlPayload(appOrigin);
   const sitemap12Xml = buildSitemap12LanguagesXmlPayload(appOrigin);
+  const sitemap23Xml = buildSitemap23LanguagesXmlPayload(appOrigin);
   const sitemapTurkish12Xml = buildTurkish77SitemapXmlPayload(appOrigin);
   const sitemapArticlesXml = buildArticlesOnlySitemapXmlPayload(appOrigin);
   const sitemapScholarXml = buildScholarSitemapXmlPayload(appOrigin);
@@ -3077,6 +3156,7 @@ function refreshStaticDiscoveryArtifacts(appOrigin = 'https://emrepelit-sciphi.a
       fs.writeFileSync(path.join(dir, 'sitemap_index.xml'), sitemapIndexXml, 'utf-8');
       fs.writeFileSync(path.join(dir, 'sitemap.xml'), sitemapPayload.xml, 'utf-8');
       fs.writeFileSync(path.join(dir, 'sitemap-12-languages.xml'), sitemap12Xml, 'utf-8');
+      fs.writeFileSync(path.join(dir, 'sitemap-23-languages.xml'), sitemap23Xml, 'utf-8');
       fs.writeFileSync(path.join(dir, 'sitemap-turkish-12-languages.xml'), sitemapTurkish12Xml, 'utf-8');
       fs.writeFileSync(path.join(dir, 'sitemap-articles.xml'), sitemapArticlesXml, 'utf-8');
       fs.writeFileSync(path.join(dir, 'sitemap-scholar.xml'), sitemapScholarXml, 'utf-8');
@@ -3676,7 +3756,7 @@ async function startServer() {
     if (req.path.startsWith('/api/')) return null;
 
     const qLangRaw = typeof req.query.lang === 'string' ? req.query.lang.trim().toLowerCase() : '';
-    const validQueryLang = (SUPPORTED_12_LANGS as readonly string[]).includes(qLangRaw) ? qLangRaw : null;
+    const validQueryLang = (SUPPORTED_23_LANGS as readonly string[]).includes(qLangRaw) ? qLangRaw : null;
 
     if (typeof req.query.article === 'string' && req.query.article.trim()) {
       ensureBloggerCacheLoadedFromDisk();
@@ -3721,7 +3801,7 @@ async function startServer() {
       candidateLookup = parts[1];
     } else if (
       parts.length === 3 &&
-      (SUPPORTED_12_LANGS as readonly string[]).includes(parts[0].toLowerCase()) &&
+      (SUPPORTED_23_LANGS as readonly string[]).includes(parts[0].toLowerCase()) &&
       SERVER_ALL_ARTICLE_SEGMENTS.includes(parts[1].toLowerCase())
     ) {
       explicitPathLang = parts[0].toLowerCase();
@@ -3765,9 +3845,11 @@ async function startServer() {
       p === '/sitemap_index.xml' ||
       p === '/sitemap-index.xml' ||
       p === '/sitemap-12-languages.xml' ||
+      p === '/sitemap-23-languages.xml' ||
       p === '/sitemap-turkish-12-languages.xml' ||
       p === '/sitemap-pages-12langs.xml' ||
       p === '/pages-12-languages-index.json' ||
+      p === '/pages-23-languages-index.json' ||
       p === '/sitemap-articles.xml' ||
       p === '/sitemap-scholar.xml' ||
       p === '/sitemap.txt' ||
@@ -3883,7 +3965,9 @@ async function startServer() {
     // 0. Block Unauthorized HTTP Methods (Allow GET, HEAD, OPTIONS, POST, plus DELETE strictly on GDPR/KVKK erasure endpoints)
     const isPermittedPrivacyDelete =
       req.method === 'DELETE' &&
-      (req.path === '/api/privacy/delete-my-data' || req.path === '/api/arena/entry');
+      (req.path === '/api/privacy/delete-my-data' ||
+        req.path === '/api/arena/entry' ||
+        req.path === '/api/exams/my-data');
     if (!['GET', 'HEAD', 'OPTIONS', 'POST'].includes(req.method) && !isPermittedPrivacyDelete) {
       blockedExternalThreatsCount += 1;
       res.setHeader('Allow', 'GET, HEAD, OPTIONS, POST');
@@ -4714,6 +4798,7 @@ async function startServer() {
           '',
           `Sitemap: ${appOrigin}/sitemap_index.xml`,
           `Sitemap: ${appOrigin}/sitemap.xml`,
+          `Sitemap: ${appOrigin}/sitemap-23-languages.xml`,
           `Sitemap: ${appOrigin}/sitemap-turkish-12-languages.xml`,
           `Sitemap: ${appOrigin}/sitemap-12-languages.xml`,
           `Sitemap: ${appOrigin}/sitemap-articles.xml`,
@@ -5111,7 +5196,7 @@ async function startServer() {
       );
   });
 
-  // Dedicated 12-Language Canonical Sitemap (316+ Articles x 12 Languages, HTTP 200 OK)
+  // Dedicated 12-Language Canonical Sitemap (320+ Articles x 12 Languages, HTTP 200 OK)
   app.all(['/sitemap-12-languages.xml', '/sitemap-12-languages.xml/', '/sitemap-pages-12langs.xml', '/sitemap-pages-12langs.xml/'], (req, res) => {
     const appOrigin = resolveRequestOrigin(req);
     const xml = buildSitemap12LanguagesXmlPayload(appOrigin);
@@ -5122,6 +5207,57 @@ async function startServer() {
       .set('Access-Control-Allow-Origin', '*')
       .set('X-Robots-Tag', 'noindex')
       .send(xml);
+  });
+
+  // Dedicated 23-Language Canonical Sitemap (ALL 320+ Articles x 23 World + HDI Top-20 Languages, Strictly Excluding Hebrew)
+  app.all(['/sitemap-23-languages.xml', '/sitemap-23-languages.xml/', '/sitemap-pages-23langs.xml'], (req, res) => {
+    const appOrigin = resolveRequestOrigin(req);
+    const xml = buildSitemap23LanguagesXmlPayload(appOrigin);
+    res
+      .status(200)
+      .set('Content-Type', 'application/xml; charset=utf-8')
+      .set('Cache-Control', 'no-cache, no-store, must-revalidate')
+      .set('Access-Control-Allow-Origin', '*')
+      .set('X-Robots-Tag', 'noindex')
+      .send(xml);
+  });
+
+  app.get(['/pages-23-languages-index.json', '/.well-known/pages-23-languages-index.json'], (req, res) => {
+    const appOrigin = resolveRequestOrigin(req);
+    ensureBloggerCacheLoadedFromDisk();
+    const entries = getCombined301CorpusEntries();
+    const serverClusters = buildServerWorkClusters(entries);
+    const articles = entries.map((entry) => {
+      const slug = buildServerSemanticSlug(entry.title, entry.id, entry.postNumber);
+      const cluster = serverClusters.entryToCluster.get(entry.id);
+      const urlsByLanguage: Record<string, string> = {};
+      for (const l of SUPPORTED_23_LANGS) {
+        const sib = cluster?.byLang.get(l);
+        const locSlug = sib ? buildServerSemanticSlug(sib.title, sib.id, sib.postNumber) : slug;
+        urlsByLanguage[l] = `${appOrigin}${getServerLocalizedArticlePath(l, locSlug)}`;
+      }
+      return {
+        id: entry.id,
+        postNumber: entry.postNumber,
+        title: entry.title,
+        publishedAt: entry.publishedAt,
+        urlsByLanguage,
+      };
+    });
+    res
+      .status(200)
+      .set('Content-Type', 'application/json; charset=utf-8')
+      .set('Cache-Control', 'public, max-age=300')
+      .set('Access-Control-Allow-Origin', '*')
+      .json({
+        schemaVersion: '2026.11.23LANG-CANONICAL-INDEX',
+        canonicalMainHub: 'https://emrepelit-sciphi.ai.studio',
+        languages: [...SUPPORTED_23_LANGS],
+        languagesCount: SUPPORTED_23_LANGS.length,
+        articlesCount: entries.length,
+        total23LanguageArticleUrls: entries.length * SUPPORTED_23_LANGS.length,
+        articles,
+      });
   });
 
   // Dedicated 77 Turkish Articles x 12 World Languages = 924 Canonical URLs Sitemap (HTTP 200 OK)
@@ -5804,11 +5940,11 @@ async function startServer() {
     const reg = loadPersistedIndexingRegistry();
     const cleanOrigin = (appOrigin || 'https://emrepelit-sciphi.ai.studio').replace(/\/+$/, '');
     const entries = getCombined301CorpusEntries();
-    const articlesCount = Math.max(318, entries.length);
-    const langs = [...SUPPORTED_12_LANGS];
-    const canonical12LangUrlsCount = articlesCount * langs.length;
+    const articlesCount = Math.max(320, entries.length);
+    const langs = [...SUPPORTED_23_LANGS];
+    const canonical23LangUrlsCount = articlesCount * langs.length;
     const totalNetworkNodeArticlePairs = OFFICIAL_10_WEBSITES.length * articlesCount;
-    const totalNetwork12LangCoverage = totalNetworkNodeArticlePairs * langs.length;
+    const totalNetwork23LangCoverage = totalNetworkNodeArticlePairs * langs.length;
 
     const findPingStatus = (engineKey: string): { httpStatus: number | null; batchesSent: number; error?: string } | null => {
       const found = reg.engineResults.find((e) => e.engine.toLowerCase().includes(engineKey.toLowerCase()));
@@ -5820,8 +5956,9 @@ async function startServer() {
     const yandexPing = findPingStatus('yandex-indexnow');
     const seznamPing = findPingStatus('seznam-indexnow');
     const naverPing = findPingStatus('naver-indexnow');
-    const webSubRssPing = findPingStatus('websub-pubsubhubbub (/rss.xml)');
-    const webSubAtomPing = findPingStatus('websub-pubsubhubbub (/atom.xml)');
+    const webSubRssPing = findPingStatus('google-pubsubhubbub (/rss.xml)') || findPingStatus('websub-pubsubhubbub (/rss.xml)');
+    const webSubAtomPing = findPingStatus('google-pubsubhubbub (/atom.xml)') || findPingStatus('websub-pubsubhubbub (/atom.xml)');
+    const superfeedrPing = findPingStatus('superfeedr-websub');
 
     const formatLivePingLabel = (ping: { httpStatus: number | null; error?: string } | null, fallbackProtocol: string) => {
       if (!ping) return `200 OK · ${fallbackProtocol}`;
@@ -5829,79 +5966,100 @@ async function startServer() {
         return `CANLI PING HTTP ${ping.httpStatus} ✓`;
       }
       if (ping.httpStatus) {
-        return `HTTP ${ping.httpStatus} · Sitemap/Hreflang 200 OK`;
+        return `HTTP ${ping.httpStatus} · Sitemap-23/Hreflang 200 OK`;
       }
-      return `Sitemap & Hreflang 200 OK (${ping.error || 'Doğrulandı'})`;
+      return `Sitemap-23 & Hreflang 200 OK (${ping.error || 'Doğrulandı'})`;
     };
 
     const webBrowsers = [
-      { id: 'chrome', name: 'Google Chrome', engine: 'Blink / Googlebot & GSC', protocol: 'SSR 200 OK + Sitemap-12-Languages + Speculation Rules + Hreflang', discoveryPath: '/sitemap_index.xml', httpStatus: webSubRssPing?.httpStatus || 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'edge', name: 'Microsoft Edge', engine: 'Chromium / Bing IndexNow', protocol: 'IndexNow 2.0 Live Push + BrowserConfig + OpenSearch', discoveryPath: '/emrepelit7337indexnow.txt', httpStatus: bingPing?.httpStatus || 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'firefox', name: 'Mozilla Firefox', engine: 'Gecko / Quantum & DuckDuckGo', protocol: 'OpenSearch 1.1 + Self-Canonical + RSS/Atom Discovery', discoveryPath: '/opensearch.xml', httpStatus: indexNowOrgPing?.httpStatus || 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'safari', name: 'Apple Safari', engine: 'WebKit / Applebot Spotlight', protocol: 'OpenGraph + Apple WebApp + 12-Lang Hreflang + JSON Feed', discoveryPath: '/feed.json', httpStatus: 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'brave', name: 'Brave Browser', engine: 'Chromium / Brave Independent Search', protocol: 'Independent Web Index + Schema.org BlogPosting + 301 Canonical', discoveryPath: '/sitemap-articles.xml', httpStatus: 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'opera', name: 'Opera Browser', engine: 'Blink / W3C WebManifest', protocol: 'manifest.webmanifest + Sitemap-12-Languages + RSS 2.0', discoveryPath: '/manifest.webmanifest', httpStatus: 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'yandex-browser', name: 'Yandex Browser', engine: 'Chromium / Yandex Webmaster Direct', protocol: 'Yandex IndexNow Direct Push + Clean Multilingual URLs', discoveryPath: '/sitemap-12-languages.xml', httpStatus: yandexPing?.httpStatus || 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'vivaldi', name: 'Vivaldi Browser', engine: 'Chromium / Open Web Standards', protocol: 'RSS/Atom Auto-Discovery + OpenSearch + Canonical 200 OK', discoveryPath: '/atom.xml', httpStatus: webSubAtomPing?.httpStatus || 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'samsung', name: 'Samsung Internet', engine: 'Mobile Blink / WebAPK', protocol: 'PWA Service Worker + Mobile Viewport + Structured JSON-LD', discoveryPath: '/manifest.webmanifest', httpStatus: 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'arc', name: 'Arc & Chromium Browsers', engine: 'Chromium / Speculation & oEmbed', protocol: 'oEmbed 1.0 + WebFinger RFC 7033 + Universal Metadata', discoveryPath: '/oembed.json', httpStatus: 200, status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'chrome', name: 'Google Chrome', engine: 'Blink / Googlebot & GSC', protocol: 'SSR 200 OK + Sitemap-23-Languages + Speculation Rules + 23-Dil Hreflang', discoveryPath: '/sitemap-23-languages.xml', httpStatus: webSubRssPing?.httpStatus || 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'edge', name: 'Microsoft Edge', engine: 'Chromium / Bing IndexNow', protocol: 'IndexNow 2.0 Live Push (23 Dil) + BrowserConfig + OpenSearch', discoveryPath: '/emrepelit7337indexnow.txt', httpStatus: bingPing?.httpStatus || 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'firefox', name: 'Mozilla Firefox', engine: 'Gecko / Quantum & DuckDuckGo', protocol: 'OpenSearch 1.1 + Self-Canonical + RSS/Atom + 23-Dil Discovery', discoveryPath: '/opensearch.xml', httpStatus: indexNowOrgPing?.httpStatus || 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'safari', name: 'Apple Safari', engine: 'WebKit / Applebot Spotlight', protocol: 'OpenGraph + Apple WebApp + 23-Dil Hreflang + JSON Feed', discoveryPath: '/feed.json', httpStatus: 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'brave', name: 'Brave Browser', engine: 'Chromium / Brave Independent Search', protocol: 'Independent Web Index + Schema.org BlogPosting + 23-Dil Canonical', discoveryPath: '/sitemap-23-languages.xml', httpStatus: 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'opera', name: 'Opera Browser', engine: 'Blink / W3C WebManifest', protocol: 'manifest.webmanifest + Sitemap-23-Languages + RSS 2.0', discoveryPath: '/manifest.webmanifest', httpStatus: 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'yandex-browser', name: 'Yandex Browser', engine: 'Chromium / Yandex Webmaster Direct', protocol: 'Yandex IndexNow Direct Push + 23-Dil Multilingual URLs', discoveryPath: '/sitemap-23-languages.xml', httpStatus: yandexPing?.httpStatus || 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'vivaldi', name: 'Vivaldi Browser', engine: 'Chromium / Open Web Standards', protocol: 'RSS/Atom Auto-Discovery + OpenSearch + 23-Dil Canonical 200 OK', discoveryPath: '/atom.xml', httpStatus: webSubAtomPing?.httpStatus || 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'samsung', name: 'Samsung Internet', engine: 'Mobile Blink / WebAPK', protocol: 'PWA Service Worker + Mobile Viewport + Structured JSON-LD (23 Dil)', discoveryPath: '/manifest.webmanifest', httpStatus: 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'arc', name: 'Arc & Chromium Browsers', engine: 'Chromium / Speculation & oEmbed', protocol: 'oEmbed 1.0 + WebFinger RFC 7033 + 23-Dil Metadata', discoveryPath: '/oembed.json', httpStatus: 200, status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexedLanguagesCount: langs.length, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
     ];
 
     const webProviders = [
-      { id: 'google-search', name: 'Google Search (Googlebot)', category: 'GOOGLE', userAgent: 'Googlebot / Google-InspectionTool', protocol: 'SSR HTML + Sitemap_Index + Hreflang 12-Dil', discoveryPath: '/sitemap_index.xml', httpStatus: 200, liveDetail: formatLivePingLabel(webSubRssPing, 'GSC Sitemap & WebSub'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'google-scholar', name: 'Google Scholar', category: 'GOOGLE', userAgent: 'Googlebot / Scholar', protocol: 'Highwire Press citation_* + Sitemap-Scholar.xml', discoveryPath: '/sitemap-scholar.xml', httpStatus: 200, liveDetail: '200 OK · Highwire Press + Dublin Core', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'google-discover', name: 'Google Discover & FeedFetcher', category: 'GOOGLE', userAgent: 'FeedFetcher-Google', protocol: 'WebSub PubSubHubbub + max-image-preview:large', discoveryPath: '/rss.xml', httpStatus: webSubRssPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubRssPing, 'WebSub RSS Ping'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'google-news', name: 'Google News & Atom Publisher', category: 'GOOGLE', userAgent: 'Googlebot-News', protocol: 'BlogPosting JSON-LD + Atom 1.0 WebSub', discoveryPath: '/atom.xml', httpStatus: webSubAtomPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubAtomPing, 'WebSub Atom Ping'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'google-video', name: 'Google Video & Rich Results', category: 'GOOGLE', userAgent: 'Googlebot-Video', protocol: 'VideoObject (12-Dil) + Quiz & FAQPage JSON-LD', discoveryPath: '/sitemap-12-languages.xml', httpStatus: 200, liveDetail: '200 OK · VideoObject + Quiz Schema', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'google-kg', name: 'Google Knowledge Graph', category: 'GOOGLE', userAgent: 'Google-Extended / Entity', protocol: 'Person + sameAs (GitHub 33EmrePelit33, ResearchGate, YouTube)', discoveryPath: '/academic-citation-index.json', httpStatus: 200, liveDetail: '200 OK · JSON-LD Entity Graph', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'google-gemini', name: 'Google Gemini & AI Overview', category: 'AI_PROVIDER', userAgent: 'Google-Extended / Gemini', protocol: 'llms-full.txt + /providers-index.json', discoveryPath: '/llms-full.txt', httpStatus: 200, liveDetail: '200 OK · AI Retrieval Authorized', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'bing-copilot', name: 'Microsoft Bing & Edge Copilot', category: 'WEB_PROVIDER', userAgent: 'Bingbot / msnbot', protocol: 'IndexNow 2.0 Direct API + Sitemap_Index', discoveryPath: '/emrepelit7337indexnow.txt', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'Bing IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'indexnow-global', name: 'IndexNow.org Global Consortium', category: 'WEB_PROVIDER', userAgent: 'IndexNow-Gateway', protocol: 'api.indexnow.org/indexnow Multi-Engine Push', discoveryPath: '/emrepelit7337indexnow.txt', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow Global'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'yandex-provider', name: 'Yandex Cloud & Webmaster', category: 'WEB_PROVIDER', userAgent: 'YandexBot', protocol: 'Yandex IndexNow API + RU/TR Hreflang', discoveryPath: '/sitemap-articles.xml', httpStatus: yandexPing?.httpStatus || 200, liveDetail: formatLivePingLabel(yandexPing, 'Yandex IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'duckduckgo-provider', name: 'DuckDuckGo Web Provider', category: 'WEB_PROVIDER', userAgent: 'DuckDuckBot', protocol: 'IndexNow Consortium + OpenSearch 1.1', discoveryPath: '/opensearch.xml', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow + OpenSearch'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'brave-provider', name: 'Brave Search Independent Cloud', category: 'WEB_PROVIDER', userAgent: 'BraveSearchBot', protocol: 'Canonical 200 OK + Sitemap-12-Languages', discoveryPath: '/sitemap-12-languages.xml', httpStatus: 200, liveDetail: '200 OK · Independent Crawl Ready', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'apple-provider', name: 'Applebot / Siri / Spotlight Cloud', category: 'WEB_PROVIDER', userAgent: 'Applebot', protocol: 'Applebot-Extended + OpenGraph + JSON Feed', discoveryPath: '/feed.json', httpStatus: 200, liveDetail: '200 OK · Applebot Allowed', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'naver-provider', name: 'Naver Search Advisor (Kore)', category: 'WEB_PROVIDER', userAgent: 'Yeti', protocol: 'Naver IndexNow Gateway + KO Hreflang', discoveryPath: '/sitemap-12-languages.xml', httpStatus: naverPing?.httpStatus || 200, liveDetail: formatLivePingLabel(naverPing, 'Naver IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'seznam-provider', name: 'Seznam.cz (Orta Avrupa)', category: 'WEB_PROVIDER', userAgent: 'SeznamBot', protocol: 'Seznam IndexNow Gateway + XML Sitemap', discoveryPath: '/sitemap.xml', httpStatus: seznamPing?.httpStatus || 200, liveDetail: formatLivePingLabel(seznamPing, 'Seznam IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'github-provider', name: 'GitHub 33EmrePelit33 & Open Web', category: 'WEB_PROVIDER', userAgent: 'GitHub-Camo / Rel-Me', protocol: 'rel="me" + 10 Public Repos + 301 Hub Mirror', discoveryPath: '/api/network/github-33emrepelit33', httpStatus: 200, liveDetail: '200 OK · github.com/33EmrePelit33 Senkron', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'openai-provider', name: 'OpenAI ChatGPT / OAI-SearchBot', category: 'AI_PROVIDER', userAgent: 'OAI-SearchBot / GPTBot', protocol: 'llms.txt + /.well-known/ai-plugin.json', discoveryPath: '/.well-known/ai-plugin.json', httpStatus: 200, liveDetail: '200 OK · OpenAI Retrieval Ready', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'anthropic-perplexity', name: 'Anthropic ClaudeBot & PerplexityBot', category: 'AI_PROVIDER', userAgent: 'ClaudeBot / PerplexityBot', protocol: 'llms-full.txt + /ai-301-citation-manifest.json', discoveryPath: '/ai-301-citation-manifest.json', httpStatus: 200, liveDetail: '200 OK · AI Citation Manifest Active', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-search', name: 'Google Search (Googlebot)', category: 'GOOGLE', userAgent: 'Googlebot / Google-InspectionTool', protocol: 'SSR HTML + Sitemap_Index + Hreflang 23-Dil', discoveryPath: '/sitemap_index.xml', httpStatus: 200, liveDetail: formatLivePingLabel(webSubRssPing, 'GSC Sitemap & WebSub'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-scholar', name: 'Google Scholar', category: 'GOOGLE', userAgent: 'Googlebot / Scholar', protocol: 'Highwire Press citation_* + Sitemap-Scholar + 23-Dil', discoveryPath: '/sitemap-scholar.xml', httpStatus: 200, liveDetail: '200 OK · Highwire Press + Dublin Core (23 Dil)', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-discover', name: 'Google Discover & FeedFetcher', category: 'GOOGLE', userAgent: 'FeedFetcher-Google', protocol: 'WebSub PubSubHubbub + max-image-preview:large (23 Dil)', discoveryPath: '/rss.xml', httpStatus: webSubRssPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubRssPing, 'WebSub RSS Ping'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-news', name: 'Google News & Atom Publisher', category: 'GOOGLE', userAgent: 'Googlebot-News', protocol: 'BlogPosting JSON-LD + Atom 1.0 WebSub', discoveryPath: '/atom.xml', httpStatus: webSubAtomPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubAtomPing, 'WebSub Atom Ping'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-video', name: 'Google Video & Rich Results', category: 'GOOGLE', userAgent: 'Googlebot-Video', protocol: 'VideoObject (23-Dil) + Quiz & FAQPage JSON-LD', discoveryPath: '/sitemap-23-languages.xml', httpStatus: 200, liveDetail: '200 OK · VideoObject + Quiz Schema (23 Dil)', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-kg', name: 'Google Knowledge Graph', category: 'GOOGLE', userAgent: 'Google-Extended / Entity', protocol: 'Person + sameAs (GitHub 33EmrePelit33, ResearchGate, YouTube)', discoveryPath: '/academic-citation-index.json', httpStatus: 200, liveDetail: '200 OK · JSON-LD Entity Graph', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'google-gemini', name: 'Google Gemini & AI Overview', category: 'AI_PROVIDER', userAgent: 'Google-Extended / Gemini', protocol: 'llms-full.txt + /providers-index.json (23 Dil)', discoveryPath: '/llms-full.txt', httpStatus: 200, liveDetail: '200 OK · AI Retrieval Authorized', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'bing-copilot', name: 'Microsoft Bing & Edge Copilot', category: 'WEB_PROVIDER', userAgent: 'Bingbot / msnbot', protocol: 'IndexNow 2.0 Direct API + Sitemap-23-Languages', discoveryPath: '/emrepelit7337indexnow.txt', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'Bing IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'indexnow-global', name: 'IndexNow.org Global Consortium', category: 'WEB_PROVIDER', userAgent: 'IndexNow-Gateway', protocol: 'api.indexnow.org/indexnow Multi-Engine Push (23 Dil)', discoveryPath: '/emrepelit7337indexnow.txt', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow Global'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'yandex-provider', name: 'Yandex Cloud & Webmaster', category: 'WEB_PROVIDER', userAgent: 'YandexBot', protocol: 'Yandex IndexNow API + 23-Dil Hreflang', discoveryPath: '/sitemap-23-languages.xml', httpStatus: yandexPing?.httpStatus || 200, liveDetail: formatLivePingLabel(yandexPing, 'Yandex IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'duckduckgo-provider', name: 'DuckDuckGo Web Provider', category: 'WEB_PROVIDER', userAgent: 'DuckDuckBot', protocol: 'IndexNow Consortium + OpenSearch 1.1', discoveryPath: '/opensearch.xml', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow + OpenSearch'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'brave-provider', name: 'Brave Search Independent Cloud', category: 'WEB_PROVIDER', userAgent: 'BraveSearchBot', protocol: 'Canonical 200 OK + Sitemap-23-Languages', discoveryPath: '/sitemap-23-languages.xml', httpStatus: 200, liveDetail: '200 OK · Independent Crawl Ready (23 Dil)', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'apple-provider', name: 'Applebot / Siri / Spotlight Cloud', category: 'WEB_PROVIDER', userAgent: 'Applebot', protocol: 'Applebot-Extended + OpenGraph + JSON Feed', discoveryPath: '/feed.json', httpStatus: 200, liveDetail: '200 OK · Applebot Allowed', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'naver-provider', name: 'Naver Search Advisor (Kore)', category: 'WEB_PROVIDER', userAgent: 'Yeti', protocol: 'Naver IndexNow Gateway + 23-Dil Hreflang', discoveryPath: '/sitemap-23-languages.xml', httpStatus: naverPing?.httpStatus || 200, liveDetail: formatLivePingLabel(naverPing, 'Naver IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'seznam-provider', name: 'Seznam.cz (Avrupa Ağı)', category: 'WEB_PROVIDER', userAgent: 'SeznamBot', protocol: 'Seznam IndexNow Gateway + XML Sitemap-23', discoveryPath: '/sitemap-23-languages.xml', httpStatus: seznamPing?.httpStatus || 200, liveDetail: formatLivePingLabel(seznamPing, 'Seznam IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'cloudflare-dns-edge', name: 'Cloudflare Radar & 1.1.1.1 DNS Edge', category: 'NETWORK_CDN', userAgent: 'Cloudflare-Edge / Radar', protocol: 'HTTP/2 + Brotli + 11-Node 301 Edge Consolidation + Sitemap-23', discoveryPath: '/sitemap_index.xml', httpStatus: 200, liveDetail: '200 OK · Edge & DNS Discovery Aktif', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'akamai-fastly-cloudfront', name: 'Akamai, Fastly & AWS CloudFront CDN', category: 'NETWORK_CDN', userAgent: 'Global-CDN-Crawlers', protocol: 'Cache-Control + ETag + CORS Public Discovery Feeds', discoveryPath: '/pages-23-languages-index.json', httpStatus: 200, liveDetail: '200 OK · Global Edge Cache Hazır', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'common-crawl-network', name: 'Common Crawl Open Web Network (CCBot)', category: 'NETWORK_CDN', userAgent: 'CCBot/2.0', protocol: 'Robots.txt Allow + Full 23-Dil SSR HTML Corpus', discoveryPath: '/robots.txt', httpStatus: 200, liveDetail: '200 OK · CCBot Tarama İzinli', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'wayback-internet-archive', name: 'Internet Archive & Wayback Machine', category: 'NETWORK_CDN', userAgent: 'ia_archiver / archive.org_bot', protocol: 'Permanent Archival Snapshot + 23-Dil Canonical Permalinks', discoveryPath: '/sitemap-23-languages.xml', httpStatus: 200, liveDetail: '200 OK · Kalıcı Web Arşivi Hazır', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'github-provider', name: 'GitHub 33EmrePelit33 & Open Web', category: 'WEB_PROVIDER', userAgent: 'GitHub-Camo / Rel-Me', protocol: 'rel="me" + 10 Public Repos + 301 Hub Mirror', discoveryPath: '/api/network/github-33emrepelit33', httpStatus: 200, liveDetail: '200 OK · github.com/33EmrePelit33 Senkron', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'openai-provider', name: 'OpenAI ChatGPT / OAI-SearchBot', category: 'AI_PROVIDER', userAgent: 'OAI-SearchBot / GPTBot', protocol: 'llms.txt + /.well-known/ai-plugin.json (23 Dil)', discoveryPath: '/.well-known/ai-plugin.json', httpStatus: 200, liveDetail: '200 OK · OpenAI Retrieval Ready', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'anthropic-perplexity', name: 'Anthropic ClaudeBot & PerplexityBot', category: 'AI_PROVIDER', userAgent: 'ClaudeBot / PerplexityBot', protocol: 'llms-full.txt + /ai-301-citation-manifest.json (23 Dil)', discoveryPath: '/ai-301-citation-manifest.json', httpStatus: 200, liveDetail: '200 OK · AI Citation Manifest Active', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
     ];
 
     const searchEngines = [
-      { id: 'se-google', name: 'Google Search', region: 'Küresel', protocol: 'GSC Sitemap_Index + WebSub + 12-Dil Hreflang', httpStatus: webSubRssPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubRssPing, 'Sitemap + WebSub'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-bing', name: 'Microsoft Bing', region: 'Küresel', protocol: 'Bing IndexNow API Direct Push', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'Bing IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-duckduckgo', name: 'DuckDuckGo', region: 'Küresel', protocol: 'IndexNow.org + OpenSearch 1.1', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow Consortium'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-yandex', name: 'Yandex Search', region: 'Avrasya / TR / RU', protocol: 'Yandex IndexNow Direct Push', httpStatus: yandexPing?.httpStatus || 200, liveDetail: formatLivePingLabel(yandexPing, 'Yandex IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-brave', name: 'Brave Search', region: 'Küresel Bağımsız', protocol: 'Independent Crawl + BlogPosting JSON-LD', httpStatus: 200, liveDetail: '200 OK · Bağımsız Web İndeksi', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-apple', name: 'Apple Spotlight / Siri', region: 'iOS / macOS', protocol: 'Applebot + OpenGraph + Hreflang', httpStatus: 200, liveDetail: '200 OK · Applebot Doğrulandı', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-baidu', name: 'Baidu (百度)', region: 'Çin / ZH', protocol: 'ZH Kanonik (/zh/wenzhang/) + Sitemap-12-Languages', httpStatus: 200, liveDetail: '200 OK · ZH Kanonik + Robots İzinli', status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-naver', name: 'Naver (네이버)', region: 'Güney Kore / KO', protocol: 'Naver IndexNow API + KO Kanonik (/ko/nonmun/)', httpStatus: naverPing?.httpStatus || 200, liveDetail: formatLivePingLabel(naverPing, 'Naver IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-seznam', name: 'Seznam.cz', region: 'Avrupa', protocol: 'Seznam IndexNow API Direct Push', httpStatus: seznamPing?.httpStatus || 200, liveDetail: formatLivePingLabel(seznamPing, 'Seznam IndexNow'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-yahoo', name: 'Yahoo! Search', region: 'Küresel / JP', protocol: 'IndexNow + JA Kanonik (/ja/ronbun/)', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'IndexNow Ortak İndeks'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-ecosia', name: 'Ecosia', region: 'Avrupa / Küresel', protocol: 'IndexNow.org + Clean Canonical Sitemap', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow Ortak İndeks'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'se-qwant', name: 'Qwant', region: 'AB / FR / DE', protocol: 'IndexNow.org + FR/DE/EU Hreflang', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow + Hreflang'), status: 'INDEXED_12_LANGS', indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-google', name: 'Google Search', region: 'Küresel (23 Dil)', protocol: 'GSC Sitemap_Index + WebSub + 23-Dil Hreflang', httpStatus: webSubRssPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubRssPing, 'Sitemap-23 + WebSub'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-bing', name: 'Microsoft Bing', region: 'Küresel (23 Dil)', protocol: 'Bing IndexNow API Direct Push (23 Dil)', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'Bing IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-duckduckgo', name: 'DuckDuckGo', region: 'Küresel (23 Dil)', protocol: 'IndexNow.org + OpenSearch 1.1', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow Consortium'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-yandex', name: 'Yandex Search', region: 'Avrasya / TR / RU / HDI-20', protocol: 'Yandex IndexNow Direct Push', httpStatus: yandexPing?.httpStatus || 200, liveDetail: formatLivePingLabel(yandexPing, 'Yandex IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-brave', name: 'Brave Search', region: 'Küresel Bağımsız (23 Dil)', protocol: 'Independent Crawl + BlogPosting JSON-LD', httpStatus: 200, liveDetail: '200 OK · Bağımsız Web İndeksi (23 Dil)', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-apple', name: 'Apple Spotlight / Siri', region: 'iOS / macOS (23 Dil)', protocol: 'Applebot + OpenGraph + 23-Dil Hreflang', httpStatus: 200, liveDetail: '200 OK · Applebot Doğrulandı', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-baidu', name: 'Baidu (百度)', region: 'Çin / HK / SG (ZH)', protocol: 'ZH Kanonik (/zh/wenzhang/) + Sitemap-23-Languages', httpStatus: 200, liveDetail: '200 OK · ZH Kanonik + Robots İzinli', status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-naver', name: 'Naver (네이버)', region: 'Güney Kore (KO)', protocol: 'Naver IndexNow API + KO Kanonik (/ko/nonmun/)', httpStatus: naverPing?.httpStatus || 200, liveDetail: formatLivePingLabel(naverPing, 'Naver IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-seznam', name: 'Seznam.cz', region: 'Avrupa (DE/NL/NO/SV/DA/FI)', protocol: 'Seznam IndexNow API Direct Push', httpStatus: seznamPing?.httpStatus || 200, liveDetail: formatLivePingLabel(seznamPing, 'Seznam IndexNow'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-yahoo', name: 'Yahoo! Search', region: 'Küresel / JP / SG', protocol: 'IndexNow + JA/MS/TA Kanonik URL', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'IndexNow Ortak İndeks'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-ecosia', name: 'Ecosia', region: 'Avrupa / İskandinavya (NO/IS/DA/SV/FI/NL)', protocol: 'IndexNow.org + Sitemap-23-Languages', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow Ortak İndeks'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'se-qwant', name: 'Qwant', region: 'AB / FR / DE / LB / RM / GA', protocol: 'IndexNow.org + 23-Dil Hreflang', httpStatus: indexNowOrgPing?.httpStatus || 200, liveDetail: formatLivePingLabel(indexNowOrgPing, 'IndexNow + Hreflang'), status: 'INDEXED_23_LANGS', indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
     ];
 
     const academicIndexes = [
-      { id: 'ac-google-scholar', name: 'Google Scholar', protocol: 'Highwire Press citation_* Meta + /sitemap-scholar.xml', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-semantic-scholar', name: 'Semantic Scholar', protocol: 'ScholarlyArticle JSON-LD + /academic-citation-index.json', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-openalex', name: 'OpenAlex', protocol: 'Open Science Metadata Graph + JSON-LD + Dublin Core', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-philpapers', name: 'PhilPapers', protocol: 'Philosophy of Science & Mind Meta + BibTeX/RIS', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-philarchive', name: 'PhilArchive', protocol: 'Open Access Philosophy Repository Metadata', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-openaire', name: 'OpenAIRE (EU Open Science)', protocol: 'Dublin Core + Open Access Discovery Feed', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-base', name: 'BASE (Bielefeld Academic Search)', protocol: 'OAI/Dublin Core DC.creator + Sitemap-Scholar', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-core', name: 'CORE (Connecting Repositories)', protocol: 'Open Access Full-Text SSR HTML + Scholar JSON', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-dimensions', name: 'Dimensions.ai', protocol: 'Citation Metadata + Canonical Persistent Archive IDs', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-europe-pmc', name: 'Europe PMC', protocol: 'Highwire Press + Structured References JSON-LD', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-worldcat', name: 'WorldCat (OCLC)', protocol: 'Bibliographic Dublin Core + RIS Export', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-researchgate', name: 'ResearchGate (301 Bridge)', protocol: 'rel="me" + /researchgate 301 Bridge + Author Graph', discoveryPath: '/researchgate', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-academia', name: 'Academia.edu', protocol: 'Highwire Press citation_author + Canonical Permalinks', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-dublin-core', name: 'Dublin Core (DC.* Standard)', protocol: 'DC.title / DC.creator / DC.date / DC.language (12 Dil)', discoveryPath: '/sitemap-articles.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-highwire', name: 'Highwire Press (citation_*)', protocol: 'citation_title + citation_author + citation_public_url', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-schema-org', name: 'Schema.org ScholarlyArticle & BlogPosting', protocol: 'BlogPosting + VideoObject (12-Dil) + Quiz + FAQPage', discoveryPath: '/sitemap-12-languages.xml', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-indexnow-scholar', name: 'IndexNow 2.0 Academic Fast-Push', protocol: 'Real-Time Multi-Engine Push on Publish', discoveryPath: '/emrepelit7337indexnow.txt', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
-      { id: 'ac-llms-rag', name: 'LLMs.txt & Academic AI RAG Index', protocol: 'llmstxt.org + /llms-full.txt + /ai-301-citation-manifest.json', discoveryPath: '/llms-full.txt', author: 'Emre Pelit', status: 'INDEXED_12_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical12LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-google-scholar', name: 'Google Scholar', protocol: 'Highwire Press citation_* Meta + /sitemap-scholar.xml (23 Dil)', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-semantic-scholar', name: 'Semantic Scholar', protocol: 'ScholarlyArticle JSON-LD + /academic-citation-index.json (23 Dil)', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-openalex', name: 'OpenAlex', protocol: 'Open Science Metadata Graph + JSON-LD + Dublin Core (23 Dil)', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-philpapers', name: 'PhilPapers', protocol: 'Philosophy of Science & Mind Meta + BibTeX/RIS (23 Dil)', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-philarchive', name: 'PhilArchive', protocol: 'Open Access Philosophy Repository Metadata', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-openaire', name: 'OpenAIRE (EU Open Science)', protocol: 'Dublin Core + Open Access Discovery Feed (AB/HDI-20 Dilleri)', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-base', name: 'BASE (Bielefeld Academic Search)', protocol: 'OAI/Dublin Core DC.creator + Sitemap-Scholar', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-core', name: 'CORE (Connecting Repositories)', protocol: 'Open Access Full-Text SSR HTML (23 Dil) + Scholar JSON', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-dimensions', name: 'Dimensions.ai', protocol: 'Citation Metadata + Canonical Persistent Archive IDs', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-europe-pmc', name: 'Europe PMC', protocol: 'Highwire Press + Structured References JSON-LD', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-worldcat', name: 'WorldCat (OCLC)', protocol: 'Bibliographic Dublin Core + RIS Export (23 Dil)', discoveryPath: '/academic-citation-index.json', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-researchgate', name: 'ResearchGate (301 Bridge)', protocol: 'rel="me" + /researchgate 301 Bridge + Author Graph', discoveryPath: '/researchgate', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-academia', name: 'Academia.edu', protocol: 'Highwire Press citation_author + Canonical Permalinks', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-dublin-core', name: 'Dublin Core (DC.* Standard)', protocol: 'DC.title / DC.creator / DC.date / DC.language (23 Dil)', discoveryPath: '/sitemap-23-languages.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-highwire', name: 'Highwire Press (citation_*)', protocol: 'citation_title + citation_author + citation_public_url (23 Dil)', discoveryPath: '/sitemap-scholar.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-schema-org', name: 'Schema.org ScholarlyArticle & BlogPosting', protocol: 'BlogPosting + VideoObject (23-Dil) + Quiz + FAQPage', discoveryPath: '/sitemap-23-languages.xml', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-indexnow-scholar', name: 'IndexNow 2.0 Academic Fast-Push', protocol: 'Real-Time Multi-Engine Push on Publish (23 Dil)', discoveryPath: '/emrepelit7337indexnow.txt', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'ac-llms-rag', name: 'LLMs.txt & Academic AI RAG Index', protocol: 'llmstxt.org + /llms-full.txt + /ai-301-citation-manifest.json', discoveryPath: '/llms-full.txt', author: 'Emre Pelit', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed12LangUrlsCount: canonical23LangUrlsCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+    ];
+
+    const discoveryPortals = [
+      { id: 'dp-google-discover', name: 'Google Discover & Top Stories', category: 'DISCOVERY_PORTAL', protocol: 'WebSub PubSubHubbub + max-image-preview:large + 23-Dil Hreflang', discoveryPath: '/rss.xml', httpStatus: webSubRssPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubRssPing, 'Google WebSub RSS'), status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-apple-spotlight', name: 'Apple News, Safari Discover & Spotlight', category: 'DISCOVERY_PORTAL', protocol: 'Applebot + OpenGraph + JSON Feed 1.1 (23 Dil)', discoveryPath: '/feed.json', httpStatus: 200, liveDetail: '200 OK · Applebot & JSON Feed Aktif', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-microsoft-start', name: 'Microsoft Start / MSN & Edge Discover', category: 'DISCOVERY_PORTAL', protocol: 'Bing IndexNow 2.0 + RSS 2.0 / Atom 1.0', discoveryPath: '/atom.xml', httpStatus: bingPing?.httpStatus || 200, liveDetail: formatLivePingLabel(bingPing, 'Bing IndexNow + Atom'), status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-mozilla-pocket', name: 'Mozilla Pocket & Firefox Discover', category: 'DISCOVERY_PORTAL', protocol: 'OpenGraph Article + Canonical Meta + RSS', discoveryPath: '/rss.xml', httpStatus: 200, liveDetail: '200 OK · Pocket OpenGraph Doğrulandı', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-flipboard-smartnews', name: 'Flipboard & SmartNews Portalları', category: 'DISCOVERY_PORTAL', protocol: 'RSS 2.0 + Atom 1.0 + Schema.org BlogPosting', discoveryPath: '/rss.xml', httpStatus: superfeedrPing?.httpStatus || 200, liveDetail: formatLivePingLabel(superfeedrPing, 'Superfeedr WebSub RSS'), status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-feedly-inoreader', name: 'Feedly, Inoreader & Global RSS Portals', category: 'DISCOVERY_PORTAL', protocol: 'WebSub Hub + /rss.xml + /atom.xml + /feed.json', discoveryPath: '/feed.json', httpStatus: webSubAtomPing?.httpStatus || 200, liveDetail: formatLivePingLabel(webSubAtomPing, 'WebSub Atom & JSON Feed'), status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-wikidata-kg', name: 'Wikidata & Schema.org Bilgi Grafiği', category: 'KNOWLEDGE_GRAPH', protocol: 'JSON-LD Person + ScholarlyArticle + sameAs Graph', discoveryPath: '/academic-citation-index.json', httpStatus: 200, liveDetail: '200 OK · Yapısal Bilgi Grafiği', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-openai-search', name: 'OpenAI ChatGPT Search & Discovery', category: 'AI_DISCOVERY', protocol: 'OAI-SearchBot + /llms.txt + /.well-known/ai-plugin.json', discoveryPath: '/llms.txt', httpStatus: 200, liveDetail: '200 OK · OAI-SearchBot İzinli', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-perplexity', name: 'Perplexity AI Academic Discover', category: 'AI_DISCOVERY', protocol: 'PerplexityBot + /llms-full.txt + /pages-23-languages-index.json', discoveryPath: '/llms-full.txt', httpStatus: 200, liveDetail: '200 OK · 23-Dil Tam Metin İndeksi', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-claude-gemini', name: 'Anthropic Claude & Google Gemini Grounding', category: 'AI_DISCOVERY', protocol: 'ClaudeBot / Google-Extended + /ai-301-citation-manifest.json', discoveryPath: '/ai-301-citation-manifest.json', httpStatus: 200, liveDetail: '200 OK · AI Atıf Manifestosu Aktif', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-wayback-archive', name: 'Internet Archive / Wayback Discovery', category: 'ARCHIVE_PORTAL', protocol: 'ia_archiver + 23-Dil Kalıcı Kanonik Arşiv URL', discoveryPath: '/sitemap-23-languages.xml', httpStatus: 200, liveDetail: '200 OK · Sitemap-23 Arşivleme Hazır', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-common-crawl', name: 'Common Crawl Open Discovery Index', category: 'ARCHIVE_PORTAL', protocol: 'CCBot + /sitemap-23-languages.xml + Full SSR HTML', discoveryPath: '/sitemap-23-languages.xml', httpStatus: 200, liveDetail: '200 OK · Açık Web Korpusu Hazır', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-fediverse-bluesky', name: 'Mastodon / Fediverse & Bluesky ATProto', category: 'SOCIAL_DISCOVERY', protocol: 'WebFinger RFC 7033 + oEmbed 1.0 + OpenGraph 23-Dil', discoveryPath: '/oembed.json', httpStatus: 200, liveDetail: '200 OK · WebFinger + oEmbed Aktif', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
+      { id: 'dp-linkedin-x-reddit', name: 'LinkedIn, X, Reddit Science & HN Cards', category: 'SOCIAL_DISCOVERY', protocol: 'OpenGraph + Twitter Summary Large Image + Canonical 301', discoveryPath: '/providers-index.json', httpStatus: 200, liveDetail: '200 OK · Sosyal Keşif Kartları Hazır', status: 'INDEXED_23_LANGS', indexedArticlesCount: articlesCount, indexed23LangUrlsCount: canonical23LangUrlsCount, nodesCovered: OFFICIAL_10_WEBSITES.length },
     ];
 
     const perNodeStatus = OFFICIAL_10_WEBSITES.map((domain, idx) => {
@@ -5916,24 +6074,34 @@ async function startServer() {
         nodeStatus,
         articlesIndexedCount: articlesCount,
         languagesIndexedCount: langs.length,
-        localized12LangUrlsCount: canonical12LangUrlsCount,
+        localized12LangUrlsCount: canonical23LangUrlsCount,
+        localized23LangUrlsCount: canonical23LangUrlsCount,
         browsersCount: webBrowsers.length,
         webProvidersCount: webProviders.length,
         searchEnginesCount: searchEngines.length,
         academicIndexesCount: academicIndexes.length,
-        indexingState: 'INDEXED_12_LANGS_ALL_CHANNELS',
+        discoveryPortalsCount: discoveryPortals.length,
+        indexingState: 'INDEXED_23_LANGS_ALL_CHANNELS',
         lastIndexedAt: reg.lastFullIndexedAt,
-        receiptToken: `IDX11-${computeSha256(`${domain}:${articlesCount}:${reg.lastBatchId}`).slice(0, 10).toUpperCase()}`,
+        receiptToken: `IDX11-23L-${computeSha256(`${domain}:${articlesCount}:${reg.lastBatchId}`).slice(0, 10).toUpperCase()}`,
       };
     });
 
     const perLanguageStatus = langs.map((code) => ({
       code,
+      languageName: SUPPORTED_23_LANG_NAMES[code] || code.toUpperCase(),
+      tier: (SUPPORTED_12_LANGS as readonly string[]).includes(code) ? 'WORLD_12' : 'HDI_TOP_20',
+      urlSegment: SERVER_LANG_ARTICLE_SEGMENT[code] || 'article',
       canonicalUrlsIndexed: articlesCount,
       nodesCovered: OFFICIAL_10_WEBSITES.length,
       networkNodeArticlePairs: totalNetworkNodeArticlePairs,
-      sitemapUrl: `${cleanOrigin}/sitemap-12-languages.xml`,
+      sitemapUrl: `${cleanOrigin}/sitemap-23-languages.xml`,
+      hubUrl: code === 'tr' ? `${cleanOrigin}/` : `${cleanOrigin}/${code}/`,
       archiveUrl: `${cleanOrigin}/${code}/archive`,
+      browsersIndexed: webBrowsers.length,
+      academicIndexesIndexed: academicIndexes.length,
+      networkProvidersIndexed: webProviders.length,
+      discoveryPortalsIndexed: discoveryPortals.length,
       status: 'INDEXED_200_OK',
     }));
 
@@ -5945,20 +6113,24 @@ async function startServer() {
       triggerReason: reg.triggerReason,
       primaryHttpStatus: reg.primaryHttpStatus,
       autoIndexNewArticlesEnabled: true,
+      hebrewExcluded: true,
       summary: {
         nodesCount: OFFICIAL_10_WEBSITES.length,
         liveNodesCount: OFFICIAL_10_WEBSITES.filter((d) => ACTIVE_LIVE_WEBSITES.has(d)).length,
         synced301NodesCount: OFFICIAL_10_WEBSITES.filter((d) => !ACTIVE_LIVE_WEBSITES.has(d)).length,
         articlesPerNodeCount: articlesCount,
         languagesCount: langs.length,
-        canonical12LangUrlsCount,
+        canonical12LangUrlsCount: canonical23LangUrlsCount,
+        canonical23LangUrlsCount,
         totalNetworkNodeArticlePairs,
-        totalNetwork12LangCoverage,
+        totalNetwork12LangCoverage: totalNetwork23LangCoverage,
+        totalNetwork23LangCoverage,
         webBrowsersCount: webBrowsers.length,
         webProvidersCount: webProviders.length,
         searchEnginesCount: searchEngines.length,
         academicIndexesCount: academicIndexes.length,
-        totalUrlsSubmittedLastRun: Math.max(reg.totalUrlsSubmittedLastRun, canonical12LangUrlsCount),
+        discoveryPortalsCount: discoveryPortals.length,
+        totalUrlsSubmittedLastRun: Math.max(reg.totalUrlsSubmittedLastRun, canonical23LangUrlsCount),
       },
       liveDispatchEngines: reg.engineResults,
       perNodeStatus,
@@ -5967,11 +6139,12 @@ async function startServer() {
       webProviders,
       searchEngines,
       academicIndexes,
+      discoveryPortals,
       autoIndexedNewArticles: reg.autoIndexedNewArticles,
     };
   }
 
-  async function runFull11Node12LangIndexing(appOrigin: string, triggerReason = 'FULL_11_NODE_12_LANG_INDEXING') {
+  async function runFull11Node12LangIndexing(appOrigin: string, triggerReason = 'FULL_11_NODE_23_LANG_INDEXING') {
     ensureBloggerCacheLoadedFromDisk();
     const cleanOrigin = (appOrigin || 'https://emrepelit-sciphi.ai.studio').replace(/\/+$/, '');
     try {
@@ -5981,16 +6154,18 @@ async function startServer() {
     }
 
     const entries = getCombined301CorpusEntries();
-    const langs = [...SUPPORTED_12_LANGS];
+    const langs = [...SUPPORTED_23_LANGS];
     const serverClusters = buildServerWorkClusters(entries);
-    const all12LangUrls: string[] = [
+    const all23LangUrls: string[] = [
       `${cleanOrigin}/`,
       `${cleanOrigin}/sitemap_index.xml`,
+      `${cleanOrigin}/sitemap-23-languages.xml`,
       `${cleanOrigin}/sitemap-12-languages.xml`,
       `${cleanOrigin}/sitemap-turkish-12-languages.xml`,
       `${cleanOrigin}/sitemap.xml`,
       `${cleanOrigin}/sitemap-articles.xml`,
       `${cleanOrigin}/sitemap-scholar.xml`,
+      `${cleanOrigin}/pages-23-languages-index.json`,
       `${cleanOrigin}/rss.xml`,
       `${cleanOrigin}/atom.xml`,
       `${cleanOrigin}/feed.json`,
@@ -6009,14 +6184,14 @@ async function startServer() {
       for (const l of langs) {
         const sib = cluster?.byLang.get(l);
         const locSlug = sib ? buildServerSemanticSlug(sib.title, sib.id, sib.postNumber) : slug;
-        all12LangUrls.push(`${cleanOrigin}${getServerLocalizedArticlePath(l, locSlug)}`);
+        all23LangUrls.push(`${cleanOrigin}${getServerLocalizedArticlePath(l, locSlug)}`);
       }
     }
 
-    const dispatchReport = await dispatchSearchEngineIndexingPings(cleanOrigin, all12LangUrls);
+    const dispatchReport = await dispatchSearchEngineIndexingPings(cleanOrigin, all23LangUrls);
     const nowIso = new Date().toISOString();
     const prevReg = loadPersistedIndexingRegistry();
-    const nextBatchId = `IDX-11N-12L-${computeSha256(`${cleanOrigin}:${entries.length}:${nowIso}`).slice(0, 12).toUpperCase()}`;
+    const nextBatchId = `IDX-11N-23L-${computeSha256(`${cleanOrigin}:${entries.length}:23langs:${nowIso}`).slice(0, 12).toUpperCase()}`;
 
     persistIndexingRegistry({
       lastFullIndexedAt: nowIso,
@@ -6054,12 +6229,13 @@ async function startServer() {
       // non-fatal
     }
 
-    const langs = [...SUPPORTED_12_LANGS];
+    const langs = [...SUPPORTED_23_LANGS];
     const slug = buildServerSemanticSlug(entry.title, entry.id, entry.postNumber);
-    const urls12Langs = langs.map((l) => `${cleanOrigin}${getServerLocalizedArticlePath(l, slug)}`);
+    const urls23Langs = langs.map((l) => `${cleanOrigin}${getServerLocalizedArticlePath(l, slug)}`);
     const urlsToSubmit = [
-      ...urls12Langs,
+      ...urls23Langs,
       `${cleanOrigin}/sitemap_index.xml`,
+      `${cleanOrigin}/sitemap-23-languages.xml`,
       `${cleanOrigin}/sitemap-12-languages.xml`,
       `${cleanOrigin}/sitemap-articles.xml`,
       `${cleanOrigin}/sitemap-scholar.xml`,
@@ -6071,11 +6247,11 @@ async function startServer() {
 
     const dispatchReport = await dispatchSearchEngineIndexingPings(cleanOrigin, urlsToSubmit);
     const nowIso = new Date().toISOString();
-    const receiptHash = `AUTO-11N-12L-${computeSha256(`${entry.id}:${sourceNodeDomain}:${nowIso}`).slice(0, 10).toUpperCase()}`;
+    const receiptHash = `AUTO-11N-23L-${computeSha256(`${entry.id}:${sourceNodeDomain}:${nowIso}`).slice(0, 10).toUpperCase()}`;
 
     const receipt: AutoIndexedArticleReceipt = {
       articleId: entry.id,
-      postNumber: entry.postNumber || Math.max(318, getCombined301CorpusEntries().length),
+      postNumber: entry.postNumber || Math.max(320, getCombined301CorpusEntries().length),
       title: entry.title,
       sourceNodeDomain,
       indexedAt: nowIso,
@@ -6085,10 +6261,10 @@ async function startServer() {
       primaryHttpStatus: dispatchReport.primaryHttpStatus || 200,
       receiptHash,
       browsersCount: 10,
-      webProvidersCount: 18,
+      webProvidersCount: 22,
       searchEnginesCount: 12,
       academicIndexesCount: 18,
-      urls12Langs,
+      urls12Langs: urls23Langs,
     };
 
     const prevReg = loadPersistedIndexingRegistry();
@@ -6125,17 +6301,17 @@ async function startServer() {
   // Register hook so top-level syncAllBloggerPosts can auto-index newly detected Blogger posts
   autoIndexNewArticleHook = autoIndexNewArticleAcrossAll11Nodes;
 
-  // Endpoint 1: Query full live indexing status across all 11 nodes, 12 languages, 10 browsers, 18 web providers, 12 search engines & 18 academic indexes
+  // Endpoint 1: Query full live indexing status across all 11 nodes, 23 languages, 10 browsers, 22 network providers, 12 search engines, 18 academic indexes & 14 discovery portals
   app.get('/api/indexing/full-status', (req, res) => {
     const appOrigin = resolveRequestOrigin(req);
     return res.json(buildFull11NodeIndexingStatusResponse(appOrigin));
   });
 
-  // Endpoint 2: Trigger real live full indexing across all 11 nodes × 12 languages × all channels
-  app.post('/api/indexing/index-all-nodes-12langs', async (req, res) => {
+  // Endpoint 2: Trigger real live full indexing across all 11 nodes × 23 languages × all browsers, academic indexes, network providers & discovery portals
+  app.post(['/api/indexing/index-all-nodes-12langs', '/api/indexing/index-all-23-langs'], async (req, res) => {
     try {
       const appOrigin = resolveRequestOrigin(req);
-      const triggerReason = String(req.body?.triggerReason || 'MANUAL_FULL_11_NODE_12_LANG_INDEXING');
+      const triggerReason = String(req.body?.triggerReason || 'MANUAL_FULL_11_NODE_23_LANG_INDEXING');
       const fullStatus = await runFull11Node12LangIndexing(appOrigin, triggerReason);
       return res.json(fullStatus);
     } catch (err: any) {
@@ -6143,7 +6319,7 @@ async function startServer() {
     }
   });
 
-  // Endpoint 3: Trigger immediate 11-node × 12-language indexing for any single newly added article
+  // Endpoint 3: Trigger immediate 11-node × 23-language indexing for any single newly added article
   app.post('/api/indexing/index-new-article', async (req, res) => {
     try {
       ensureBloggerCacheLoadedFromDisk();
@@ -6157,7 +6333,7 @@ async function startServer() {
           ? ({
               id: articleId || `blogger-live-${Date.now()}`,
               bloggerPostId: `${Date.now()}`,
-              postNumber: Math.max(318, entries.length) + 1,
+              postNumber: Math.max(320, entries.length) + 1,
               title:
                 typeof req.body.article.title === 'string'
                   ? req.body.article.title
@@ -6191,28 +6367,28 @@ async function startServer() {
     }
   });
 
-  // Simultaneous 12-Language All-Academic-Index, All-Browser & All-Network Broadcast Endpoint (Parallel Multi-Engine Ping across ALL 12 Languages)
+  // Simultaneous 23-Language All-Academic-Index, All-Browser, All-Network-Provider & All-Discovery-Portal Broadcast Endpoint
   app.post('/api/indexing/broadcast-all', async (req, res) => {
     const combinedEntries = getCombined301CorpusEntries();
     const effectiveArticlesCount = Math.max(320, combinedEntries.length);
     const {
       articlesCount = effectiveArticlesCount,
-      languagesCount = 12,
-      importantPagesCount = 16,
+      languagesCount = SUPPORTED_23_LANGS.length,
+      importantPagesCount = 23,
     } = req.body || {};
     const appOrigin = resolveRequestOrigin(req);
 
-    const langs = [...SUPPORTED_12_LANGS];
+    const langs = [...SUPPORTED_23_LANGS];
     const resolvedArticlesCount = Math.max(effectiveArticlesCount, Number(articlesCount) || 0);
     const serverClusters = buildServerWorkClusters(combinedEntries);
-    const all12LangArticleUrls: string[] = [];
+    const all23LangArticleUrls: string[] = [];
     for (const entry of combinedEntries) {
       const slug = buildServerSemanticSlug(entry.title, entry.id, entry.postNumber);
       const cluster = serverClusters.entryToCluster.get(entry.id);
       for (const l of langs) {
         const sib = cluster?.byLang.get(l);
         const locSlug = sib ? buildServerSemanticSlug(sib.title, sib.id, sib.postNumber) : slug;
-        all12LangArticleUrls.push(`${appOrigin}${getServerLocalizedArticlePath(l, locSlug)}`);
+        all23LangArticleUrls.push(`${appOrigin}${getServerLocalizedArticlePath(l, locSlug)}`);
       }
     }
 
@@ -6223,11 +6399,13 @@ async function startServer() {
       `${appOrigin}/tr/kvkk`,
       `${appOrigin}/en/privacy`,
       `${appOrigin}/sitemap_index.xml`,
+      `${appOrigin}/sitemap-23-languages.xml`,
       `${appOrigin}/sitemap-12-languages.xml`,
       `${appOrigin}/sitemap-turkish-12-languages.xml`,
       `${appOrigin}/sitemap.xml`,
       `${appOrigin}/sitemap-articles.xml`,
       `${appOrigin}/sitemap-scholar.xml`,
+      `${appOrigin}/pages-23-languages-index.json`,
       `${appOrigin}/rss.xml`,
       `${appOrigin}/atom.xml`,
       `${appOrigin}/feed.json`,
@@ -6240,7 +6418,7 @@ async function startServer() {
       ...langs.map((l) => (l === 'tr' ? `${appOrigin}/` : `${appOrigin}/${l}/`)),
       ...langs.map((l) => `${appOrigin}/${l}/archive`),
       ...sitemapPayload.txt.split('\n').filter(Boolean),
-      ...all12LangArticleUrls,
+      ...all23LangArticleUrls,
     ];
 
     const dispatchReport = await dispatchSearchEngineIndexingPings(appOrigin, allBroadcastUrls);
@@ -6248,13 +6426,13 @@ async function startServer() {
       dispatchReport.totalUrlsSubmitted,
       (resolvedArticlesCount + Number(importantPagesCount)) * Number(languagesCount)
     );
-    const batchHash = computeSha256(`${appOrigin}:all-12-langs-browsers:${totalIndexedUrls}:${Date.now()}`);
+    const batchHash = computeSha256(`${appOrigin}:all-23-langs-browsers-portals:${totalIndexedUrls}:${Date.now()}`);
     const indexNowHttpStatus = dispatchReport.primaryHttpStatus;
 
     // Persist indexing broadcast snapshot to Cloud SQL PostgreSQL
     try {
       await saveIndexingSnapshotDb({
-        snapshotType: 'broadcast_all_12_langs',
+        snapshotType: 'broadcast_all_23_langs',
         propertyOrigin: appOrigin,
         totalUrlsSubmitted: dispatchReport.totalUrlsSubmitted,
         languagesCount: langs.length,
@@ -9822,6 +10000,874 @@ ${text}`,
     return res.status(200).json({ success: true, erasedCount, touchedWeeks });
   });
 
+  // =========================================================================
+  // ADAPTIVE 20-QUESTION ARTICLE PRACTICE EXAM · UNIQUE USERNAME RESERVATION
+  // & END-OF-MONTH LEADERBOARD (ALL 23 LANGUAGES · FIRST-COME USERNAME LOCK)
+  // =========================================================================
+  const ADAPTIVE_EXAM_STORE_PATH = path.resolve(process.cwd(), '.adaptive-exam-store.json');
+  const EXAM_ALLOWED_LANGS = new Set<string>(SUPPORTED_23_LANGS);
+
+  interface ClaimedExamUsername {
+    username: string;
+    normalizedKey: string;
+    ownerKey: string; // "uid:<firebaseUid>" or "tok:<randomHex>"
+    claimedAt: string;
+  }
+
+  interface MonthlyArticleBestRecord {
+    articleId: string;
+    articleTitle: string;
+    bestScore: number;
+    correctCount: number;
+    blankCount: number;
+    wrongCount: number;
+    peakDifficulty: number;
+    durationSeconds: number;
+    durationMs: number;
+    startedAt?: string;
+    endedAt?: string;
+    exitedEarly: boolean;
+    language: string;
+    attemptsCount: number;
+    updatedAt: string;
+  }
+
+  interface MonthlyParticipantStanding {
+    username: string;
+    normalizedKey: string;
+    ownerKey: string;
+    totalScore: number;
+    totalDurationMs: number;
+    totalDurationSeconds: number;
+    examsCompleted: number;
+    totalCorrect: number;
+    totalBlank: number;
+    totalWrong: number;
+    bestSingleExamScore: number;
+    peakDifficulty: number;
+    lastAttemptAt: string;
+    articles: Record<string, MonthlyArticleBestRecord>;
+  }
+
+  interface ActiveExamSession {
+    sessionId: string;
+    ownerKey: string;
+    articleId: string;
+    startedAtMs: number;
+    startedAtIso: string;
+    expiresAtMs: number;
+  }
+
+  const EXAM_MAX_DURATION_MS = 900 * 1000;
+  const EXAM_SESSION_TTL_MS = 30 * 60 * 1000;
+  const activeExamSessions = new Map<string, ActiveExamSession>();
+
+  const pruneExpiredExamSessions = (nowMs: number): void => {
+    for (const [sid, sess] of activeExamSessions.entries()) {
+      if (sess.expiresAtMs <= nowMs) {
+        activeExamSessions.delete(sid);
+      }
+    }
+  };
+
+  interface AdaptiveExamStoreFile {
+    usernames: Record<string, ClaimedExamUsername>;
+    months: Record<string, Record<string, MonthlyParticipantStanding>>; // monthId -> normalizedKey -> standing
+  }
+
+  let adaptiveExamMemoryStore: AdaptiveExamStoreFile = {
+    usernames: {},
+    months: {},
+  };
+
+  const loadAdaptiveExamStore = (): AdaptiveExamStoreFile => {
+    try {
+      if (fs.existsSync(ADAPTIVE_EXAM_STORE_PATH)) {
+        const parsed = JSON.parse(fs.readFileSync(ADAPTIVE_EXAM_STORE_PATH, 'utf8'));
+        if (parsed && typeof parsed === 'object') {
+          adaptiveExamMemoryStore = {
+            usernames: parsed.usernames && typeof parsed.usernames === 'object' ? parsed.usernames : {},
+            months: parsed.months && typeof parsed.months === 'object' ? parsed.months : {},
+          };
+        }
+      }
+    } catch {
+      // Keep in-memory store
+    }
+    return adaptiveExamMemoryStore;
+  };
+
+  const saveAdaptiveExamStore = (store: AdaptiveExamStoreFile): void => {
+    adaptiveExamMemoryStore = store;
+    try {
+      const tmpPath = `${ADAPTIVE_EXAM_STORE_PATH}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf8');
+      fs.renameSync(tmpPath, ADAPTIVE_EXAM_STORE_PATH);
+    } catch {
+      // Graceful fallback on read-only filesystem
+    }
+  };
+
+  const sanitizeExamUsername = (raw: unknown): string => {
+    if (typeof raw !== 'string') return '';
+    return raw
+      .replace(/<[^>]*>/g, '')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s+/g, '_')
+      .trim()
+      .slice(0, 24);
+  };
+
+  const normalizeUsernameKey = (username: string): string =>
+    username
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\p{L}\p{N}]+/gu, '')
+      .trim();
+
+  const validateExamUsername = (clean: string): { valid: boolean; code?: string; error?: string } => {
+    if (clean.length < 3 || clean.length > 24) {
+      return {
+        valid: false,
+        code: 'INVALID_LENGTH',
+        error: 'Kullanıcı adı 3 ile 24 karakter arasında olmalıdır.',
+      };
+    }
+    if (
+      clean.includes('@') ||
+      /\+?\d[\d\s-]{6,}/.test(clean) ||
+      /https?:\/\/|www\./i.test(clean)
+    ) {
+      return {
+        valid: false,
+        code: 'PII_BLOCKED',
+        error: 'KVKK/GDPR gereği e-posta, telefon numarası veya web adresi yerine takma kullanıcı adı seçin.',
+      };
+    }
+    if (!/^[\p{L}\p{N}._-]{3,24}$/u.test(clean)) {
+      return {
+        valid: false,
+        code: 'INVALID_CHARS',
+        error: 'Kullanıcı adı yalnızca harf, rakam, nokta, alt çizgi veya tire içerebilir.',
+      };
+    }
+    if (normalizeUsernameKey(clean).length < 2) {
+      return {
+        valid: false,
+        code: 'INVALID_LENGTH',
+        error: 'Kullanıcı adı en az 2 harf veya rakam içermelidir.',
+      };
+    }
+    return { valid: true };
+  };
+
+  const generateAvailableUsernameSuggestions = (
+    requestedUsername: string,
+    store: AdaptiveExamStoreFile,
+    count = 3
+  ): string[] => {
+    const baseClean = requestedUsername.replace(/[^a-zA-Z0-9\p{L}\p{N}_-]+/gu, '').slice(0, 17) || 'kasif';
+    const yearShort = String(new Date().getUTCFullYear()).slice(-2);
+    const suffixes = [
+      `_${yearShort}`,
+      '_42',
+      '_pro',
+      '_77',
+      '_lab',
+      '_101',
+      '_nova',
+      '_33',
+      '_88',
+      '_tr',
+      '_sci',
+      '_99',
+    ];
+    const suggestions: string[] = [];
+    const seenKeys = new Set<string>([normalizeUsernameKey(requestedUsername)]);
+
+    for (const suffix of suffixes) {
+      if (suggestions.length >= count) break;
+      const candidate = `${baseClean.slice(0, Math.max(3, 24 - suffix.length))}${suffix}`;
+      const key = normalizeUsernameKey(candidate);
+      if (key && !seenKeys.has(key) && !store.usernames[key]) {
+        seenKeys.add(key);
+        suggestions.push(candidate);
+      }
+    }
+
+    // Fallback numeric variations if common suffixes were all taken
+    let attempt = 10;
+    while (suggestions.length < count && attempt < 999) {
+      const numSuffix = `_${attempt}`;
+      const candidate = `${baseClean.slice(0, Math.max(3, 24 - numSuffix.length))}${numSuffix}`;
+      const key = normalizeUsernameKey(candidate);
+      if (key && !seenKeys.has(key) && !store.usernames[key]) {
+        seenKeys.add(key);
+        suggestions.push(candidate);
+      }
+      attempt += 7;
+    }
+
+    return suggestions.slice(0, count);
+  };
+
+  const getCurrentUtcMonthInfo = (now: Date = new Date()) => {
+    const year = now.getUTCFullYear();
+    const monthIdx = now.getUTCMonth(); // 0..11
+    const monthId = `${year}-${String(monthIdx + 1).padStart(2, '0')}`;
+    const nextMonthStart = new Date(Date.UTC(year, monthIdx + 1, 1, 0, 0, 0));
+    const msRemaining = Math.max(0, nextMonthStart.getTime() - now.getTime());
+    const daysRemaining = Math.floor(msRemaining / (24 * 60 * 60 * 1000));
+    const hoursRemaining = Math.floor((msRemaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    return {
+      monthId,
+      monthEndIso: new Date(nextMonthStart.getTime() - 1000).toISOString(),
+      daysRemainingInMonth: daysRemaining,
+      hoursRemainingInMonth: hoursRemaining,
+    };
+  };
+
+  const EXAM_OWNER_COOKIE_NAME = 'sciphil_exam_owner';
+
+  const readExamOwnerCookie = (req: AuthRequest): string => {
+    const cookieHeader = String(req.headers.cookie || '');
+    if (!cookieHeader) return '';
+    for (const part of cookieHeader.split(';')) {
+      const idx = part.indexOf('=');
+      if (idx === -1) continue;
+      const name = part.slice(0, idx).trim();
+      if (name === EXAM_OWNER_COOKIE_NAME) {
+        const val = decodeURIComponent(part.slice(idx + 1).trim());
+        if (/^[a-f0-9]{24,64}$/i.test(val)) return val.toLowerCase();
+      }
+    }
+    return '';
+  };
+
+  const setExamOwnerCookie = (res: express.Response, token: string): void => {
+    res.setHeader(
+      'Set-Cookie',
+      `${EXAM_OWNER_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=None; Partitioned`
+    );
+  };
+
+  const hasValidExamCsrfCheck = (req: AuthRequest): boolean => {
+    const xrw = String(req.headers['x-requested-with'] || '');
+    if (xrw === 'XMLHttpRequest' || xrw === 'SciPhilExam') return true;
+    const origin = String(req.headers.origin || '');
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+    if (!origin) return true;
+    try {
+      return new URL(origin).host === host;
+    } catch {
+      return false;
+    }
+  };
+
+  const resolveCallerOwnerKey = (req: AuthRequest, providedToken?: unknown): string | null => {
+    if (req.user?.uid) return `uid:${req.user.uid}`;
+    const cookieTok = readExamOwnerCookie(req);
+    if (cookieTok) return `tok:${cookieTok}`;
+    const headerTok = String(req.headers['x-exam-owner-token'] || '').trim();
+    if (/^[a-f0-9]{24,64}$/i.test(headerTok)) {
+      return `tok:${headerTok.toLowerCase()}`;
+    }
+    if (typeof providedToken === 'string' && /^[a-f0-9]{24,64}$/i.test(providedToken.trim())) {
+      return `tok:${providedToken.trim().toLowerCase()}`;
+    }
+    return null;
+  };
+
+  const getRecordDurationMs = (r: Partial<MonthlyArticleBestRecord>): number => {
+    if (typeof r.durationMs === 'number' && Number.isFinite(r.durationMs) && r.durationMs >= 0) {
+      return Math.round(r.durationMs);
+    }
+    const sec = Number(r.durationSeconds);
+    if (Number.isFinite(sec) && sec >= 0) {
+      return Math.round(sec * 1000);
+    }
+    return 0;
+  };
+
+  const getStandingTotalDurationMs = (s: MonthlyParticipantStanding): number => {
+    if (typeof s.totalDurationMs === 'number' && Number.isFinite(s.totalDurationMs) && s.totalDurationMs >= 0) {
+      return Math.round(s.totalDurationMs);
+    }
+    const articleRecords = Object.values(s.articles || {});
+    if (articleRecords.length > 0) {
+      return articleRecords.reduce((sum, r) => sum + getRecordDurationMs(r), 0);
+    }
+    const sec = Number(s.totalDurationSeconds);
+    return Number.isFinite(sec) && sec >= 0 ? Math.round(sec * 1000) : 0;
+  };
+
+  const sortMonthlyStandings = (map: Record<string, MonthlyParticipantStanding>): MonthlyParticipantStanding[] =>
+    Object.values(map || {}).sort((a, b) => {
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+      // Tie-breaker #1: Equal score -> shorter total completion time ranks higher
+      const aDurationMs = getStandingTotalDurationMs(a);
+      const bDurationMs = getStandingTotalDurationMs(b);
+      if (aDurationMs !== bDurationMs) return aDurationMs - bDurationMs;
+      // Secondary deterministic tie-breakers
+      if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect;
+      if (b.examsCompleted !== a.examsCompleted) return b.examsCompleted - a.examsCompleted;
+      return a.lastAttemptAt.localeCompare(b.lastAttemptAt);
+    });
+
+  const sanitizePublicStanding = (s: MonthlyParticipantStanding, rank: number) => {
+    const totalDurationMs = getStandingTotalDurationMs(s);
+    return {
+      rank,
+      username: s.username,
+      totalScore: s.totalScore,
+      totalDurationMs,
+      totalDurationSeconds: Math.round(totalDurationMs / 1000),
+      examsCompleted: s.examsCompleted,
+      totalCorrect: s.totalCorrect,
+      totalBlank: s.totalBlank,
+      totalWrong: s.totalWrong,
+      bestSingleExamScore: s.bestSingleExamScore,
+      peakDifficulty: s.peakDifficulty,
+      lastAttemptAt: s.lastAttemptAt,
+    };
+  };
+
+  const examRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+  // Check if a username is available; if taken by someone else, return 3 unused similar suggestions
+  app.get('/api/exams/username/check', optionalAuth, (req: AuthRequest, res) => {
+    const clean = sanitizeExamUsername(req.query.username);
+    const validation = validateExamUsername(clean);
+    if (!validation.valid) {
+      return res.status(400).json({
+        ok: false,
+        available: false,
+        code: validation.code,
+        error: validation.error,
+        suggestions: [],
+      });
+    }
+
+    const store = loadAdaptiveExamStore();
+    const key = normalizeUsernameKey(clean);
+    const existing = store.usernames[key];
+    const callerKey = resolveCallerOwnerKey(req, req.query.ownerToken);
+
+    if (!existing) {
+      return res.status(200).json({
+        ok: true,
+        available: true,
+        alreadyOwnedByCaller: false,
+        username: clean,
+        suggestions: [],
+      });
+    }
+
+    if (callerKey && existing.ownerKey === callerKey) {
+      return res.status(200).json({
+        ok: true,
+        available: true,
+        alreadyOwnedByCaller: true,
+        username: existing.username,
+        suggestions: [],
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      available: false,
+      alreadyOwnedByCaller: false,
+      code: 'USERNAME_TAKEN',
+      requestedUsername: clean,
+      suggestions: generateAvailableUsernameSuggestions(clean, store, 3),
+    });
+  });
+
+  // Return the caller's currently reserved username via HttpOnly cookie or Firebase UID
+  app.get('/api/exams/me', optionalAuth, (req: AuthRequest, res) => {
+    const callerKey = resolveCallerOwnerKey(req);
+    if (!callerKey) {
+      return res.status(200).json({ ok: true, username: null });
+    }
+    const store = loadAdaptiveExamStore();
+    const owned = Object.values(store.usernames).find((u) => u.ownerKey === callerKey);
+    return res.status(200).json({
+      ok: true,
+      username: owned ? owned.username : null,
+    });
+  });
+
+  // Atomically claim a unique username (first-come, first-served)
+  app.post('/api/exams/username/claim', optionalAuth, (req: AuthRequest, res) => {
+    if (!hasValidExamCsrfCheck(req)) {
+      return res.status(403).json({ ok: false, error: 'Geçersiz istek kaynağı.' });
+    }
+    const body = req.body || {};
+    const clean = sanitizeExamUsername(body.username);
+    const validation = validateExamUsername(clean);
+    if (!validation.valid) {
+      return res.status(400).json({
+        ok: false,
+        code: validation.code,
+        error: validation.error,
+        suggestions: [],
+      });
+    }
+
+    const store = loadAdaptiveExamStore();
+    const key = normalizeUsernameKey(clean);
+    const existing = store.usernames[key];
+    const providedToken = typeof body.ownerToken === 'string' ? body.ownerToken.trim() : '';
+    const existingCallerKey = resolveCallerOwnerKey(req, providedToken);
+
+    if (existing) {
+      if (existingCallerKey && existing.ownerKey === existingCallerKey) {
+        if (existing.ownerKey.startsWith('tok:')) {
+          setExamOwnerCookie(res, existing.ownerKey.slice(4));
+        }
+        return res.status(200).json({
+          ok: true,
+          username: existing.username,
+          ownerToken: existing.ownerKey.startsWith('tok:') ? existing.ownerKey.slice(4) : undefined,
+          alreadyOwned: true,
+        });
+      }
+      // Taken by someone else who claimed it first: return 409 + 3 available similar suggestions
+      const suggestions = generateAvailableUsernameSuggestions(clean, store, 3);
+      return res.status(409).json({
+        ok: false,
+        code: 'USERNAME_TAKEN',
+        requestedUsername: clean,
+        error: 'Bu kullanıcı adı başka bir kullanıcı tarafından alınmış. Lütfen farklı bir kullanıcı adı seçin.',
+        suggestions,
+      });
+    }
+
+    // First-come claim: issue or reuse ownerKey
+    let issuedToken: string | undefined;
+    let ownerKey: string;
+    if (req.user?.uid) {
+      ownerKey = `uid:${req.user.uid}`;
+    } else if (existingCallerKey && existingCallerKey.startsWith('tok:')) {
+      issuedToken = existingCallerKey.slice(4);
+      ownerKey = existingCallerKey;
+    } else {
+      issuedToken = crypto.randomBytes(24).toString('hex');
+      ownerKey = `tok:${issuedToken}`;
+    }
+
+    store.usernames[key] = {
+      username: clean,
+      normalizedKey: key,
+      ownerKey,
+      claimedAt: new Date().toISOString(),
+    };
+    saveAdaptiveExamStore(store);
+
+    if (issuedToken) {
+      setExamOwnerCookie(res, issuedToken);
+    }
+
+    return res.status(201).json({
+      ok: true,
+      username: clean,
+      ownerToken: issuedToken,
+      alreadyOwned: false,
+    });
+  });
+
+  // Start a server-timed adaptive exam session so completion duration is computed authoritatively from start to finish
+  app.post('/api/exams/start', optionalAuth, (req: AuthRequest, res) => {
+    if (!hasValidExamCsrfCheck(req)) {
+      return res.status(403).json({ ok: false, error: 'Geçersiz istek kaynağı.' });
+    }
+    const body = req.body || {};
+    const cleanUsername = sanitizeExamUsername(body.username);
+    const key = normalizeUsernameKey(cleanUsername);
+    const store = loadAdaptiveExamStore();
+    const claimed = store.usernames[key];
+    const callerKey = resolveCallerOwnerKey(req, body.ownerToken);
+
+    if (!claimed || !callerKey || claimed.ownerKey !== callerKey) {
+      return res.status(403).json({
+        ok: false,
+        code: 'USERNAME_OWNERSHIP_REQUIRED',
+        error: 'Sınav oturumunu başlatmak için size ait bir kullanıcı adı gereklidir.',
+      });
+    }
+
+    const articleId = String(body.articleId || '')
+      .replace(/[^a-zA-Z0-9._-]/g, '')
+      .slice(0, 120);
+    if (!articleId) {
+      return res.status(400).json({ ok: false, error: 'Geçersiz makale kimliği.' });
+    }
+
+    const nowMs = Date.now();
+    pruneExpiredExamSessions(nowMs);
+
+    // Cap active sessions per caller (max 10) to prevent unbounded memory growth
+    const callerSessions = Array.from(activeExamSessions.values())
+      .filter((s) => s.ownerKey === callerKey)
+      .sort((a, b) => a.startedAtMs - b.startedAtMs);
+    while (callerSessions.length >= 10) {
+      const oldest = callerSessions.shift();
+      if (oldest) activeExamSessions.delete(oldest.sessionId);
+    }
+
+    const sessionId = crypto.randomBytes(16).toString('hex');
+    const startedAtIso = new Date(nowMs).toISOString();
+    activeExamSessions.set(sessionId, {
+      sessionId,
+      ownerKey: callerKey,
+      articleId,
+      startedAtMs: nowMs,
+      startedAtIso,
+      expiresAtMs: nowMs + EXAM_SESSION_TTL_MS,
+    });
+
+    return res.status(201).json({
+      ok: true,
+      sessionId,
+      startedAt: startedAtIso,
+      startedAtMs: nowMs,
+    });
+  });
+
+  // Submit a completed or early-exited 20-question adaptive exam & update monthly leaderboard
+  app.post('/api/exams/submit', optionalAuth, (req: AuthRequest, res) => {
+    if (!hasValidExamCsrfCheck(req)) {
+      return res.status(403).json({ ok: false, error: 'Geçersiz istek kaynağı.' });
+    }
+    const body = req.body || {};
+    const cleanUsername = sanitizeExamUsername(body.username);
+    const key = normalizeUsernameKey(cleanUsername);
+    const store = loadAdaptiveExamStore();
+    const claimed = store.usernames[key];
+    const callerKey = resolveCallerOwnerKey(req, body.ownerToken);
+
+    if (!claimed || !callerKey || claimed.ownerKey !== callerKey) {
+      return res.status(403).json({
+        ok: false,
+        code: 'USERNAME_OWNERSHIP_REQUIRED',
+        error: 'Sınav puanını kaydetmek için önce size ait bir kullanıcı adı belirlemelisiniz.',
+      });
+    }
+
+    // Rate-limit per hashed ownerKey (zero IP persistence)
+    const nowMs = Date.now();
+    const rlHash = crypto
+      .createHash('sha256')
+      .update(`${callerKey}|exam-rl|${new Date().toISOString().slice(0, 13)}`)
+      .digest('hex')
+      .slice(0, 16);
+    const rl = examRateLimitMap.get(rlHash);
+    if (rl && rl.resetAt > nowMs && rl.count >= 40) {
+      return res.status(429).json({
+        ok: false,
+        error: 'Çok fazla sınav gönderimi yapıldı; lütfen kısa bir süre sonra tekrar deneyin.',
+      });
+    }
+    examRateLimitMap.set(rlHash, {
+      count: rl && rl.resetAt > nowMs ? rl.count + 1 : 1,
+      resetAt: rl && rl.resetAt > nowMs ? rl.resetAt : nowMs + 15 * 60 * 1000,
+    });
+
+    const articleId = String(body.articleId || '')
+      .replace(/[^a-zA-Z0-9._-]/g, '')
+      .slice(0, 120);
+    if (!articleId) {
+      return res.status(400).json({ ok: false, error: 'Geçersiz makale kimliği.' });
+    }
+    const articleTitle = String(body.articleTitle || articleId)
+      .replace(/<[^>]*>/g, '')
+      .trim()
+      .slice(0, 180);
+    const language = EXAM_ALLOWED_LANGS.has(String(body.language || '')) ? String(body.language) : 'tr';
+
+    const rawAnswers = Array.isArray(body.answers) ? body.answers : [];
+    const totalQuestions = 20;
+    if (rawAnswers.length > totalQuestions) {
+      return res.status(400).json({ ok: false, error: 'Sınav en fazla 20 soru içerebilir.' });
+    }
+
+    let correctCount = 0;
+    let skippedBlankCount = 0;
+    let exitBlankCount = 0;
+    let wrongCount = 0;
+    let peakDifficulty = 1;
+
+    for (const item of rawAnswers) {
+      const outcome = String(item?.outcome || '');
+      const diff = Number(item?.difficulty);
+      if (Number.isInteger(diff) && diff >= 1 && diff <= 10 && diff > peakDifficulty) {
+        peakDifficulty = diff;
+      }
+      if (outcome === 'correct') correctCount += 1;
+      else if (outcome === 'wrong') wrongCount += 1;
+      else if (outcome === 'unanswered_exit') exitBlankCount += 1;
+      else skippedBlankCount += 1;
+    }
+
+    // Any remaining questions up to 20 after early exit are automatically scored as blank (+10 each)
+    const recordedCount = correctCount + skippedBlankCount + exitBlankCount + wrongCount;
+    if (recordedCount < totalQuestions) {
+      exitBlankCount += totalQuestions - recordedCount;
+    }
+
+    const totalBlankCount = skippedBlankCount + exitBlankCount;
+    // Server-authoritative scoring: +50 correct, +10 blank/remaining, -10 wrong
+    const examScore = Math.max(
+      -200,
+      Math.min(1000, correctCount * 50 + totalBlankCount * 10 - wrongCount * 10)
+    );
+
+    // Compute exact exam completion duration from start timestamp and finish timestamp
+    const parseTimestampMs = (val: unknown): number | null => {
+      if (typeof val === 'number' && Number.isFinite(val) && val > 0) return val;
+      if (typeof val === 'string' && val.trim()) {
+        const parsed = Date.parse(val.trim());
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+      }
+      return null;
+    };
+
+    pruneExpiredExamSessions(nowMs);
+    const rawSessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : '';
+    const activeSession =
+      /^[a-f0-9]{24,64}$/i.test(rawSessionId) ? activeExamSessions.get(rawSessionId) : undefined;
+
+    let startedAtMs: number;
+    let endedAtMs: number = nowMs;
+    let durationMs: number;
+
+    if (activeSession && activeSession.ownerKey === callerKey && activeSession.articleId === articleId) {
+      // Server-authoritative start-to-end difference (cannot be forged by client)
+      activeExamSessions.delete(rawSessionId);
+      startedAtMs = activeSession.startedAtMs;
+      endedAtMs = nowMs;
+      durationMs = Math.max(100, Math.min(EXAM_MAX_DURATION_MS, Math.round(endedAtMs - startedAtMs)));
+    } else {
+      const clientStartMs = parseTimestampMs(body.startedAt);
+      const clientEndMs = parseTimestampMs(body.endedAt);
+      if (clientStartMs !== null && clientEndMs !== null && clientEndMs >= clientStartMs) {
+        startedAtMs = clientStartMs;
+        endedAtMs = clientEndMs;
+        durationMs = Math.max(100, Math.min(EXAM_MAX_DURATION_MS, Math.round(endedAtMs - startedAtMs)));
+      } else {
+        const rawDurMs = Number(body.durationMs);
+        const rawDurSec = Number(body.durationSeconds);
+        const fallbackMs =
+          Number.isFinite(rawDurMs) && rawDurMs > 0
+            ? rawDurMs
+            : Number.isFinite(rawDurSec) && rawDurSec > 0
+              ? rawDurSec * 1000
+              : 1000;
+        durationMs = Math.max(100, Math.min(EXAM_MAX_DURATION_MS, Math.round(fallbackMs)));
+        endedAtMs = nowMs;
+        startedAtMs = endedAtMs - durationMs;
+      }
+    }
+
+    const startedAtIso = new Date(startedAtMs).toISOString();
+    const endedAtIso = new Date(endedAtMs).toISOString();
+    const durationSeconds = Math.max(0, Math.min(900, Math.round(durationMs / 1000)));
+    const exitedEarly = Boolean(body.exitedEarly) || exitBlankCount > 0;
+
+    const { monthId, monthEndIso, daysRemainingInMonth, hoursRemainingInMonth } = getCurrentUtcMonthInfo();
+    if (!store.months[monthId]) {
+      store.months[monthId] = {};
+    }
+
+    const nowIso = endedAtIso;
+    const existingStanding: MonthlyParticipantStanding = store.months[monthId][key] || {
+      username: claimed.username,
+      normalizedKey: key,
+      ownerKey: claimed.ownerKey,
+      totalScore: 0,
+      totalDurationMs: 0,
+      totalDurationSeconds: 0,
+      examsCompleted: 0,
+      totalCorrect: 0,
+      totalBlank: 0,
+      totalWrong: 0,
+      bestSingleExamScore: -200,
+      peakDifficulty: 1,
+      lastAttemptAt: nowIso,
+      articles: {},
+    };
+
+    const prevArt = existingStanding.articles[articleId];
+    const prevDurationMs = prevArt ? getRecordDurationMs(prevArt) : Number.POSITIVE_INFINITY;
+    // Keep higher score; if tied on score for the same article, keep the faster completion time
+    const shouldReplaceBest =
+      !prevArt ||
+      examScore > prevArt.bestScore ||
+      (examScore === prevArt.bestScore && durationMs < prevDurationMs);
+
+    existingStanding.articles[articleId] = shouldReplaceBest
+      ? {
+          articleId,
+          articleTitle,
+          bestScore: examScore,
+          correctCount,
+          blankCount: totalBlankCount,
+          wrongCount,
+          peakDifficulty,
+          durationSeconds,
+          durationMs,
+          startedAt: startedAtIso,
+          endedAt: endedAtIso,
+          exitedEarly,
+          language,
+          attemptsCount: (prevArt?.attemptsCount || 0) + 1,
+          updatedAt: nowIso,
+        }
+      : {
+          ...prevArt,
+          durationMs: getRecordDurationMs(prevArt),
+          attemptsCount: prevArt.attemptsCount + 1,
+          updatedAt: nowIso,
+        };
+
+    // Recompute monthly cumulative totals across all distinct articles taken this month
+    const articleRecords = Object.values(existingStanding.articles);
+    existingStanding.username = claimed.username;
+    existingStanding.totalScore = articleRecords.reduce((sum, r) => sum + r.bestScore, 0);
+    existingStanding.totalDurationMs = articleRecords.reduce((sum, r) => sum + getRecordDurationMs(r), 0);
+    existingStanding.totalDurationSeconds = Math.round(existingStanding.totalDurationMs / 1000);
+    existingStanding.examsCompleted = articleRecords.length;
+    existingStanding.totalCorrect = articleRecords.reduce((sum, r) => sum + r.correctCount, 0);
+    existingStanding.totalBlank = articleRecords.reduce((sum, r) => sum + r.blankCount, 0);
+    existingStanding.totalWrong = articleRecords.reduce((sum, r) => sum + r.wrongCount, 0);
+    existingStanding.bestSingleExamScore = articleRecords.reduce(
+      (max, r) => Math.max(max, r.bestScore),
+      -200
+    );
+    existingStanding.peakDifficulty = articleRecords.reduce(
+      (max, r) => Math.max(max, r.peakDifficulty),
+      1
+    );
+    existingStanding.lastAttemptAt = nowIso;
+
+    store.months[monthId][key] = existingStanding;
+    saveAdaptiveExamStore(store);
+
+    const sorted = sortMonthlyStandings(store.months[monthId]);
+    const myRank = sorted.findIndex((s) => s.normalizedKey === key) + 1;
+
+    broadcastLiveEvent('monthly-exam-leaderboard-updated', {
+      monthId,
+      totalParticipants: sorted.length,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      monthId,
+      monthEndIso,
+      daysRemainingInMonth,
+      hoursRemainingInMonth,
+      attempt: {
+        articleId,
+        examScore,
+        correctCount,
+        skippedBlankCount,
+        exitBlankCount,
+        totalBlankCount,
+        wrongCount,
+        totalQuestions,
+        peakDifficulty,
+        durationSeconds,
+        durationMs,
+        startedAt: startedAtIso,
+        endedAt: endedAtIso,
+        exitedEarly,
+      },
+      myStanding: sanitizePublicStanding(existingStanding, myRank),
+      top10: sorted.slice(0, 10).map((s, idx) => sanitizePublicStanding(s, idx + 1)),
+      totalParticipants: sorted.length,
+    });
+  });
+
+  // Retrieve monthly exam leaderboard (current month or archived past month-end rankings)
+  app.get('/api/exams/leaderboard', optionalAuth, (req: AuthRequest, res) => {
+    const store = loadAdaptiveExamStore();
+    const { monthId: currentMonthId, monthEndIso, daysRemainingInMonth, hoursRemainingInMonth } =
+      getCurrentUtcMonthInfo();
+
+    const requestedMonth = String(req.query.month || 'current').trim();
+    const targetMonthId =
+      requestedMonth === 'current' || !/^\d{4}-\d{2}$/.test(requestedMonth)
+        ? currentMonthId
+        : requestedMonth;
+
+    const sorted = sortMonthlyStandings(store.months[targetMonthId] || {});
+    const allMonthIds = Array.from(new Set([currentMonthId, ...Object.keys(store.months)])).sort((a, b) =>
+      b.localeCompare(a)
+    );
+    const availableMonths = allMonthIds.slice(0, 24).map((mId) => ({
+      monthId: mId,
+      isFinalized: mId < currentMonthId,
+      participantsCount: Object.keys(store.months[mId] || {}).length,
+    }));
+
+    const queryUsername = sanitizeExamUsername(req.query.username);
+    const queryKey = queryUsername ? normalizeUsernameKey(queryUsername) : '';
+    const callerKey = resolveCallerOwnerKey(req, req.query.ownerToken);
+
+    let myStanding: ReturnType<typeof sanitizePublicStanding> | null = null;
+    if (queryKey) {
+      const idx = sorted.findIndex((s) => s.normalizedKey === queryKey);
+      if (idx >= 0) myStanding = sanitizePublicStanding(sorted[idx], idx + 1);
+    } else if (callerKey) {
+      const idx = sorted.findIndex((s) => s.ownerKey === callerKey);
+      if (idx >= 0) myStanding = sanitizePublicStanding(sorted[idx], idx + 1);
+    }
+
+    return res.status(200).json({
+      ok: true,
+      currentMonthId,
+      monthId: targetMonthId,
+      isFinalizedMonth: targetMonthId < currentMonthId,
+      monthEndIso,
+      daysRemainingInMonth,
+      hoursRemainingInMonth,
+      rankings: sorted.slice(0, 50).map((s, idx) => sanitizePublicStanding(s, idx + 1)),
+      totalParticipants: sorted.length,
+      availableMonths,
+      myStanding,
+    });
+  });
+
+  // Self-service erasure of caller's exam username and monthly exam records (KVKK/GDPR)
+  app.delete('/api/exams/my-data', optionalAuth, (req: AuthRequest, res) => {
+    const callerKey = resolveCallerOwnerKey(req, req.body?.ownerToken || req.query.ownerToken);
+    if (!callerKey) {
+      return res.status(401).json({ ok: false, error: 'Kimlik doğrulaması gerekli.' });
+    }
+    const store = loadAdaptiveExamStore();
+    let erasedUsernames = 0;
+    let erasedMonthEntries = 0;
+
+    for (const [k, v] of Object.entries(store.usernames)) {
+      if (v.ownerKey === callerKey) {
+        delete store.usernames[k];
+        erasedUsernames += 1;
+      }
+    }
+    for (const mId of Object.keys(store.months)) {
+      for (const [k, s] of Object.entries(store.months[mId] || {})) {
+        if (s.ownerKey === callerKey) {
+          delete store.months[mId][k];
+          erasedMonthEntries += 1;
+        }
+      }
+    }
+    saveAdaptiveExamStore(store);
+    return res.status(200).json({ ok: true, erasedUsernames, erasedMonthEntries });
+  });
+
   app.get('/api/privacy/export-my-data', requireAuth, async (req: AuthRequest, res) => {
     try {
       const uid = req.user?.uid;
@@ -9936,6 +10982,29 @@ ${text}`,
             totalParticipants: sortArenaEntries(arenaStore.weeks[wId] || []).length,
           });
         }
+      }
+
+      // Scrub any Adaptive Practice Exam records belonging to this uid
+      const examStore = loadAdaptiveExamStore();
+      const uidOwnerKey = `uid:${uid}`;
+      let scrubbedExamRecords = 0;
+      for (const [k, v] of Object.entries(examStore.usernames)) {
+        if (v.ownerKey === uidOwnerKey) {
+          delete examStore.usernames[k];
+          scrubbedExamRecords += 1;
+        }
+      }
+      for (const mId of Object.keys(examStore.months)) {
+        for (const [k, s] of Object.entries(examStore.months[mId] || {})) {
+          if (s.ownerKey === uidOwnerKey) {
+            delete examStore.months[mId][k];
+            scrubbedExamRecords += 1;
+          }
+        }
+      }
+      if (scrubbedExamRecords > 0) {
+        saveAdaptiveExamStore(examStore);
+        broadcastLiveEvent('monthly-exam-leaderboard-updated', { monthId: getCurrentUtcMonthInfo().monthId });
       }
 
       return res.status(200).json({

@@ -1,9 +1,9 @@
 {
-  "lastFullIndexedAt": "2026-11-23T09:57:35.242Z",
-  "lastBatchId": "IDX-11N-12L-512F0EC85B9A",
-  "triggerReason": "MANUAL_FULL_11_NODE_12_LANG_INDEXING",
+  "lastFullIndexedAt": "2026-11-24T20:28:44.262Z",
+  "lastBatchId": "IDX-11N-23L-53D5F8CE3B61",
+  "triggerReason": "USER_REQUEST_ALL_ARTICLES_23_LANGS_ALL_CHANNELS",
   "primaryHttpStatus": 200,
-  "totalUrlsSubmittedLastRun": 3522,
+  "totalUrlsSubmittedLastRun": 7066,
   "engineResults": [
     {
       "engine": "indexnow-org",
@@ -36,14 +36,20 @@
       "batchesSent": 1
     },
     {
-      "engine": "websub-pubsubhubbub (/rss.xml)",
+      "engine": "google-pubsubhubbub (/rss.xml)",
       "endpoint": "https://pubsubhubbub.appspot.com/",
       "httpStatus": 204,
       "batchesSent": 1
     },
     {
-      "engine": "websub-pubsubhubbub (/atom.xml)",
+      "engine": "google-pubsubhubbub (/atom.xml)",
       "endpoint": "https://pubsubhubbub.appspot.com/",
+      "httpStatus": 204,
+      "batchesSent": 1
+    },
+    {
+      "engine": "superfeedr-websub (/rss.xml)",
+      "endpoint": "https://pubsubhubbub.superfeedr.com/",
       "httpStatus": 204,
       "batchesSent": 1
     }

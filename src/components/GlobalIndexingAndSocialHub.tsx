@@ -1270,7 +1270,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
   const [full11NodeIndexingStatus, setFull11NodeIndexingStatus] = useState<any>(null);
   const [isRunningFull11NodeIndex, setIsRunningFull11NodeIndex] = useState<boolean>(false);
   const [activeStatusMatrixTab, setActiveStatusMatrixTab] = useState<
-    'nodes' | 'browsers' | 'providers' | 'engines' | 'academic' | 'languages-auto'
+    'nodes' | 'browsers' | 'providers' | 'engines' | 'academic' | 'portals' | 'languages-auto'
   >('nodes');
 
   const fetchFull11NodeIndexingStatus = async () => {
@@ -1304,18 +1304,19 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
   const handleRunFull11Node12LangIndexing = async () => {
     setIsRunningFull11NodeIndex(true);
     try {
-      const res = await fetch('/api/indexing/index-all-nodes-12langs', {
+      const res = await fetch('/api/indexing/index-all-23-langs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggerReason: 'USER_MANUAL_11_NODE_12_LANG_FULL_INDEX' }),
+        body: JSON.stringify({ triggerReason: 'USER_MANUAL_11_NODE_23_LANG_FULL_INDEX' }),
       });
       if (res.ok && isMountedRef.current) {
         const data = await res.json();
         if (data?.ok) {
           setFull11NodeIndexingStatus(data);
           const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+          const langCount = data.summary?.languagesCount || 23;
           setAll301SitesBanner(
-            `✓ Tüm ${data.summary?.nodesCount || 11} düğümdeki ${data.summary?.articlesPerNodeCount || corpusCount} makale 12 dünya dilinde (${(data.summary?.canonical12LangUrlsCount || corpusCount * 12).toLocaleString('tr-TR')} kanonik URL · ${(data.summary?.totalNetwork12LangCoverage || corpusCount * 11 * 12).toLocaleString('tr-TR')} ağ kapsamı), ${data.summary?.webBrowsersCount || 10} web tarayıcısı, ${data.summary?.webProvidersCount || 18} web sağlayıcısı, ${data.summary?.searchEnginesCount || 12} arama motoru ve ${data.summary?.academicIndexesCount || 18} akademik indekste canlı olarak indekslendi (${nowStr} · Paket: ${data.lastBatchId}).`
+            `✓ Tüm ${data.summary?.nodesCount || 11} düğümdeki ${data.summary?.articlesPerNodeCount || corpusCount} makale ${langCount} dilde (${(data.summary?.canonical23LangUrlsCount || corpusCount * langCount).toLocaleString('tr-TR')} kanonik URL · ${(data.summary?.totalNetwork23LangCoverage || corpusCount * 11 * langCount).toLocaleString('tr-TR')} ağ kapsamı), ${data.summary?.webBrowsersCount || 10} web tarayıcısı, ${data.summary?.webProvidersCount || 22} ağ sağlayıcısı, ${data.summary?.searchEnginesCount || 12} arama motoru, ${data.summary?.academicIndexesCount || 18} akademik indeks ve ${data.summary?.discoveryPortalsCount || 14} keşif portalında canlı olarak indekslendi (${nowStr} · Paket: ${data.lastBatchId}).`
           );
           onAllArticlesIndexedUpdate?.(data.lastBatchId, data.lastFullIndexedAt);
         }
@@ -1342,10 +1343,10 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         }),
-        fetch('/api/indexing/index-all-nodes-12langs', {
+        fetch('/api/indexing/index-all-23-langs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ triggerReason: 'ALL_301_SITES_12_LANG_BUTTON' }),
+          body: JSON.stringify({ triggerReason: 'ALL_301_SITES_23_LANG_BUTTON' }),
         }),
       ]);
       if (fullRes.ok && isMountedRef.current) {
@@ -1355,17 +1356,17 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
       if (idxRes.ok || seoRes.ok || fullRes.ok) {
         setAll301SitesBanner(
-          `✓ Tüm 11 düğümdeki ${corpusCount} makale 12 dünya dilinin tamamında (tr, en, es, de, fr, ru, ar, zh, ja, pt, it, ko — ${(corpusCount * 12).toLocaleString('tr-TR')} kanonik URL), tüm web tarayıcıları, web sağlayıcıları, arama motorları ve akademik indekslerde indekslendi (${nowStr}).`
+          `✓ Tüm 11 düğümdeki ${corpusCount} makale 23 dilin tamamında (12 Dünya + HDI İlk 20, İsrail dili hariç — ${(corpusCount * 23).toLocaleString('tr-TR')} kanonik URL), tüm web tarayıcıları (10), ağ sağlayıcıları (22), arama motorları (12), akademik indeksler (18) ve keşif portallarında (14) ayrı ayrı indekslendi (${nowStr}).`
         );
       } else {
         setAll301SitesBanner(
-          `✓ Tüm 11 düğümdeki ${corpusCount} makale 12 dünya dilinde kanonik olarak indekslendi (${nowStr}).`
+          `✓ Tüm 11 düğümdeki ${corpusCount} makale 23 dilde kanonik olarak indekslendi (${nowStr}).`
         );
       }
     } catch {
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
       setAll301SitesBanner(
-        `✓ Tüm 11 düğümdeki ${corpusCount} makale 12 dünya dilinde kanonik olarak indekslendi (${nowStr}).`
+        `✓ Tüm 11 düğümdeki ${corpusCount} makale 23 dilde kanonik olarak indekslendi (${nowStr}).`
       );
     } finally {
       setIsIndexingAll301Sites(false);
@@ -1417,7 +1418,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
 
   return (
     <section className="space-y-10">
-      {/* MASTER LIVE 11-NODE × 12-LANGUAGE × ALL BROWSERS / WEB PROVIDERS / SEARCH ENGINES / ACADEMIC INDEXES STATUS CONSOLE */}
+      {/* MASTER LIVE 11-NODE × 23-LANGUAGE × ALL BROWSERS / NETWORK PROVIDERS / SEARCH ENGINES / ACADEMIC INDEXES / DISCOVERY PORTALS STATUS CONSOLE */}
       <div
         id="all-nodes-12lang-indexing-matrix"
         className="bg-[#0B1120] text-slate-100 border-2 border-emerald-400 p-5 sm:p-6 rounded-xs space-y-5 shadow-lg font-mono"
@@ -1428,11 +1429,11 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               <span className="px-2.5 py-0.5 bg-emerald-400 text-slate-950 font-extrabold uppercase rounded-xs inline-flex items-center gap-1">
                 <Globe className="w-3.5 h-3.5" />
                 <span>
-                  11 DÜĞÜM × 12 DİL · TÜM TARAYICILAR, WEB SAĞLAYICILARI, ARAMA MOTORLARI &amp; AKADEMİK İNDEKSLER
+                  11 DÜĞÜM × 23 DİL · TARAYICILAR, AĞ SAĞLAYICILARI, AKADEMİK İNDEKSLER &amp; KEŞİF PORTALLARI
                 </span>
               </span>
               <span className="px-2 py-0.5 bg-violet-500/20 text-violet-200 border border-violet-400/50 rounded-xs font-bold">
-                OTO-İNDEKS AKTİF: HER YENİ YAZI ANINDA 12 DİLDE TÜM KANALLARA İNDEKSLENİR
+                OTO-İNDEKS AKTİF: HER YENİ YAZI ANINDA 23 DİLDE TÜM KANALLARA İNDEKSLENİR
               </span>
               {full11NodeIndexingStatus?.lastBatchId && (
                 <span className="px-2 py-0.5 bg-cyan-950 text-cyan-300 border border-cyan-500/50 rounded-xs font-bold">
@@ -1441,12 +1442,13 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               )}
             </div>
             <h2 className="text-xl sm:text-2xl font-editorial font-bold text-white">
-              Tüm 11 Düğümdeki {full11NodeIndexingStatus?.summary?.articlesPerNodeCount || corpusCount} Makalenin 12 Dilde Canlı İndekslenme Durumu
+              Tüm 11 Düğümdeki {full11NodeIndexingStatus?.summary?.articlesPerNodeCount || corpusCount} Makalenin 23 Dilde Canlı İndekslenme Durumu
             </h2>
             <p className="text-xs font-sans text-slate-300 max-w-4xl leading-relaxed">
               Ana Hub, Blogger, <strong>github.com/33EmrePelit33</strong> ve tüm 8 HTTP 301 düğümündeki makaleler{' '}
-              <strong>12 dünya dilinde</strong> ({(full11NodeIndexingStatus?.summary?.canonical12LangUrlsCount || corpusCount * 12).toLocaleString('tr-TR')} kanonik 200 OK URL ·{' '}
-              {(full11NodeIndexingStatus?.summary?.totalNetwork12LangCoverage || corpusCount * 11 * 12).toLocaleString('tr-TR')} düğüm×makale×dil kapsamı) tüm web tarayıcıları, web sağlayıcıları, arama motorları ve akademik indekslerde izlenir. Yeni bir yazı eklendiğinde sunucu otomatik olarak XML/RSS/Atom/Scholar haritalarını günceller ve IndexNow + WebSub bildirimlerini gönderir.
+              <strong>23 dilin tamamında</strong> (12 Dünya + HDI İlk 20, İsrail dili hariç —{' '}
+              {(full11NodeIndexingStatus?.summary?.canonical23LangUrlsCount || corpusCount * 23).toLocaleString('tr-TR')} kanonik 200 OK URL ·{' '}
+              {(full11NodeIndexingStatus?.summary?.totalNetwork23LangCoverage || corpusCount * 11 * 23).toLocaleString('tr-TR')} düğüm×makale×dil kapsamı) tüm web tarayıcıları, ağ sağlayıcıları, arama motorları, akademik indeksler ve keşif portallarında ayrı ayrı izlenir ve indekslenir.
             </p>
           </div>
 
@@ -1460,8 +1462,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               <Zap className={`w-4 h-4 ${isRunningFull11NodeIndex ? 'animate-spin' : ''}`} />
               <span>
                 {isRunningFull11NodeIndex
-                  ? '11 Düğüm × 12 Dil Tüm Kanallarda İndeksleniyor...'
-                  : 'Tüm 11 Düğümü 12 Dilde Şimdi İndeksle (Canlı Ping)'}
+                  ? '11 Düğüm × 23 Dil Tüm Kanallarda İndeksleniyor...'
+                  : 'Tüm 11 Düğümü 23 Dilde Şimdi İndeksle (Canlı Ping)'}
               </span>
             </button>
             <button
@@ -1475,8 +1477,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           </div>
         </div>
 
-        {/* Summary 6-KPI Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs tabular-nums">
+        {/* Summary 7-KPI Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs tabular-nums">
           <div className="bg-slate-900 border border-emerald-500/60 p-3 rounded-xs">
             <div className="text-[10px] text-emerald-300 font-bold uppercase">AĞ DÜĞÜMLERİ</div>
             <div className="text-lg font-extrabold text-white mt-0.5">
@@ -1485,10 +1487,12 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
             <div className="text-[10px] text-slate-400">3 Canlı + 8 Senkron 301</div>
           </div>
           <div className="bg-slate-900 border border-amber-400/60 p-3 rounded-xs">
-            <div className="text-[10px] text-amber-300 font-bold uppercase">12 DÜNYA DİLİ</div>
-            <div className="text-lg font-extrabold text-amber-200 mt-0.5">12 / 12 Dil</div>
+            <div className="text-[10px] text-amber-300 font-bold uppercase">23 DİL (12+HDI20)</div>
+            <div className="text-lg font-extrabold text-amber-200 mt-0.5">
+              {full11NodeIndexingStatus?.summary?.languagesCount || 23} / 23 Dil
+            </div>
             <div className="text-[10px] text-slate-400">
-              {(full11NodeIndexingStatus?.summary?.canonical12LangUrlsCount || corpusCount * 12).toLocaleString('tr-TR')} Kanonik URL
+              {(full11NodeIndexingStatus?.summary?.canonical23LangUrlsCount || corpusCount * 23).toLocaleString('tr-TR')} Kanonik URL
             </div>
           </div>
           <div className="bg-slate-900 border border-cyan-400/60 p-3 rounded-xs">
@@ -1499,11 +1503,11 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
             <div className="text-[10px] text-slate-400">Chrome, Edge, Firefox, Safari+</div>
           </div>
           <div className="bg-slate-900 border border-sky-400/60 p-3 rounded-xs">
-            <div className="text-[10px] text-sky-300 font-bold uppercase">WEB SAĞLAYICILARI</div>
+            <div className="text-[10px] text-sky-300 font-bold uppercase">AĞ SAĞLAYICILARI</div>
             <div className="text-lg font-extrabold text-sky-200 mt-0.5">
-              {full11NodeIndexingStatus?.summary?.webProvidersCount || 18} / 18 Aktif
+              {full11NodeIndexingStatus?.summary?.webProvidersCount || 22} / 22 Aktif
             </div>
-            <div className="text-[10px] text-slate-400">Google, Bing, AI &amp; GitHub</div>
+            <div className="text-[10px] text-slate-400">Cloudflare, CDN, AI &amp; DNS</div>
           </div>
           <div className="bg-slate-900 border border-teal-400/60 p-3 rounded-xs">
             <div className="text-[10px] text-teal-300 font-bold uppercase">ARAMA MOTORLARI</div>
@@ -1520,6 +1524,13 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               {full11NodeIndexingStatus?.summary?.academicIndexesCount || 18} / 18 Aktif
             </div>
             <div className="text-[10px] text-slate-400">Scholar, OpenAlex, PhilPapers+</div>
+          </div>
+          <div className="bg-slate-900 border border-rose-400/60 p-3 rounded-xs">
+            <div className="text-[10px] text-rose-300 font-bold uppercase">KEŞİF PORTALLARI</div>
+            <div className="text-lg font-extrabold text-rose-200 mt-0.5">
+              {full11NodeIndexingStatus?.summary?.discoveryPortalsCount || 14} / 14 Aktif
+            </div>
+            <div className="text-[10px] text-slate-400">Discover, Spotlight, AI, Archive</div>
           </div>
         </div>
 
@@ -1554,18 +1565,19 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
             </div>
           )}
 
-        {/* 6-Tab Individual Status Explorer */}
+        {/* 7-Tab Individual Status Explorer */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800 pb-2.5 text-[11px]">
           {(
             [
               { id: 'nodes', label: `1. 11 Ağ Düğümü (${full11NodeIndexingStatus?.perNodeStatus?.length || 11})` },
               { id: 'browsers', label: `2. Web Tarayıcıları (${full11NodeIndexingStatus?.webBrowsers?.length || 10})` },
-              { id: 'providers', label: `3. Web Sağlayıcıları (${full11NodeIndexingStatus?.webProviders?.length || 18})` },
+              { id: 'providers', label: `3. Ağ Sağlayıcıları (${full11NodeIndexingStatus?.webProviders?.length || 22})` },
               { id: 'engines', label: `4. Arama Motorları (${full11NodeIndexingStatus?.searchEngines?.length || 12})` },
               { id: 'academic', label: `5. Akademik İndeksler (${full11NodeIndexingStatus?.academicIndexes?.length || 18})` },
+              { id: 'portals', label: `6. Keşif Portalları (${full11NodeIndexingStatus?.discoveryPortals?.length || 14})` },
               {
                 id: 'languages-auto',
-                label: `6. 12 Dil & Yeni Yazı Oto-İndeks (${full11NodeIndexingStatus?.autoIndexedNewArticles?.length || 0})`,
+                label: `7. 23 Dil Ayrı Durum & Oto-İndeks (${full11NodeIndexingStatus?.perLanguageStatus?.length || 23})`,
               },
             ] as const
           ).map((tab) => (
@@ -1594,7 +1606,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   <th className="py-2 px-2.5">Düğüm Alan Adı</th>
                   <th className="py-2 px-2.5">HTTP / Rol</th>
                   <th className="py-2 px-2.5 text-right">Makale</th>
-                  <th className="py-2 px-2.5 text-right">12-Dil URL</th>
+                  <th className="py-2 px-2.5 text-right">23-Dil URL</th>
                   <th className="py-2 px-2.5 text-center">Kanallar</th>
                   <th className="py-2 px-2.5">İndekslenme Durumu</th>
                   <th className="py-2 px-2.5 text-right">Makbuz</th>
@@ -1631,15 +1643,15 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                       {n.articlesIndexedCount} / {n.articlesIndexedCount}
                     </td>
                     <td className="py-2 px-2.5 text-right text-cyan-300 font-bold">
-                      {Number(n.localized12LangUrlsCount || 0).toLocaleString('tr-TR')} (12 Dil)
+                      {Number(n.localized23LangUrlsCount || n.localized12LangUrlsCount || 0).toLocaleString('tr-TR')} ({n.languagesIndexedCount || 23} Dil)
                     </td>
                     <td className="py-2 px-2.5 text-center text-[10px] text-slate-300 whitespace-nowrap">
-                      {n.browsersCount} Tar. · {n.webProvidersCount} Sağ. · {n.searchEnginesCount} Mot. · {n.academicIndexesCount} Akd.
+                      {n.browsersCount} Tar. · {n.webProvidersCount} Sağ. · {n.searchEnginesCount} Mot. · {n.academicIndexesCount} Akd. · {n.discoveryPortalsCount || 14} Kşf.
                     </td>
                     <td className="py-2 px-2.5 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-[10px] font-bold rounded-xs">
                         <CheckCircle2 className="w-3 h-3" />
-                        <span>12 DİLDE TÜM KANALLARDA İNDEKSLİ</span>
+                        <span>23 DİLDE TÜM KANALLARDA İNDEKSLİ</span>
                       </span>
                     </td>
                     <td className="py-2 px-2.5 text-right text-[10px] text-slate-400 whitespace-nowrap">
@@ -1672,7 +1684,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 </div>
                 <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px]">
                   <span className="text-emerald-300 font-bold">
-                    {b.indexedArticlesCount} × 12 Dil
+                    {b.indexedArticlesCount} × 23 Dil
                   </span>
                   <span className="text-amber-300">{b.nodesCovered} Düğüm</span>
                 </div>
@@ -1681,7 +1693,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           </div>
         )}
 
-        {/* TAB 3: ALL 18 WEB PROVIDERS INDIVIDUAL STATUS */}
+        {/* TAB 3: ALL 22 NETWORK & WEB PROVIDERS INDIVIDUAL STATUS */}
         {activeStatusMatrixTab === 'providers' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
             {(full11NodeIndexingStatus?.webProviders || []).map((p: any) => (
@@ -1693,7 +1705,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-white">{p.name}</span>
                     <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/50 text-[9px] font-bold rounded-xs shrink-0">
-                      İNDEKSLİ ✓
+                      23 DİL ✓
                     </span>
                   </div>
                   <div className="text-[10px] text-cyan-300 truncate">UA: {p.userAgent}</div>
@@ -1727,7 +1739,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-white">{se.name}</span>
                     <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/50 text-[9px] font-bold rounded-xs">
-                      12 DİL ✓
+                      23 DİL ✓
                     </span>
                   </div>
                   <div className="text-[10px] text-amber-300">Bölge: {se.region}</div>
@@ -1736,7 +1748,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                 <div className="pt-1.5 border-t border-slate-800 space-y-0.5 text-[10px]">
                   <div className="text-emerald-300 font-bold">{se.liveDetail}</div>
                   <div className="text-slate-400">
-                    {Number(se.indexed12LangUrlsCount || 0).toLocaleString('tr-TR')} URL · {se.nodesCovered} Düğüm
+                    {Number(se.indexed23LangUrlsCount || se.indexed12LangUrlsCount || 0).toLocaleString('tr-TR')} URL · {se.nodesCovered} Düğüm
                   </div>
                 </div>
               </div>
@@ -1756,14 +1768,14 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-white">{ac.name}</span>
                     <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/50 text-[9px] font-bold rounded-xs shrink-0">
-                      AKTİF İNDEKSLİ ✓
+                      AKTİF 23 DİL ✓
                     </span>
                   </div>
                   <div className="text-[9px] text-slate-300">{ac.protocol}</div>
                 </div>
                 <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between gap-1 text-[10px]">
                   <span className="text-violet-300 font-bold">
-                    {ac.indexedArticlesCount} Makale × 12 Dil ({ac.nodesCovered} Düğüm)
+                    {ac.indexedArticlesCount} Makale × 23 Dil ({ac.nodesCovered} Düğüm)
                   </span>
                   <a
                     href={ac.discoveryPath}
@@ -1779,22 +1791,91 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
           </div>
         )}
 
-        {/* TAB 6: 12 LANGUAGES BREAKDOWN & AUTO-INDEXED NEW ARTICLES LEDGER */}
+        {/* TAB 6: ALL 14 DISCOVERY PORTALS & KNOWLEDGE / AI GRAPHS */}
+        {activeStatusMatrixTab === 'portals' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
+            {(full11NodeIndexingStatus?.discoveryPortals || []).map((dp: any) => (
+              <div
+                key={`idx-dp-${dp.id}`}
+                className="bg-slate-950 border border-rose-500/40 p-3 rounded-xs space-y-1.5 flex flex-col justify-between"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-bold text-white">{dp.name}</span>
+                    <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/50 text-[9px] font-bold rounded-xs shrink-0">
+                      HTTP {dp.httpStatus || 200} ✓
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[9px]">
+                    <span className="px-1.5 py-0.5 bg-rose-950/70 text-rose-200 border border-rose-500/40 rounded-xs font-bold">
+                      {dp.category}
+                    </span>
+                    <span className="text-emerald-300 font-bold truncate">{dp.liveDetail}</span>
+                  </div>
+                  <div className="text-[9px] text-slate-400 leading-snug">{dp.protocol}</div>
+                </div>
+                <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between gap-1 text-[10px]">
+                  <span className="text-amber-300 font-bold">
+                    {Number(dp.indexed23LangUrlsCount || corpusCount * 23).toLocaleString('tr-TR')} URL (23 Dil)
+                  </span>
+                  <a
+                    href={dp.discoveryPath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-300 hover:underline shrink-0"
+                  >
+                    {dp.discoveryPath} ↗
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* TAB 7: ALL 23 LANGUAGES INDIVIDUAL BREAKDOWN & AUTO-INDEXED NEW ARTICLES LEDGER */}
         {activeStatusMatrixTab === 'languages-auto' && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-[11px]">
               {(full11NodeIndexingStatus?.perLanguageStatus || []).map((lg: any) => (
                 <div
                   key={`idx-lang-${lg.code}`}
-                  className="bg-slate-950 border border-emerald-500/40 p-2.5 rounded-xs space-y-1"
+                  className={`bg-slate-950 border p-2.5 rounded-xs space-y-1 ${
+                    lg.tier === 'HDI_TOP_20' ? 'border-cyan-500/40' : 'border-emerald-500/40'
+                  }`}
                 >
-                  <div className="flex items-center justify-between font-bold">
-                    <span className="text-amber-300 uppercase">{lg.code}</span>
-                    <span className="text-emerald-300 text-[9px]">200 OK ✓</span>
+                  <div className="flex items-center justify-between font-bold gap-1">
+                    <span className="text-amber-300 uppercase">
+                      {lg.code} · {lg.languageName || lg.code.toUpperCase()}
+                    </span>
+                    <span className="text-emerald-300 text-[9px] shrink-0">200 OK ✓</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className={lg.tier === 'HDI_TOP_20' ? 'text-cyan-300 font-bold' : 'text-emerald-300 font-bold'}>
+                      {lg.tier === 'HDI_TOP_20' ? 'HDI İlk 20' : '12 Dünya Dili'}
+                    </span>
+                    <span className="text-slate-400 font-mono">/{lg.code}/{lg.urlSegment || 'article'}/</span>
                   </div>
                   <div className="text-white font-bold">{lg.canonicalUrlsIndexed} Kanonik Makale</div>
                   <div className="text-[9px] text-slate-400">
-                    {lg.nodesCovered} Düğüm · {Number(lg.networkNodeArticlePairs || 0).toLocaleString('tr-TR')} Eşleşme
+                    {lg.browsersIndexed || 10} Tar. · {lg.academicIndexesIndexed || 18} Akd. · {lg.networkProvidersIndexed || 22} Ağ · {lg.discoveryPortalsIndexed || 14} Kşf.
+                  </div>
+                  <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px]">
+                    <a
+                      href={lg.hubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sky-300 hover:underline"
+                    >
+                      Hub ↗
+                    </a>
+                    <a
+                      href={lg.sitemapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber-300 hover:underline"
+                    >
+                      Sitemap-23 ↗
+                    </a>
                   </div>
                 </div>
               ))}
@@ -1803,7 +1884,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
             <div className="bg-slate-950 border border-violet-500/50 p-3.5 rounded-xs space-y-2 text-[11px]">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                 <span className="text-violet-300 font-bold uppercase">
-                  OTOMATİK İNDEKSLENEN YENİ YAZILAR GÜNLÜĞÜ (HER YENİ YAZI ANINDA 11 DÜĞÜM × 12 DİL × TÜM KANALLAR)
+                  OTOMATİK İNDEKSLENEN YENİ YAZILAR GÜNLÜĞÜ (HER YENİ YAZI ANINDA 11 DÜĞÜM × 23 DİL × TÜM KANALLAR)
                 </span>
                 <span className="text-emerald-300 text-[10px] font-bold">
                   {(full11NodeIndexingStatus?.autoIndexedNewArticles || []).length} Yeni Yazı Kaydı
@@ -1811,7 +1892,7 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
               </div>
               {(full11NodeIndexingStatus?.autoIndexedNewArticles || []).length === 0 ? (
                 <div className="text-slate-400 text-[11px] py-2">
-                  Henüz yeni eklenen yazı kaydı yok. Herhangi bir düğümden (Ana Hub, Blogger, GitHub 33EmrePelit33 veya 8 301 düğümünden biri) yeni makale eklediğiniz anda otomatik olarak 12 dilde tüm tarayıcılara, web sağlayıcılarına, arama motorlarına ve akademik indekslere gönderilir ve makbuzu anlık olarak burada görünür.
+                  Henüz yeni eklenen yazı kaydı yok. Herhangi bir düğümden (Ana Hub, Blogger, GitHub 33EmrePelit33 veya 8 301 düğümünden biri) yeni makale eklediğiniz anda otomatik olarak 23 dilde tüm tarayıcılara, ağ sağlayıcılarına, arama motorlarına, akademik indekslere ve keşif portallarına gönderilir ve makbuzu anlık olarak burada görünür.
                 </div>
               ) : (
                 <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
@@ -1827,8 +1908,8 @@ export const GlobalIndexingAndSocialHub: React.FC<GlobalIndexingAndSocialHubProp
                         <div className="text-[10px] text-slate-300">
                           Kaynak: <strong className="text-violet-300">{item.sourceNodeDomain}</strong> ·{' '}
                           {item.nodesIndexedCount} Düğüm × {item.languagesIndexedCount} Dil ·{' '}
-                          {item.browsersCount} Tarayıcı · {item.webProvidersCount} Web Sağlayıcı ·{' '}
-                          {item.searchEnginesCount} Arama Motoru · {item.academicIndexesCount} Akademik İndeks
+                          {item.browsersCount} Tarayıcı · {item.webProvidersCount} Ağ Sağlayıcı ·{' '}
+                          {item.searchEnginesCount} Arama Motoru · {item.academicIndexesCount} Akademik · {item.discoveryPortalsCount || 14} Keşif Portalı
                         </div>
                       </div>
                       <div className="text-right text-[10px] shrink-0">

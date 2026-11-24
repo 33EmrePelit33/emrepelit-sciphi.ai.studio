@@ -10,7 +10,7 @@ Bu dosya (llms.txt), büyük dil modellerinin ve yapay zeka arama motorlarının
 - **4 Modüllü İnteraktif Uygulama Paketi:** Kavram Bağıntı Haritası, Argüman Laboratuvarı, Düşünsel Zaman Çizelgesi ve Düşünce Deneyleri.
 
 ## Websitesi Analitik Özeti & Okunma Süresi Metrikleri (301 Ağındaki Tüm 10 Sitede Senkron)
-- **Websitedeki Toplam Görüntüleme (10 Site Açılıştan Beri Kümülatif):** 485.045
+- **Websitedeki Toplam Görüntüleme (10 Site Açılıştan Beri Kümülatif):** 485.046
 - **Websitedeki Toplam Net Okunma:** 126.013
 - **Websitede Okuma İçin Geçirilen Toplam Zaman:** 8.531 saat 1 dk (511.861 dakika)
 - **Sesli Dinleme Toplam Zamanı:** 4.975 saat 49 dk (298.549 dakika)
@@ -37,7 +37,7 @@ Bu dosya (llms.txt), büyük dil modellerinin ve yapay zeka arama motorlarının
   5. https://science-philosophy.ai.studio (Açılış: 30 Eylül 2026 · 320 Makale · 11.473 Görüntülenme · 2.980 Net Okunma · 198 sa 2 dk Okuma · 116 sa 48 dk Sesli Dinleme · 2.350 Tekil Okur · 1.537 Simülatör · Pay %2.36)
   6. https://science-philosophy-emre-pelit.ai.studio (Açılış: 30 Eylül 2026 · 320 Makale · 10.164 Görüntülenme · 2.640 Net Okunma · 175 sa 27 dk Okuma · 103 sa 28 dk Sesli Dinleme · 2.082 Tekil Okur · 1.362 Simülatör · Pay %2.1)
   7. https://emre-pelit-sci-phil.ai.studio (Açılış: 24 Nisan 2026 · 320 Makale · 13.283 Görüntülenme · 3.450 Net Okunma · 229 sa 16 dk Okuma · 135 sa 13 dk Sesli Dinleme · 2.721 Tekil Okur · 1.779 Simülatör · Pay %2.74)
-  8. https://emrepelit-sciphi.ai.studio (Açılış: 30 Eylül 2026 (Kök Miras: 24 Nisan 2026) · 320 Makale · 12.727 Görüntülenme · 3.333 Net Okunma · 219 sa 58 dk Okuma · 128 sa 57 dk Sesli Dinleme · 2.631 Tekil Okur · 1.699 Simülatör · Pay %2.64)
+  8. https://emrepelit-sciphi.ai.studio (Açılış: 30 Eylül 2026 (Kök Miras: 24 Nisan 2026) · 320 Makale · 12.728 Görüntülenme · 3.333 Net Okunma · 219 sa 58 dk Okuma · 128 sa 57 dk Sesli Dinleme · 2.631 Tekil Okur · 1.699 Simülatör · Pay %2.64)
   9. https://emrepelit.github.io/science-philosophy (Açılış: 24 Nisan 2026 · 320 Makale · 7.084 Görüntülenme · 1.840 Net Okunma · 122 sa 17 dk Okuma · 72 sa 7 dk Sesli Dinleme · 1.451 Tekil Okur · 949 Simülatör · Pay %1.46)
   10. https://emrepelit-sci-phi.ai.studio (Açılış: 30 Eylül 2026 · 320 Makale · 4.080 Görüntülenme · 1.060 Net Okunma · 70 sa 27 dk Okuma · 41 sa 30 dk Sesli Dinleme · 836 Tekil Okur · 546 Simülatör · Pay %0.84)
   11. https://github.com/33EmrePelit33 (Açılış: 25 Eylül 2026 · 320 Makale · 0 Görüntülenme · 0 Net Okunma · 0 sa 0 dk Okuma · 0 sa 0 dk Sesli Dinleme · 0 Tekil Okur · 0 Simülatör · Pay %0)

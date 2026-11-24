@@ -94,6 +94,16 @@ const ArticleQuestionModule = lazy(() =>
 const ArticleQuizModule = lazy(() =>
   import('./components/ArticleQuizModule').then((m) => ({ default: m.ArticleQuizModule }))
 );
+const ArticleAdaptiveExamModule = lazy(() =>
+  import('./components/ArticleAdaptiveExamModule').then((m) => ({
+    default: m.ArticleAdaptiveExamModule,
+  }))
+);
+const MonthlyExamLeaderboard = lazy(() =>
+  import('./components/MonthlyExamLeaderboard').then((m) => ({
+    default: m.MonthlyExamLeaderboard,
+  }))
+);
 const CitationExportBox = lazy(() =>
   import('./components/CitationExportBox').then((m) => ({ default: m.CitationExportBox }))
 );
@@ -3915,6 +3925,16 @@ export default function App() {
             // ignore parse error
           }
         });
+        liveEvents.addEventListener('monthly-exam-leaderboard-updated', (ev) => {
+          try {
+            const parsed = JSON.parse((ev as MessageEvent).data || '{}');
+            window.dispatchEvent(
+              new CustomEvent('sciphil:monthly-exam-leaderboard-updated', { detail: parsed })
+            );
+          } catch {
+            // ignore parse error
+          }
+        });
         liveEvents.addEventListener('analytics-sync', (ev) => {
           try {
             const parsed = JSON.parse((ev as MessageEvent).data || '{}');
@@ -6168,6 +6188,18 @@ export default function App() {
           />
         </Suspense>
 
+        {/* MONTHLY ADAPTIVE 20-QUESTION PRACTICE EXAM LEADERBOARD (ALL 23 LANGUAGES · END-OF-MONTH RANKING) */}
+        <Suspense
+          fallback={
+            <div className="no-print h-40 bg-[#FBF9F5] border border-stone-300 animate-pulse rounded-xs" />
+          }
+        >
+          <MonthlyExamLeaderboard
+            language={language}
+            getAuthToken={getFreshFirebaseIdToken}
+          />
+        </Suspense>
+
         {/* Collapsible / Dropdown CV & Exclusive Authorship Menu Section */}
         <Suspense fallback={<div className="no-print p-4 text-xs font-mono text-stone-500">Özgeçmiş modülü yükleniyor…</div>}>
           <EmrePelitCVMenu
@@ -7951,6 +7983,29 @@ export default function App() {
                             },
                             'ARTICLE_READER',
                             `Etkileşimli Makale Testi Tamamlandı (#${artId} · ${correctCount}/${totalCount} Doğru): +1 Okunma`
+                          )
+                        }
+                      />
+                    </Suspense>
+                  </div>
+
+                  {/* Article-Specific Adaptive 20-Question Timed Practice Exam (+50 / +10 / -10 · Monthly Ranking · 23 Languages) */}
+                  <div id={`adaptive-exam-${article.id}`} className="no-print scroll-mt-24">
+                    <Suspense fallback={null}>
+                      <ArticleAdaptiveExamModule
+                        article={article}
+                        language={language}
+                        getAuthToken={getFreshFirebaseIdToken}
+                        onExamCompletedMeasured={(artId, examScore, correctCount) =>
+                          handleRecordAnalyticsMeasurement(
+                            'emrepelit-sciphi.ai.studio',
+                            {
+                              viewsDelta: 1,
+                              readsDelta: 1,
+                              targetArticleId: artId,
+                            },
+                            'ARTICLE_READER',
+                            `20 Soruluk Uyarlanabilir Deneme Sınavı Tamamlandı (#${artId} · ${examScore} Puan · ${correctCount}/20 Doğru): +1 Okunma`
                           )
                         }
                       />

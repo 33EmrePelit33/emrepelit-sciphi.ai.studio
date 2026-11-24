@@ -44,6 +44,7 @@ import { ArticleQuestionModule } from './ArticleQuestionModule';
 import { ArticleAudioPlayer } from './ArticleAudioPlayer';
 import { ArticleExplainerVideo, VideoWatchProgressPayload } from './ArticleExplainerVideo';
 import { ArticleQuizModule } from './ArticleQuizModule';
+import { ArticleAdaptiveExamModule } from './ArticleAdaptiveExamModule';
 import { MathFormula } from './MathFormula';
 import { CitationExportBox } from './CitationExportBox';
 
@@ -2893,6 +2894,20 @@ export const ArticleAnalysisModal: React.FC<ArticleAnalysisModalProps> = ({
             article={article}
             language={analysisLang}
             onQuizCompletedMeasured={(id) => onAnalysisMeasured?.(id)}
+          />
+
+          <ArticleAdaptiveExamModule
+            article={article}
+            language={analysisLang}
+            onOpenLeaderboard={() => {
+              onClose();
+              window.setTimeout(() => {
+                document
+                  .getElementById('monthly-exam-leaderboard')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 120);
+            }}
+            onExamCompletedMeasured={(id) => onAnalysisMeasured?.(id)}
           />
 
           <CitationExportBox article={article} language={analysisLang} compact={true} />
